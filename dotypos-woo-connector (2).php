@@ -28,6 +28,7 @@ final class Dotypos_Woo_Connector {
         add_action('dwco_sync_event', [__CLASS__, 'run_scheduled_sync']);
         add_action('dwco_retry_push_order', [__CLASS__, 'retry_push_order'], 10, 2);
         add_action('dwco_daily_report_cron_check', [__CLASS__, 'maybe_send_scheduled_daily_report']);
+        add_action('dwco_daily_report_cron_check', [__CLASS__, 'maybe_send_scheduled_ambasada_report']);
         add_action('dwco_send_historical_batch',   [__CLASS__, 'send_historical_batch']);
     }
 
@@ -82,6 +83,18 @@ final class Dotypos_Woo_Connector {
             'daily_report_pizza_category_id'     => '1871188158721371',
             'daily_report_branch_sala_id'        => '146005859',
             'daily_report_branch_ogrod_id'       => '150149839',
+            // ===== AMBASADA – oddzielny raport SMS =====
+            // UWAGA: ten tor służy WYŁĄCZNIE do raportu SMS z chmury AMBASADA.
+            // Nie pobiera produktów ani nie wysyła zamówień (to robi tylko chmura MAMMAROSA powyżej).
+            'ambasada_report_enabled'            => 'no',
+            'ambasada_cloud_id'                  => '305272757',
+            'ambasada_refresh_token'             => '',
+            'ambasada_branch_id'                 => '',
+            'ambasada_sms_phone'                 => '',
+            'ambasada_sms_sender'                => 'AMBASADA',
+            'ambasada_report_label'              => 'AMB',
+            'ambasada_time_weekday'              => '22:40',
+            'ambasada_time_weekend'              => '23:40',
         ];
     }
 
@@ -216,6 +229,22 @@ final class Dotypos_Woo_Connector {
         add_settings_field('daily_report_smsgateway_from_phone', 'Numer telefonu nadawcy (Twój)', [__CLASS__, 'field_text'], 'dwco', 'dwco_daily_report_smsgateway', ['key' => 'daily_report_smsgateway_from_phone', 'placeholder' => 'np. +48781647139']);
         add_settings_field('daily_report_smsgateway_to_phone', 'Numer telefonu odbiorcy', [__CLASS__, 'field_text'], 'dwco', 'dwco_daily_report_smsgateway', ['key' => 'daily_report_smsgateway_to_phone', 'placeholder' => 'np. +48500000000']);
 
+        // ===== AMBASADA – oddzielny raport SMS (osobna chmura, tylko raport) =====
+        add_settings_section('dwco_ambasada', 'Raport SMS – AMBASADA (osobna chmura)', function () {
+            echo '<p>Niezależny raport SMS ze sprzedaży chmury <strong>AMBASADA</strong> (ID 305272757), wysyłany na osobny numer. '
+                . 'Ten tor <strong>nie pobiera produktów</strong> i <strong>nie wysyła zamówień</strong> — służy wyłącznie do raportu SMS. '
+                . 'Użyj nowego refresh tokenu API otrzymanego mailem dla chmury AMBASADA. Wysyłka idzie przez to samo konto SMSAPI.pl (Kanał 1), tylko na inny numer.</p>';
+        }, 'dwco');
+        add_settings_field('ambasada_report_enabled', 'Włącz raport AMBASADA', [__CLASS__, 'field_yesno'], 'dwco', 'dwco_ambasada', ['key' => 'ambasada_report_enabled']);
+        add_settings_field('ambasada_cloud_id', 'cloudId AMBASADA', [__CLASS__, 'field_text'], 'dwco', 'dwco_ambasada', ['key' => 'ambasada_cloud_id', 'placeholder' => '305272757']);
+        add_settings_field('ambasada_refresh_token', 'Refresh token AMBASADA', [__CLASS__, 'field_password'], 'dwco', 'dwco_ambasada', ['key' => 'ambasada_refresh_token', 'placeholder' => '••••••••']);
+        add_settings_field('ambasada_branch_id', 'Branch ID AMBASADA', [__CLASS__, 'field_text'], 'dwco', 'dwco_ambasada', ['key' => 'ambasada_branch_id', 'placeholder' => 'np. 123456789']);
+        add_settings_field('ambasada_sms_phone', 'Numer telefonu (odbiorca)', [__CLASS__, 'field_text'], 'dwco', 'dwco_ambasada', ['key' => 'ambasada_sms_phone', 'placeholder' => 'np. +48500000000']);
+        add_settings_field('ambasada_sms_sender', 'Nadawca SMS', [__CLASS__, 'field_text'], 'dwco', 'dwco_ambasada', ['key' => 'ambasada_sms_sender', 'placeholder' => 'np. AMBASADA']);
+        add_settings_field('ambasada_report_label', 'Etykieta raportu', [__CLASS__, 'field_text'], 'dwco', 'dwco_ambasada', ['key' => 'ambasada_report_label', 'placeholder' => 'AMB']);
+        add_settings_field('ambasada_time_weekday', 'Godzina wysyłki pn–czw, nd', [__CLASS__, 'field_time'], 'dwco', 'dwco_ambasada', ['key' => 'ambasada_time_weekday']);
+        add_settings_field('ambasada_time_weekend', 'Godzina wysyłki pt–sb', [__CLASS__, 'field_time'], 'dwco', 'dwco_ambasada', ['key' => 'ambasada_time_weekend']);
+
         // Custom actions
         add_action('admin_post_dwco_connect', [__CLASS__, 'handle_admin_connect']);
         add_action('admin_post_dwco_test', [__CLASS__, 'handle_admin_test']);
@@ -227,6 +256,7 @@ final class Dotypos_Woo_Connector {
         add_action('admin_post_dwco_check_customization_id', [__CLASS__, 'handle_check_customization_id']);
         add_action('admin_post_dwco_test_daily_report', [__CLASS__, 'handle_test_daily_report']);
         add_action('admin_post_dwco_send_last_daily_report_sms', [__CLASS__, 'handle_send_last_daily_report_sms']);
+        add_action('admin_post_dwco_test_ambasada_report', [__CLASS__, 'handle_test_ambasada_report']);
 
         // Public cron trigger endpoint (no login required)
         add_action('wp_ajax_nopriv_dwco_cron_ping',        [__CLASS__, 'handle_cron_ping']);
@@ -267,7 +297,7 @@ final class Dotypos_Woo_Connector {
         foreach ($keys as $k) {
             if (!isset($input[$k])) continue;
             $v = $input[$k];
-            if (in_array($k, ['client_secret', 'refresh_token', 'daily_report_smsapi_token', 'daily_report_telegram_bot_token', 'daily_report_smsgateway_api_key'], true)) {
+            if (in_array($k, ['client_secret', 'refresh_token', 'daily_report_smsapi_token', 'daily_report_telegram_bot_token', 'daily_report_smsgateway_api_key', 'ambasada_refresh_token'], true)) {
                 // allow empty to keep previous
                 $v = is_string($v) ? trim($v) : '';
                 if ($v === '') continue;
@@ -485,6 +515,30 @@ final class Dotypos_Woo_Connector {
                     echo "<pre style='background:#fff3cd;border:1px solid #ffc107;padding:12px;border-radius:4px;font-size:11px;line-height:1.4;overflow:auto;max-height:500px;'>".esc_html(json_encode($debugJson, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE))."</pre>";
                     echo "</details>";
                 }
+            }
+
+            // ---- AMBASADA report section ----
+            $ambOpts = self::get_options();
+            echo "<hr><h2>Raport SMS – AMBASADA (osobna chmura)</h2>";
+            echo "<p>Pobiera raport sprzedaży z chmury AMBASADA (branch ID z ustawień) i wysyła sumę SMS-em na osobny numer. Nie dotyka produktów ani zamówień.</p>";
+            if (($ambOpts['ambasada_report_enabled'] ?? 'no') !== 'yes') {
+                echo "<div class='notice notice-warning inline'><p>Raport AMBASADA jest <strong>wyłączony</strong>. Włącz go w zakładce „Ustawienia” → sekcja „Raport SMS – AMBASADA”.</p></div>";
+            }
+            echo "<form method='post' action='".esc_url(admin_url('admin-post.php'))."'>";
+            echo "<input type='hidden' name='action' value='dwco_test_ambasada_report' />";
+            wp_nonce_field('dwco_test_ambasada_report');
+            $ambTodayStr = current_time('Y-m-d');
+            echo "<div><label for='dwco_amb_report_date'><strong>Data raportu</strong></label><br>";
+            echo "<input type='date' id='dwco_amb_report_date' name='report_date' value='".esc_attr($ambTodayStr)."' class='regular-text' style='max-width:180px;' /></div>";
+            echo "<br>";
+            echo "<label><input type='checkbox' name='send_sms' value='1' /> Wyślij od razu SMS (na numer AMBASADY)</label><br><br>";
+            submit_button('Policz raport AMBASADA testowo', 'primary', 'submit', false);
+            echo "</form>";
+
+            $ambLast = get_transient('dwco_last_ambasada_report_summary');
+            if ($ambLast) {
+                echo "<h3>Ostatni wynik raportu AMBASADA</h3>";
+                echo "<pre style='background:#f6f7f7;border:1px solid #ccd0d4;padding:12px;border-radius:4px;font-size:14px;line-height:1.6;'>".esc_html($ambLast)."</pre>";
             }
         }
 
@@ -2939,6 +2993,236 @@ final class Dotypos_Woo_Connector {
             ]);
         } catch (Exception $e) {
             self::log('error', 'Scheduled daily report failed', ['ex' => $e->getMessage()]);
+        }
+    }
+
+    // ========== AMBASADA REPORT (osobna chmura, tylko SMS) ==========
+    // Cały ten blok jest niezależny od toru MAMMAROSA: używa własnego refresh tokenu,
+    // własnego transientu na access token i woła WYŁĄCZNIE endpoint sales-report.
+    // Nigdy nie importuje produktów ani nie wysyła zamówień.
+
+    /**
+     * Access token dla chmury AMBASADA. Osobny refresh token + osobny transient,
+     * żeby NIE kolidować z tokenem MAMMAROSA (który obsługuje produkty i zamówienia).
+     */
+    public static function get_ambasada_access_token(): string {
+        $opts    = self::get_options();
+        $refresh = trim($opts['ambasada_refresh_token'] ?? '');
+        $cloudId = trim($opts['ambasada_cloud_id'] ?? '');
+        if ($refresh === '' || $cloudId === '') {
+            throw new Exception('Brak refresh_token lub cloud_id dla AMBASADY.');
+        }
+
+        $url  = 'https://api.dotykacka.cz/v2/signin/token';
+        $resp = wp_remote_post($url, [
+            'headers' => [
+                'Authorization' => 'User ' . $refresh,
+                'Content-Type'  => 'application/json; charset=utf-8',
+            ],
+            'body'    => wp_json_encode(['_cloudId' => $cloudId]),
+            'timeout' => 20,
+        ]);
+        if (is_wp_error($resp)) {
+            self::log('error', 'AMBASADA access token request failed', ['error' => $resp->get_error_message()]);
+            throw new Exception($resp->get_error_message());
+        }
+        $code = wp_remote_retrieve_response_code($resp);
+        $body = wp_remote_retrieve_body($resp);
+        $data = json_decode($body, true);
+        if ($code >= 300 || empty($data['accessToken'])) {
+            self::log('error', 'AMBASADA access token response invalid', ['http' => $code, 'body' => $body]);
+            throw new Exception('Nie udało się pobrać access tokena AMBASADY (HTTP '.$code.').');
+        }
+        set_transient('dwco_ambasada_access_token', $data['accessToken'], 55 * MINUTE_IN_SECONDS);
+        return $data['accessToken'];
+    }
+
+    /**
+     * Zapytanie do API Dotykačka dla AMBASADY (oddzielny token, oddzielny transient).
+     * Świadoma kopia api_request, żeby NIE modyfikować toru MAMMAROSA.
+     */
+    public static function ambasada_api_request(string $method, string $url, $body = null, array $extra_headers = []): array {
+        $token = get_transient('dwco_ambasada_access_token');
+        if (!$token) {
+            $token = self::get_ambasada_access_token();
+        }
+        $args = [
+            'method'  => $method,
+            'timeout' => 25,
+            'headers' => [
+                'Authorization' => 'Bearer ' . $token,
+                'Content-Type'  => 'application/json; charset=utf-8',
+                'Accept'        => 'application/json',
+            ],
+        ];
+        foreach ($extra_headers as $hk => $hv) {
+            $args['headers'][$hk] = $hv;
+        }
+        if ($body !== null) {
+            $args['body'] = is_string($body) ? $body : wp_json_encode($body);
+        }
+        $resp = wp_remote_request($url, $args);
+        if (is_wp_error($resp)) {
+            self::log('error', 'AMBASADA API request error', ['url' => $url, 'error' => $resp->get_error_message()]);
+            throw new Exception($resp->get_error_message());
+        }
+        $code = wp_remote_retrieve_response_code($resp);
+        $raw  = wp_remote_retrieve_body($resp);
+        $json = json_decode($raw, true);
+        if ($code === 401 || ($code === 403 && is_array($json) && ($json['reason'] ?? '') === 'INVALID_ACCESS_TOKEN')) {
+            delete_transient('dwco_ambasada_access_token');
+            $token = self::get_ambasada_access_token();
+            $args['headers']['Authorization'] = 'Bearer ' . $token;
+            $resp = wp_remote_request($url, $args);
+            $code = wp_remote_retrieve_response_code($resp);
+            $raw  = wp_remote_retrieve_body($resp);
+            $json = json_decode($raw, true);
+        }
+        return ['http' => $code, 'raw' => $raw, 'json' => $json, 'headers' => wp_remote_retrieve_headers($resp)];
+    }
+
+    /**
+     * Pobiera raport sprzedaży AMBASADY za dany dzień i zwraca ['summary' => ..., 'json' => ...].
+     */
+    private static function fetch_ambasada_report(string $dateFrom): array {
+        $opts     = self::get_options();
+        $cloudId  = trim($opts['ambasada_cloud_id'] ?? '');
+        $branchId = trim($opts['ambasada_branch_id'] ?? '');
+        if ($cloudId === '')  throw new Exception('Brak cloudId AMBASADY w ustawieniach.');
+        if ($branchId === '') throw new Exception('Brak branch ID AMBASADY w ustawieniach.');
+
+        $tz     = wp_timezone();
+        $dtFrom = new DateTime($dateFrom, $tz);
+        $dtTo   = clone $dtFrom;
+        $dtTo->modify('+1 day');
+        $dateTo = $dtTo->format('Y-m-d');
+
+        $url  = "https://api.dotykacka.cz/v2/clouds/{$cloudId}/branches/{$branchId}/sales-report?dateFrom={$dateFrom}&dateTo={$dateTo}";
+        $resp = self::ambasada_api_request('GET', $url);
+        if ($resp['http'] >= 300) {
+            throw new Exception('Błąd raportu AMBASADA: HTTP '.$resp['http'].' | '.$resp['raw']);
+        }
+        $json    = is_array($resp['json']) ? $resp['json'] : [];
+        $summary = self::build_ambasada_report_summary($dateFrom, $json);
+        return ['summary' => $summary, 'json' => $json];
+    }
+
+    private static function build_ambasada_report_summary(string $date, array $json): string {
+        $opts  = self::get_options();
+        $label = trim($opts['ambasada_report_label'] ?? 'AMB');
+        if ($label === '') $label = 'AMB';
+
+        $total = self::mm_to_float($json['moneyTransactionInfo']['saleValue'] ?? 0);
+        $dateFormatted = (new DateTime($date, wp_timezone()))->format('d.m.Y');
+
+        return implode("\n", [
+            "{$label} - {$dateFormatted}",
+            self::mm_money($total),
+        ]);
+    }
+
+    /**
+     * Wysyła SMS AMBASADY przez SMSAPI.pl — to samo konto (token z Kanału 1: SMS),
+     * ale na osobny numer i z osobnym nadawcą.
+     */
+    private static function send_ambasada_sms(string $message): array {
+        $opts   = self::get_options();
+        $token  = trim($opts['daily_report_smsapi_token'] ?? '');
+        $phone  = trim($opts['ambasada_sms_phone'] ?? '');
+        $sender = trim($opts['ambasada_sms_sender'] ?? '');
+
+        if ($token === '') throw new Exception('Brak SMSAPI token (ustaw w sekcji „Kanał 1: SMS”).');
+        if ($phone === '') throw new Exception('Brak numeru telefonu AMBASADY w ustawieniach.');
+
+        $body = ['to' => $phone, 'message' => $message, 'encoding' => 'utf-8'];
+        if ($sender !== '') $body['from'] = $sender;
+
+        $resp = wp_remote_post('https://api.smsapi.pl/sms.do', [
+            'headers' => [
+                'Authorization' => 'Bearer ' . $token,
+                'Content-Type'  => 'application/x-www-form-urlencoded',
+            ],
+            'body'    => http_build_query($body),
+            'timeout' => 20,
+        ]);
+        if (is_wp_error($resp)) throw new Exception('SMSAPI request failed: ' . $resp->get_error_message());
+
+        $code = wp_remote_retrieve_response_code($resp);
+        $raw  = wp_remote_retrieve_body($resp);
+        if ($code !== 200 && $code !== 201) {
+            throw new Exception('SMSAPI error: HTTP ' . $code . ' | ' . $raw);
+        }
+        return ['http' => $code, 'raw' => $raw, 'json' => json_decode($raw, true)];
+    }
+
+    public static function handle_test_ambasada_report(): void {
+        if (!current_user_can('manage_options')) wp_die('Forbidden');
+        check_admin_referer('dwco_test_ambasada_report');
+
+        try {
+            $dateFrom = isset($_POST['report_date']) ? sanitize_text_field($_POST['report_date']) : '';
+            if ($dateFrom === '' || !preg_match('/^\d{4}-\d{2}-\d{2}$/', $dateFrom)) {
+                $dateFrom = current_time('Y-m-d');
+            }
+            $res = self::fetch_ambasada_report($dateFrom);
+            set_transient('dwco_last_ambasada_report_summary', $res['summary'], 10 * MINUTE_IN_SECONDS);
+            self::log('info', 'AMBASADA REPORT TEST', ['dateFrom' => $dateFrom, 'summary' => $res['summary']]);
+
+            $msg = 'Raport AMBASADA wygenerowany. Zobacz poniżej.';
+            if (isset($_POST['send_sms']) && $_POST['send_sms'] === '1') {
+                self::send_ambasada_sms($res['summary']);
+                $msg = 'Raport AMBASADA wygenerowany i wysłany SMS-em.';
+            }
+            wp_redirect(admin_url('admin.php?page=dwco&tab=diagnostics&dwco_msg='.rawurlencode($msg)));
+            exit;
+        } catch (Exception $e) {
+            self::log('error', 'AMBASADA report test failed', ['ex' => $e->getMessage()]);
+            wp_redirect(admin_url('admin.php?page=dwco&tab=diagnostics&dwco_err='.rawurlencode('Błąd raportu AMBASADA: '.$e->getMessage())));
+            exit;
+        }
+    }
+
+    public static function maybe_send_scheduled_ambasada_report(): void {
+        $opts = self::get_options();
+        if (($opts['ambasada_report_enabled'] ?? 'no') !== 'yes') return;
+
+        $tz     = wp_timezone();
+        $now    = new DateTime('now', $tz);
+        $dow    = (int)$now->format('N'); // 1=Mon…7=Sun
+        $hour   = (int)$now->format('H');
+        $minute = (int)$now->format('i');
+
+        $timeWeekday = trim($opts['ambasada_time_weekday'] ?? '22:40');
+        $timeWeekend = trim($opts['ambasada_time_weekend'] ?? '23:40');
+
+        $inWindow = static function (string $hhmm) use ($hour, $minute): bool {
+            [$h, $m] = array_map('intval', explode(':', $hhmm));
+            $nowMin  = $hour * 60 + $minute;
+            $slotMin = $h * 60 + $m;
+            return $nowMin >= $slotMin && $nowMin <= $slotMin + 10;
+        };
+
+        $isWeekday = in_array($dow, [1,2,3,4,7], true);
+        $isWeekend = in_array($dow, [5,6], true);
+
+        if ($isWeekday && !$inWindow($timeWeekday)) return;
+        if ($isWeekend && !$inWindow($timeWeekend)) return;
+        if (!$isWeekday && !$isWeekend) return;
+
+        $dateFrom = $now->format('Y-m-d');
+
+        // Zabezpieczenie przed podwójną wysyłką tego samego dnia (osobny klucz niż MAMMAROSA)
+        $guardKey = 'dwco_ambasada_report_sent_' . $dateFrom;
+        if (get_option($guardKey)) return;
+
+        try {
+            $res = self::fetch_ambasada_report($dateFrom);
+            set_transient('dwco_last_ambasada_report_summary', $res['summary'], 60 * MINUTE_IN_SECONDS);
+            self::send_ambasada_sms($res['summary']);
+            update_option($guardKey, current_time('mysql'), false);
+            self::log('info', 'AMBASADA REPORT SCHEDULED SENT', ['dateFrom' => $dateFrom, 'summary' => $res['summary']]);
+        } catch (Exception $e) {
+            self::log('error', 'Scheduled AMBASADA report failed', ['ex' => $e->getMessage()]);
         }
     }
 
