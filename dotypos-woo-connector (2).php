@@ -264,6 +264,7 @@ final class Dotypos_Woo_Connector {
         add_action('admin_post_dwco_test_daily_report', [__CLASS__, 'handle_test_daily_report']);
         add_action('admin_post_dwco_send_last_daily_report_sms', [__CLASS__, 'handle_send_last_daily_report_sms']);
         add_action('admin_post_dwco_test_ambasada_report', [__CLASS__, 'handle_test_ambasada_report']);
+        add_action('admin_post_dwco_list_ambasada_branches', [__CLASS__, 'handle_list_ambasada_branches']);
 
         // Public cron trigger endpoint (no login required)
         add_action('wp_ajax_nopriv_dwco_cron_ping',        [__CLASS__, 'handle_cron_ping']);
@@ -540,6 +541,32 @@ final class Dotypos_Woo_Connector {
             if (($ambOpts['ambasada_report_enabled'] ?? 'no') !== 'yes') {
                 echo "<div class='notice notice-warning inline'><p>Raport AMBASADA jest <strong>wyłączony</strong>. Włącz go w zakładce „Ustawienia” → sekcja „Raport SMS – AMBASADA”.</p></div>";
             }
+
+            // Lista branchy AMBASADY (do odczytania Branch ID)
+            echo "<h3>Branche (lokale) AMBASADY</h3>";
+            echo "<p>Najpierw połącz AMBASADĘ („Połącz AMBASADA” w Ustawieniach), potem kliknij poniżej, aby pobrać listę lokali i odczytać <strong>Branch ID</strong>.</p>";
+            echo "<form method='post' action='".esc_url(admin_url('admin-post.php'))."'>";
+            echo "<input type='hidden' name='action' value='dwco_list_ambasada_branches' />";
+            wp_nonce_field('dwco_list_ambasada_branches');
+            submit_button('Pokaż branche AMBASADY (ID + nazwa)', 'secondary', 'submit', false);
+            echo "</form>";
+
+            $ambBranches = get_transient('dwco_ambasada_branches');
+            if (is_array($ambBranches) && !empty($ambBranches)) {
+                $ambCurrentBranch = trim($ambOpts['ambasada_branch_id'] ?? '');
+                echo "<table class='widefat striped' style='max-width:520px;margin:10px 0;'>";
+                echo "<thead><tr><th>Branch ID</th><th>Nazwa</th></tr></thead><tbody>";
+                foreach ($ambBranches as $b) {
+                    $bid = esc_html($b['id'] ?? '');
+                    $bn  = esc_html($b['name'] ?? '');
+                    $hl  = ($ambCurrentBranch !== '' && (string)($b['id'] ?? '') === $ambCurrentBranch) ? " style='background:#e6ffed;'" : '';
+                    echo "<tr{$hl}><td><code>{$bid}</code></td><td>{$bn}</td></tr>";
+                }
+                echo "</tbody></table>";
+                echo "<p class='description'>Skopiuj właściwe <strong>Branch ID</strong> do pola „Branch ID AMBASADA” w Ustawieniach (zielone podświetlenie = aktualnie ustawione).</p>";
+            }
+
+            echo "<h3>Test raportu</h3>";
             echo "<form method='post' action='".esc_url(admin_url('admin-post.php'))."'>";
             echo "<input type='hidden' name='action' value='dwco_test_ambasada_report' />";
             wp_nonce_field('dwco_test_ambasada_report');
@@ -3261,6 +3288,50 @@ final class Dotypos_Woo_Connector {
         } catch (Exception $e) {
             self::log('error', 'AMBASADA report test failed', ['ex' => $e->getMessage()]);
             wp_redirect(admin_url('admin.php?page=dwco&tab=diagnostics&dwco_err='.rawurlencode('Błąd raportu AMBASADA: '.$e->getMessage())));
+            exit;
+        }
+    }
+
+    /**
+     * Listuje branche (lokale) chmury AMBASADA — żeby odczytać Branch ID do ustawień.
+     * Wynik trafia do transientu i jest renderowany w zakładce Diagnostyka.
+     */
+    public static function handle_list_ambasada_branches(): void {
+        if (!current_user_can('manage_options')) wp_die('Forbidden');
+        check_admin_referer('dwco_list_ambasada_branches');
+
+        try {
+            $opts    = self::get_options();
+            $cloudId = trim($opts['ambasada_cloud_id'] ?? '');
+            if ($cloudId === '') throw new Exception('Brak cloudId AMBASADY w ustawieniach.');
+
+            $url      = "https://api.dotykacka.cz/v2/clouds/{$cloudId}/branches?perPage=50";
+            $branches = self::ambasada_api_request('GET', $url);
+            if ($branches['http'] >= 300) {
+                throw new Exception('HTTP '.$branches['http'].' | '.$branches['raw']);
+            }
+
+            $branchList = [];
+            if (!empty($branches['json']['data']) && is_array($branches['json']['data'])) {
+                foreach ($branches['json']['data'] as $branch) {
+                    $branchList[] = [
+                        'id'   => (string)($branch['id'] ?? ''),
+                        'name' => (string)($branch['name'] ?? ''),
+                    ];
+                }
+            }
+
+            set_transient('dwco_ambasada_branches', $branchList, 30 * MINUTE_IN_SECONDS);
+            self::log('info', 'AMBASADA branches', ['count' => count($branchList), 'branches' => $branchList]);
+
+            $msg = empty($branchList)
+                ? 'Połączono z AMBASADĄ, ale API nie zwróciło żadnych branchy.'
+                : 'Pobrano '.count($branchList).' branch(y) AMBASADY — zobacz tabelę poniżej.';
+            wp_redirect(admin_url('admin.php?page=dwco&tab=diagnostics&dwco_msg='.rawurlencode($msg)));
+            exit;
+        } catch (Exception $e) {
+            self::log('error', 'List AMBASADA branches failed', ['ex' => $e->getMessage()]);
+            wp_redirect(admin_url('admin.php?page=dwco&tab=diagnostics&dwco_err='.rawurlencode('Błąd listy branchy AMBASADY: '.$e->getMessage())));
             exit;
         }
     }
