@@ -18,7 +18,8 @@ Integracja WooCommerce z Dotypos API v2: Connector v2, tokeny, wysyłka zamówie
 - Zamówienia Woo będą wysyłane do POS po checkout (domyślnie).
 
 == Raport SMS – AMBASADA (osobna chmura) ==
-- W "Ustawienia" → sekcja "Raport SMS – AMBASADA" wpisz: cloudId (305272757), refresh token API (z maila od Dotypos), Branch ID, numer odbiorcy i nadawcę.
+- W "Ustawienia" → sekcja "Raport SMS – AMBASADA" wpisz: cloudId (305272757), client_id i client_secret AMBASADY (z maila od Dotypos), Branch ID, numer odbiorcy i nadawcę. Zapisz.
+- Kliknij przycisk "Połącz AMBASADA" (zakładka Ustawienia), zaloguj się w Dotypos i WYBIERZ chmurę AMBASADA — refresh token zapisze się automatycznie w osobnym polu i NIE naruszy połączenia MAMMAROSY.
 - Wysyłka idzie przez to samo konto SMSAPI.pl (Kanał 1), tylko na inny numer; godziny ustawiasz osobno.
 - Ten tor służy WYŁĄCZNIE do raportu SMS — nie pobiera produktów AMBASADY do WooCommerce i nie rusza zamówień online.
 

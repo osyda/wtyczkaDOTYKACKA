@@ -88,6 +88,9 @@ final class Dotypos_Woo_Connector {
             // Nie pobiera produktów ani nie wysyła zamówień (to robi tylko chmura MAMMAROSA powyżej).
             'ambasada_report_enabled'            => 'no',
             'ambasada_cloud_id'                  => '305272757',
+            'ambasada_client_id'                 => '',
+            'ambasada_client_secret'             => '',
+            'ambasada_state'                     => 'ambasada_wp_001',
             'ambasada_refresh_token'             => '',
             'ambasada_branch_id'                 => '',
             'ambasada_sms_phone'                 => '',
@@ -237,7 +240,9 @@ final class Dotypos_Woo_Connector {
         }, 'dwco');
         add_settings_field('ambasada_report_enabled', 'Włącz raport AMBASADA', [__CLASS__, 'field_yesno'], 'dwco', 'dwco_ambasada', ['key' => 'ambasada_report_enabled']);
         add_settings_field('ambasada_cloud_id', 'cloudId AMBASADA', [__CLASS__, 'field_text'], 'dwco', 'dwco_ambasada', ['key' => 'ambasada_cloud_id', 'placeholder' => '305272757']);
-        add_settings_field('ambasada_refresh_token', 'Refresh token AMBASADA', [__CLASS__, 'field_password'], 'dwco', 'dwco_ambasada', ['key' => 'ambasada_refresh_token', 'placeholder' => '••••••••']);
+        add_settings_field('ambasada_client_id', 'client_id AMBASADA', [__CLASS__, 'field_text'], 'dwco', 'dwco_ambasada', ['key' => 'ambasada_client_id', 'placeholder' => 'z maila od Dotypos']);
+        add_settings_field('ambasada_client_secret', 'client_secret AMBASADA', [__CLASS__, 'field_password'], 'dwco', 'dwco_ambasada', ['key' => 'ambasada_client_secret', 'placeholder' => '••••••••']);
+        add_settings_field('ambasada_refresh_token', 'Refresh token AMBASADA', [__CLASS__, 'field_password'], 'dwco', 'dwco_ambasada', ['key' => 'ambasada_refresh_token', 'placeholder' => 'wypełni się po „Połącz AMBASADA”']);
         add_settings_field('ambasada_branch_id', 'Branch ID AMBASADA', [__CLASS__, 'field_text'], 'dwco', 'dwco_ambasada', ['key' => 'ambasada_branch_id', 'placeholder' => 'np. 123456789']);
         add_settings_field('ambasada_sms_phone', 'Numer telefonu (odbiorca)', [__CLASS__, 'field_text'], 'dwco', 'dwco_ambasada', ['key' => 'ambasada_sms_phone', 'placeholder' => 'np. +48500000000']);
         add_settings_field('ambasada_sms_sender', 'Nadawca SMS', [__CLASS__, 'field_text'], 'dwco', 'dwco_ambasada', ['key' => 'ambasada_sms_sender', 'placeholder' => 'np. AMBASADA']);
@@ -247,6 +252,7 @@ final class Dotypos_Woo_Connector {
 
         // Custom actions
         add_action('admin_post_dwco_connect', [__CLASS__, 'handle_admin_connect']);
+        add_action('admin_post_dwco_connect_ambasada', [__CLASS__, 'handle_admin_connect_ambasada']);
         add_action('admin_post_dwco_test', [__CLASS__, 'handle_admin_test']);
         add_action('admin_post_dwco_clear_logs', [__CLASS__, 'handle_clear_logs']);
         add_action('admin_post_dwco_import_menu', [__CLASS__, 'handle_import_menu']);
@@ -297,7 +303,7 @@ final class Dotypos_Woo_Connector {
         foreach ($keys as $k) {
             if (!isset($input[$k])) continue;
             $v = $input[$k];
-            if (in_array($k, ['client_secret', 'refresh_token', 'daily_report_smsapi_token', 'daily_report_telegram_bot_token', 'daily_report_smsgateway_api_key', 'ambasada_refresh_token'], true)) {
+            if (in_array($k, ['client_secret', 'refresh_token', 'daily_report_smsapi_token', 'daily_report_telegram_bot_token', 'daily_report_smsgateway_api_key', 'ambasada_refresh_token', 'ambasada_client_secret'], true)) {
                 // allow empty to keep previous
                 $v = is_string($v) ? trim($v) : '';
                 if ($v === '') continue;
@@ -395,6 +401,15 @@ final class Dotypos_Woo_Connector {
             echo "<input type='hidden' name='action' value='dwco_connect' />";
             wp_nonce_field('dwco_connect');
             submit_button('Połącz / Odśwież token', 'secondary');
+            echo "</form>";
+
+            echo "<hr>";
+            echo "<h2>Połącz z Dotypos – AMBASADA (osobna chmura)</h2>";
+            echo "<p>Użyj tego, gdy masz wpisane <code>client_id</code> i <code>client_secret</code> AMBASADY (sekcja „Raport SMS – AMBASADA”). Po kliknięciu zaloguj się w Dotypos i <strong>wybierz chmurę AMBASADA</strong> — refresh token zapisze się osobno i <strong>nie naruszy połączenia MAMMAROSY</strong>.</p>";
+            echo "<form method='post' action='".esc_url(admin_url('admin-post.php'))."'>";
+            echo "<input type='hidden' name='action' value='dwco_connect_ambasada' />";
+            wp_nonce_field('dwco_connect_ambasada');
+            submit_button('Połącz AMBASADA', 'secondary');
             echo "</form>";
         }
 
@@ -960,8 +975,54 @@ final class Dotypos_Woo_Connector {
     }
 
     /**
+     * Connector v2 flow dla AMBASADY. Używa własnego client_id/secret i własnego state,
+     * dzięki czemu callback zapisze token do pól AMBASADY, nie ruszając MAMMAROSY.
+     */
+    public static function handle_admin_connect_ambasada() {
+        if (!current_user_can('manage_options')) wp_die('Forbidden');
+        check_admin_referer('dwco_connect_ambasada');
+
+        $opts = self::get_options();
+        $clientId = trim($opts['ambasada_client_id'] ?? '');
+        $clientSecret = trim($opts['ambasada_client_secret'] ?? '');
+        $redirectUri = home_url(self::CALLBACK_PATH);
+        $state = trim($opts['ambasada_state'] ?? 'ambasada_wp_001');
+        if ($state === '') $state = 'ambasada_wp_001';
+        if ($clientId === '' || $clientSecret === '') {
+            wp_redirect(admin_url('admin.php?page=dwco&dwco_err='.rawurlencode('Uzupełnij client_id i client_secret AMBASADY.')));
+            exit;
+        }
+
+        $timestamp = time();
+        $signature = hash_hmac('sha256', (string)$timestamp, $clientSecret);
+
+        self::log('info', 'Starting connector v2 flow (AMBASADA)', ['timestamp'=>$timestamp, 'redirect_uri'=>$redirectUri, 'state'=>$state]);
+
+        $action = 'https://admin.dotykacka.cz/client/connect/v2';
+        $fields = [
+            'client_id' => $clientId,
+            'timestamp' => $timestamp,
+            'signature' => $signature,
+            'scope' => '*',
+            'redirect_uri' => $redirectUri,
+            'state' => $state,
+        ];
+
+        echo "<!doctype html><html><head><meta charset='utf-8'><title>Connecting Dotypos (AMBASADA)…</title></head><body>";
+        echo "<p>Przekierowuję do Dotypos… Wybierz chmurę <strong>AMBASADA</strong>. Jeśli nic się nie dzieje, kliknij przycisk.</p>";
+        echo "<form id='dwcoForm' method='POST' action='".esc_url($action)."' accept-charset='utf-8'>";
+        foreach ($fields as $name => $value) {
+            echo "<input type='hidden' name='".esc_attr($name)."' value='".esc_attr($value)."' />";
+        }
+        echo "<button type='submit'>Kontynuuj</button>";
+        echo "</form><script>document.getElementById('dwcoForm').submit();</script>";
+        echo "</body></html>";
+        exit;
+    }
+
+    /**
      * Callback endpoint: https://your-site/dotypos-auth/?token=...&cloudid=...&state=...
-     * Stores refresh token and cloud id.
+     * Stores refresh token and cloud id. Routes by state: AMBASADA → osobne pola.
      */
     public static function maybe_handle_callback() {
         $path = parse_url($_SERVER['REQUEST_URI'] ?? '', PHP_URL_PATH);
@@ -981,6 +1042,23 @@ final class Dotypos_Woo_Connector {
         }
 
         $opts = self::get_options();
+
+        // Routing po state: AMBASADA ma osobne pola, żeby NIE nadpisać tokenu MAMMAROSY.
+        $ambState = trim($opts['ambasada_state'] ?? 'ambasada_wp_001');
+        if ($ambState !== '' && $state === $ambState) {
+            self::update_options([
+                'ambasada_refresh_token' => $token,
+                'ambasada_cloud_id'      => $cloudid,
+            ]);
+            // Nowy token = unieważnij cache access tokenu AMBASADY
+            delete_transient('dwco_ambasada_access_token');
+            self::log('info', 'Stored AMBASADA refresh token from callback', ['cloudid'=>$cloudid]);
+            $url = admin_url('admin.php?page=dwco&dwco_msg='.rawurlencode('Połączono AMBASADA. Refresh token zapisany.'));
+            wp_safe_redirect($url);
+            exit;
+        }
+
+        // Domyślnie: MAMMAROSA (zachowanie bez zmian)
         if (!empty($opts['state']) && $state !== '' && $state !== $opts['state']) {
             self::log('error', 'State mismatch on callback', ['expected'=>$opts['state'], 'got'=>$state]);
             wp_die('State mismatch (CSRF).');
