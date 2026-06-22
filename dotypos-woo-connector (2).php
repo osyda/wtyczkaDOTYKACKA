@@ -236,7 +236,8 @@ final class Dotypos_Woo_Connector {
         add_settings_section('dwco_ambasada', 'Raport SMS – AMBASADA (osobna chmura)', function () {
             echo '<p>Niezależny raport SMS ze sprzedaży chmury <strong>AMBASADA</strong> (ID 305272757), wysyłany na osobny numer. '
                 . 'Ten tor <strong>nie pobiera produktów</strong> i <strong>nie wysyła zamówień</strong> — służy wyłącznie do raportu SMS. '
-                . 'Użyj nowego refresh tokenu API otrzymanego mailem dla chmury AMBASADA. Wysyłka idzie przez to samo konto SMSAPI.pl (Kanał 1), tylko na inny numer.</p>';
+                . 'Pola <code>client_id</code> / <code>client_secret</code> możesz zostawić puste, jeśli są takie same jak w głównych ustawieniach (tak zwykle jest — to dane aplikacji, nie chmury). '
+                . 'Refresh token uzyskasz klikając „Połącz AMBASADA” w zakładce Ustawienia i wybierając chmurę AMBASADA. Wysyłka idzie przez to samo konto SMSAPI.pl (Kanał 1), tylko na inny numer.</p>';
         }, 'dwco');
         add_settings_field('ambasada_report_enabled', 'Włącz raport AMBASADA', [__CLASS__, 'field_yesno'], 'dwco', 'dwco_ambasada', ['key' => 'ambasada_report_enabled']);
         add_settings_field('ambasada_cloud_id', 'cloudId AMBASADA', [__CLASS__, 'field_text'], 'dwco', 'dwco_ambasada', ['key' => 'ambasada_cloud_id', 'placeholder' => '305272757']);
@@ -983,13 +984,17 @@ final class Dotypos_Woo_Connector {
         check_admin_referer('dwco_connect_ambasada');
 
         $opts = self::get_options();
+        // client_id/secret aplikacji są wspólne dla chmur — jeśli pola AMBASADY są puste,
+        // użyj głównych (te same dane co MAMMAROSA). Chmurę i tak wybiera się ręcznie w Dotypos.
         $clientId = trim($opts['ambasada_client_id'] ?? '');
+        if ($clientId === '') $clientId = trim($opts['client_id'] ?? '');
         $clientSecret = trim($opts['ambasada_client_secret'] ?? '');
+        if ($clientSecret === '') $clientSecret = trim($opts['client_secret'] ?? '');
         $redirectUri = home_url(self::CALLBACK_PATH);
         $state = trim($opts['ambasada_state'] ?? 'ambasada_wp_001');
         if ($state === '') $state = 'ambasada_wp_001';
         if ($clientId === '' || $clientSecret === '') {
-            wp_redirect(admin_url('admin.php?page=dwco&dwco_err='.rawurlencode('Uzupełnij client_id i client_secret AMBASADY.')));
+            wp_redirect(admin_url('admin.php?page=dwco&dwco_err='.rawurlencode('Brak client_id / client_secret (ani w sekcji AMBASADA, ani w głównych ustawieniach).')));
             exit;
         }
 
