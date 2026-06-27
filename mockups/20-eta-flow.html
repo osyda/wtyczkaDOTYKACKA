@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+<meta charset="utf-8">
+<title>Przepływ ETA</title>
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; font-family:-apple-system,"Segoe UI",Roboto,Arial,sans-serif; }
+  body { width:1280px; min-height:720px; background:#0f1115; color:#e7e9ee; padding:26px 30px; }
+  h1 { font-size:22px; margin-bottom:3px; } h1 .em{color:#e23b3b;}
+  .sub { color:#8b93a4; font-size:13.5px; margin-bottom:24px; }
+  .row { display:grid; grid-template-columns: 1fr 64px 1fr 64px 1fr; align-items:center; }
+  .stepwrap { }
+  .stepnum { display:inline-flex; align-items:center; gap:8px; font-size:12px; font-weight:800; letter-spacing:.6px; color:#e9a13b; margin-bottom:9px; }
+  .stepnum i { background:#e9a13b; color:#1a1408; width:22px; height:22px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-style:normal; }
+  .panel { background:#161a22; border:1px solid #262d3a; border-radius:16px; padding:16px; }
+  .arrow { text-align:center; color:#e23b3b; font-size:34px; }
+
+  .ntf { display:flex; align-items:center; gap:10px; background:#2a1d10; border:1px solid #7a571f; border-radius:11px; padding:10px 12px; margin-bottom:12px; }
+  .ntf .bell { font-size:20px; }
+  .ntf b { font-size:13px; color:#ffd27a; } .ntf .m{font-size:11.5px;color:#caa86a;}
+
+  .card { background:#1a1f28; border:1px solid #2a313e; border-radius:12px; padding:13px; }
+  .card.hl { border-color:#e9a13b; box-shadow:0 0 0 2px rgba(233,161,59,.25); }
+  .onum { font-weight:800; font-size:15px; }
+  .badges { display:flex; gap:6px; }
+  .b { font-size:10.5px; font-weight:700; padding:3px 7px; border-radius:6px; }
+  .b.deliv{background:#13294a;color:#7fb6ff;} .b.away{background:#3a2a12;color:#ffc46b;}
+  .r1{display:flex;justify-content:space-between;align-items:center;margin-bottom:7px;}
+  .cust{font-size:13px;margin-bottom:8px;} .cust b{color:#fff;}
+  .items{font-size:12px;color:#c6cdd9;border-top:1px dashed #2c333f;padding-top:7px;line-height:1.5;}
+  .etrow{display:flex;gap:7px;margin-top:11px;align-items:center;}
+  .etrow .l{font-size:11px;color:#9aa3b4;}
+  .tb{flex:1;background:#222a36;border:1px solid #38424f;color:#e7e9ee;padding:9px 0;border-radius:9px;font-weight:700;font-size:14px;text-align:center;position:relative;}
+  .tb.go{background:#e23b3b;border-color:#e23b3b;color:#fff;}
+  .finger{position:absolute;right:-6px;bottom:-14px;font-size:26px;filter:drop-shadow(0 3px 4px rgba(0,0,0,.5));}
+
+  /* phone */
+  .phone{width:230px;margin:0 auto;border:7px solid #2a313e;border-radius:26px;overflow:hidden;background:#fff8f0;}
+  .ph-top{background:linear-gradient(135deg,#15803d,#0c6330);color:#fff;padding:16px 14px;text-align:center;}
+  .ph-top .c{width:40px;height:40px;border-radius:50%;background:rgba(255,255,255,.18);display:flex;align-items:center;justify-content:center;font-size:22px;margin:0 auto 8px;}
+  .ph-top h3{font-size:15px;} .ph-top p{font-size:11px;opacity:.9;}
+  .ph-eta{padding:16px 14px;text-align:center;}
+  .ph-eta .lab{font-size:10.5px;text-transform:uppercase;letter-spacing:.5px;color:#9a8a7c;}
+  .ph-eta .big{font-size:34px;font-weight:800;color:#b21f1f;margin:5px 0 1px;}
+  .ph-eta .s{font-size:12px;color:#6a5a4e;}
+  .ph-eta .live{display:inline-flex;align-items:center;gap:6px;margin-top:11px;background:#eaf6ee;color:#15803d;font-weight:700;font-size:11px;padding:5px 11px;border-radius:999px;}
+  .ldot{width:7px;height:7px;border-radius:50%;background:#15803d;}
+  .cap{ text-align:center; font-size:12px; color:#8b93a4; margin-top:11px; }
+</style>
+</head>
+<body>
+  <h1>Jak działa <span class="em">ETA</span> (czas przygotowania)</h1>
+  <div class="sub">Zamówienie „najszybciej" → kelnerka jednym dotknięciem ustala czas → klient widzi go natychmiast na stronie. Bez drugiego tabletu, bez „śmiesznej apki".</div>
+
+  <div class="row">
+    <!-- STEP 1 -->
+    <div class="stepwrap">
+      <div class="stepnum"><i>1</i> WPADA ZAMÓWIENIE</div>
+      <div class="panel">
+        <div class="ntf"><span class="bell">🔔</span><div><b>Nowe zamówienie online</b><div class="m">dźwięk + powiadomienie na monitorze</div></div></div>
+        <div class="card hl">
+          <div class="r1"><span class="onum">#1043</span><span class="badges"><span class="b deliv">🚚 Dostawa</span><span class="b away">NA WYNOS</span></span></div>
+          <div class="cust"><b>Jan Kowalski</b> · 500 134 092</div>
+          <div class="items">1× Capricciosa · 1× Margherita · 2× Coca-Cola</div>
+          <div class="etrow"><span class="l">Gotowe za:</span><span class="tb">30'</span><span class="tb">45'</span><span class="tb">60'</span></div>
+        </div>
+      </div>
+      <div class="cap">Status: <b style="color:#ffd27a">czeka na czas</b></div>
+    </div>
+
+    <div class="arrow">→</div>
+
+    <!-- STEP 2 -->
+    <div class="stepwrap">
+      <div class="stepnum"><i>2</i> KELNERKA KLIKA CZAS</div>
+      <div class="panel">
+        <div class="ntf" style="background:#10261a;border-color:#2c6b41;"><span class="bell">👆</span><div><b style="color:#7ee3a3">Jedno dotknięcie</b><div class="m" style="color:#86b79a">wybiera np. 45 minut</div></div></div>
+        <div class="card hl">
+          <div class="r1"><span class="onum">#1043</span><span class="badges"><span class="b deliv">🚚 Dostawa</span><span class="b away">NA WYNOS</span></span></div>
+          <div class="cust"><b>Jan Kowalski</b> · 500 134 092</div>
+          <div class="items">1× Capricciosa · 1× Margherita · 2× Coca-Cola</div>
+          <div class="etrow"><span class="l">Gotowe za:</span><span class="tb">30'</span><span class="tb go">45'<span class="finger">👆</span></span><span class="tb">60'</span></div>
+        </div>
+      </div>
+      <div class="cap">→ rachunek leci do <b style="color:#7ee3a3">Dotykački</b></div>
+    </div>
+
+    <div class="arrow">→</div>
+
+    <!-- STEP 3 -->
+    <div class="stepwrap">
+      <div class="stepnum"><i>3</i> KLIENT WIDZI OD RAZU</div>
+      <div class="phone">
+        <div class="ph-top"><div class="c">✓</div><h3>Dziękujemy, Jan!</h3><p>Zamówienie #1043 przyjęte</p></div>
+        <div class="ph-eta">
+          <div class="lab">Dostawa około</div>
+          <div class="big">14:27</div>
+          <div class="s">~ za 45 minut</div>
+          <div class="live"><span class="ldot"></span> Aktualizuje się na żywo</div>
+        </div>
+      </div>
+      <div class="cap">Bez telefonów „kiedy będzie?"</div>
+    </div>
+  </div>
+</body>
+</html>

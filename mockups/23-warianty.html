@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+<meta charset="utf-8">
+<title>Warianty integracji z Dotykačką</title>
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; font-family:-apple-system,"Segoe UI",Roboto,Arial,sans-serif; }
+  body { width:1280px; min-height:740px; background:#0f1115; color:#e7e9ee; padding:26px 30px; }
+  h1 { font-size:22px; margin-bottom:3px; } h1 .em{color:#e23b3b;}
+  .sub { color:#8b93a4; font-size:13.5px; margin-bottom:22px; max-width:1000px; }
+  .grid { display:grid; grid-template-columns:repeat(4,1fr); gap:14px; }
+  .c { background:#161a22; border:1px solid #262d3a; border-radius:15px; padding:16px; display:flex; flex-direction:column; }
+  .c .ic{font-size:26px;margin-bottom:8px;}
+  .c h2{font-size:15px;margin-bottom:3px;} .c .tag{font-size:11px;font-weight:700;padding:2px 8px;border-radius:6px;display:inline-block;margin-bottom:11px;}
+  .ok .tag{background:#15321f;color:#7ee3a3;} .mid .tag{background:#2e2a14;color:#ffd27a;} .no .tag{background:#3a1414;color:#ff9a9a;}
+  .c.rec{border-color:#15803d;box-shadow:0 0 0 1px rgba(21,128,61,.3);}
+  .rec-flag{position:absolute;}
+  .li{font-size:12px;color:#c6cdd9;line-height:1.5;margin-bottom:6px;display:flex;gap:7px;}
+  .li .p{color:#7ee3a3;} .li .m{color:#ff9a9a;}
+  .need{margin-top:auto;padding-top:11px;border-top:1px dashed #2c333f;font-size:11.5px;color:#9aa3b4;}
+  .need b{color:#cdd4e0;}
+  .rib{position:absolute;top:14px;right:16px;background:#15803d;color:#fff;font-size:11px;font-weight:800;padding:3px 10px;border-radius:7px;}
+  .foot{margin-top:20px;background:#13161c;border:1px solid #222834;border-radius:13px;padding:15px 18px;font-size:13px;color:#c6cdd9;line-height:1.6;}
+  .foot b{color:#fff;}
+  .key{color:#ffd27a;}
+</style>
+</head>
+<body>
+  <h1>Jak nasz panel spotyka się z <span class="em">Dotykačką</span> — 3 realne warianty</h1>
+  <div class="sub">Ważne: Dotykačka to zamknięta aplikacja — nie da się wrenderować naszego okienka <b>w środku</b> niej (chyba że sama Dotykačka włączy swój firmowy mechanizm powiadomień dla naszej integracji). Dlatego nasz panel żyje <b>obok</b> niej, na tym samym komputerze. Oto jak:</div>
+
+  <div class="grid">
+
+    <div class="c ok rec" style="position:relative">
+      <div class="rib">REKOMENDACJA</div>
+      <div class="ic">🪟</div>
+      <h2>A · Podział ekranu</h2>
+      <span class="tag">✅ Najprościej</span>
+      <div class="li"><span class="p">✓</span> Dotykačka i nasz panel obok siebie</div>
+      <div class="li"><span class="p">✓</span> Działa od razu, bez dodatków</div>
+      <div class="li"><span class="p">✓</span> Widzisz oba naraz cały czas</div>
+      <div class="li"><span class="m">–</span> Dotykačka ma mniej miejsca</div>
+      <div class="need">Potrzeba: <b>tylko nasz panel (PWA)</b> + funkcja podziału ekranu Androida. Zero ingerencji w Dotykačkę.</div>
+    </div>
+
+    <div class="c mid">
+      <div class="ic">🔔</div>
+      <h2>B · Powiadomienie + dymek</h2>
+      <span class="tag">🟡 Najbliżej „popup"</span>
+      <div class="li"><span class="p">✓</span> Wyskakuje nad Dotykačką + dźwięk</div>
+      <div class="li"><span class="p">✓</span> Dotykačka na pełnym ekranie</div>
+      <div class="li"><span class="p">✓</span> Dymek z licznikiem zamówień</div>
+      <div class="li"><span class="m">–</span> Trzeba mała apka-towarzysz</div>
+      <div class="need">Potrzeba: <b>mała aplikacja na Androida</b> (uprawnienie „nakładka na ekranie"). Rysuje powiadomienie/dymek nad Dotykačką.</div>
+    </div>
+
+    <div class="c ok">
+      <div class="ic">🖥</div>
+      <h2>C · Osobny ekran (przełączasz)</h2>
+      <span class="tag">✅ Najwięcej miejsca</span>
+      <div class="li"><span class="p">✓</span> Pełnoekranowy ładny panel</div>
+      <div class="li"><span class="p">✓</span> Powiadomienie + dźwięk przy nowym</div>
+      <div class="li"><span class="p">✓</span> Najlepszy na większy monitor</div>
+      <div class="li"><span class="m">–</span> Przełączasz się między aplikacjami</div>
+      <div class="need">Potrzeba: <b>nasz panel (PWA)</b> + powiadomienia systemowe. Można na drugim monitorze, jeśli kiedyś dołożysz.</div>
+    </div>
+
+    <div class="c no">
+      <div class="ic">⛔</div>
+      <h2>D · Natywnie w Dotykačce</h2>
+      <span class="tag">❌ Niedostępne przez API</span>
+      <div class="li"><span class="m">✗</span> Własne okno w środku ich apki</div>
+      <div class="li"><span class="m">✗</span> Brak takiego API publicznie</div>
+      <div class="li"><span class="p">✓</span> Wyjątek: ich firmowe powiadomienia personelu dla zamówień <b>wystawionych</b></div>
+      <div class="need">Potrzeba: <b>zgoda i włączenie po stronie Dotykački</b> (kontakt: integration@dotypos.com). Do sprawdzenia osobno.</div>
+    </div>
+
+  </div>
+
+  <div class="foot">
+    <b>Moja rekomendacja:</b> startujemy od <span class="key">Wariantu A (podział ekranu)</span> — działa od ręki, bez żadnej apki, i już likwiduje drugi tablet.
+    Jeśli zechcesz efektu „prawdziwego popupu nad Dotykačką”, dokładamy <span class="key">Wariant B</span> (mała apka-towarzysz z nakładką + dźwiękiem) — to też miejsce, gdzie wepniemy <b>telefon (CTI)</b>: ta sama apka odczyta numer dzwoniącego i pokaże kartę klienta.
+    Równolegle zapytamy Dotykačkę o <span class="key">Wariant D</span> (ich powiadomienia) — jeśli się zgodzą, dostaniemy alert natywnie w ich aplikacji.
+  </div>
+</body>
+</html>
