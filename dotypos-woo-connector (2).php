@@ -1672,6 +1672,7 @@ final class Dotypos_Woo_Connector {
                 $items[] = [
                     'id' => (int)$dotProductId,
                     'qty' => $qty,
+                    'take-away' => true,
                 ];
 
                 $currentParentIndex = count($items) - 1;
@@ -1714,6 +1715,7 @@ final class Dotypos_Woo_Connector {
                     $items[] = [
                         'id' => (int)$dotProductId,
                         'qty' => $qty,
+                        'take-away' => true,
                     ];
                 }
             }
@@ -1728,6 +1730,7 @@ final class Dotypos_Woo_Connector {
                     $items[] = [
                         'id'  => (int)$pidStr,
                         'qty' => $pqty,
+                        'take-away' => true,
                     ];
                 }
             }
@@ -1751,13 +1754,13 @@ final class Dotypos_Woo_Connector {
 
             // Case 1: exactly city flat price (e.g. 5 zł)
             if ($cityPid !== '' && abs($shippingTotal - $cityPrice) < 0.01) {
-                $items[] = ['id' => (int)$cityPid, 'qty' => 1];
+                $items[] = ['id' => (int)$cityPid, 'qty' => 1, 'take-away' => true];
             } else if ($kmPid !== '' && $kmRate > 0) {
                 // Case 2: price is per km, infer km count from Woo shipping total
                 $km = $shippingTotal / $kmRate;
                 $kmQty = (int)round($km);
                 if ($kmQty < 1) $kmQty = 1;
-                $items[] = ['id' => (int)$kmPid, 'qty' => $kmQty];
+                $items[] = ['id' => (int)$kmPid, 'qty' => $kmQty, 'take-away' => true];
                 if (abs($km - $kmQty) > 0.05) {
                     self::log('info', 'Shipping km inferred non-integer', ['shippingTotal'=>$shippingTotal, 'kmRate'=>$kmRate, 'km'=>$km, 'kmQty'=>$kmQty]);
                 }
