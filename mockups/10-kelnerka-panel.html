@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+<meta charset="utf-8">
+<title>Monitor kelnerki — Mamma Rosa</title>
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; font-family: -apple-system, "Segoe UI", Roboto, Arial, sans-serif; }
+  body { background:#0f1115; color:#e7e9ee; width:1280px; height:800px; overflow:hidden; }
+  .top { height:60px; background:#171a21; border-bottom:1px solid #262b36; display:flex; align-items:center; justify-content:space-between; padding:0 22px; }
+  .brand { display:flex; align-items:center; gap:12px; }
+  .logo { width:34px; height:34px; border-radius:8px; background:linear-gradient(135deg,#e23b3b,#a01919); display:flex; align-items:center; justify-content:center; font-size:20px; }
+  .brand b { font-size:17px; letter-spacing:.3px; }
+  .brand span { color:#8b93a4; font-size:13px; }
+  .top-right { display:flex; align-items:center; gap:18px; font-size:14px; }
+  .pill { display:flex; align-items:center; gap:7px; background:#1d2530; padding:7px 13px; border-radius:999px; }
+  .dot { width:9px; height:9px; border-radius:50%; background:#22c55e; box-shadow:0 0 0 3px rgba(34,197,94,.18); }
+  .clock { font-variant-numeric:tabular-nums; font-weight:600; font-size:16px; }
+
+  /* CTI banner */
+  .cti { margin:12px 16px 0; background:linear-gradient(90deg,#13351f,#0f1115); border:1px solid #1f7a3d; border-radius:12px; padding:11px 16px; display:flex; align-items:center; gap:14px; }
+  .cti .ring { width:38px; height:38px; border-radius:50%; background:#1f7a3d; display:flex; align-items:center; justify-content:center; font-size:18px; }
+  .cti b { font-size:15px; }
+  .cti .muted { color:#9fb0a4; font-size:13px; }
+  .cti .btn { margin-left:auto; background:#22c55e; color:#06210f; font-weight:700; border:none; padding:9px 16px; border-radius:9px; font-size:13px; }
+
+  .board { display:grid; grid-template-columns: 1fr 1fr 1fr; gap:14px; padding:14px 16px; height:calc(800px - 60px - 62px); }
+  .col { background:#13161c; border:1px solid #222834; border-radius:14px; padding:12px; display:flex; flex-direction:column; min-height:0; }
+  .col h2 { font-size:13px; text-transform:uppercase; letter-spacing:.8px; color:#9aa3b4; margin-bottom:10px; display:flex; align-items:center; gap:8px; }
+  .count { background:#262c38; color:#cdd4e0; border-radius:999px; padding:1px 9px; font-size:12px; }
+  .col.new h2 { color:#ffd27a; }
+  .cards { overflow:auto; display:flex; flex-direction:column; gap:11px; padding-right:3px; }
+
+  .card { background:#1a1f28; border:1px solid #2a313e; border-radius:12px; padding:12px; }
+  .card.alert { border-color:#e9a13b; box-shadow:0 0 0 2px rgba(233,161,59,.22); background:#211e1a; }
+  .card .r1 { display:flex; align-items:center; justify-content:space-between; margin-bottom:7px; }
+  .onum { font-weight:800; font-size:16px; }
+  .badges { display:flex; gap:6px; }
+  .b { font-size:11px; font-weight:700; padding:3px 8px; border-radius:7px; }
+  .b.away { background:#3a2a12; color:#ffc46b; border:1px solid #7a571f; }
+  .b.deliv { background:#13294a; color:#7fb6ff; border:1px solid #235; }
+  .b.pick { background:#15321f; color:#7ee3a3; border:1px solid #2c6b41; }
+  .b.asap { background:#3a1414; color:#ff9a9a; border:1px solid #6e2020; }
+  .cust { font-size:14px; color:#dfe4ec; margin-bottom:2px; }
+  .cust b { color:#fff; }
+  .phone { font-size:12.5px; color:#8b93a4; margin-bottom:9px; }
+  .items { font-size:13px; color:#c6cdd9; line-height:1.5; border-top:1px dashed #2c333f; padding-top:8px; }
+  .items .q { color:#ffd27a; font-weight:700; }
+  .foot { display:flex; align-items:center; justify-content:space-between; margin-top:10px; }
+  .total { font-weight:800; font-size:15px; }
+  .pay { font-size:12px; color:#9aa3b4; }
+
+  .eta-row { display:flex; gap:7px; margin-top:11px; }
+  .eta-row .lab { font-size:11px; color:#9aa3b4; align-self:center; margin-right:2px; }
+  .tbtn { flex:1; background:#222a36; border:1px solid #38424f; color:#e7e9ee; padding:9px 0; border-radius:9px; font-weight:700; font-size:14px; }
+  .tbtn.go { background:#e23b3b; border-color:#e23b3b; color:#fff; }
+
+  .eta-set { margin-top:10px; background:#10261a; border:1px solid #2c6b41; border-radius:9px; padding:8px 11px; display:flex; align-items:center; gap:9px; }
+  .eta-set .big { font-size:20px; font-weight:800; color:#7ee3a3; }
+  .eta-set .muted { font-size:12px; color:#86b79a; }
+  .prog { height:5px; background:#22303a; border-radius:99px; margin-top:9px; overflow:hidden; }
+  .prog > i { display:block; height:100%; background:linear-gradient(90deg,#22c55e,#a3e635); }
+</style>
+</head>
+<body>
+  <div class="top">
+    <div class="brand">
+      <div class="logo">🍕</div>
+      <div><b>Mamma Rosa</b> &nbsp;<span>· Zamówienia online</span></div>
+    </div>
+    <div class="top-right">
+      <div class="pill"><span class="dot"></span> Kasa otwarta · POS online</div>
+      <div class="pill">📦 Dziś: <b style="margin-left:4px">37</b></div>
+      <div class="clock">13:42</div>
+    </div>
+  </div>
+
+  <div class="cti">
+    <div class="ring">📞</div>
+    <div>
+      <b>Połączenie przychodzące · +48 502 118 940</b>
+      <div class="muted">Anna Wiśniewska · stały klient · 8 zamówień · ostatnio: Capricciosa + Coca-Cola</div>
+    </div>
+    <button class="btn">Otwórz kartę klienta →</button>
+  </div>
+
+  <div class="board">
+    <!-- NOWE / czekają na ETA -->
+    <div class="col new">
+      <h2>🔔 Nowe — ustaw czas <span class="count">2</span></h2>
+      <div class="cards">
+
+        <div class="card alert">
+          <div class="r1">
+            <div class="onum">#1043</div>
+            <div class="badges"><span class="b asap">ASAP</span><span class="b deliv">🚚 Dostawa</span><span class="b away">NA WYNOS</span></div>
+          </div>
+          <div class="cust"><b>Jan Kowalski</b></div>
+          <div class="phone">📞 500 134 092 · ul. Świętojańska 12, Kościerzyna</div>
+          <div class="items">
+            <span class="q">1×</span> Pizza Capricciosa <span style="color:#8b93a4">(+ ser, + pieczarki)</span><br>
+            <span class="q">1×</span> Pizza Margherita &nbsp; · &nbsp; <span class="q">2×</span> Coca-Cola 0,5l<br>
+            <span class="q">1×</span> Dowóz Kościerzyna
+          </div>
+          <div class="foot"><div class="total">79,00 zł</div><div class="pay">💵 Gotówka u kierowcy</div></div>
+          <div class="eta-row">
+            <span class="lab">Gotowe za:</span>
+            <button class="tbtn">20'</button>
+            <button class="tbtn">30'</button>
+            <button class="tbtn go">45'</button>
+            <button class="tbtn">60'</button>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="r1">
+            <div class="onum">#1044</div>
+            <div class="badges"><span class="b asap">ASAP</span><span class="b pick">🏠 Odbiór</span><span class="b away">NA WYNOS</span></div>
+          </div>
+          <div class="cust"><b>Marek Zieliński</b></div>
+          <div class="phone">📞 698 220 117 · odbiór osobisty</div>
+          <div class="items">
+            <span class="q">2×</span> Pizza Diavola<br>
+            <span class="q">1×</span> Tiramisu
+          </div>
+          <div class="foot"><div class="total">68,00 zł</div><div class="pay">💳 Karta przy odbiorze</div></div>
+          <div class="eta-row">
+            <span class="lab">Gotowe za:</span>
+            <button class="tbtn">15'</button>
+            <button class="tbtn">20'</button>
+            <button class="tbtn">30'</button>
+            <button class="tbtn">45'</button>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- W REALIZACJI -->
+    <div class="col">
+      <h2>👨‍🍳 W realizacji <span class="count">2</span></h2>
+      <div class="cards">
+
+        <div class="card">
+          <div class="r1">
+            <div class="onum">#1041</div>
+            <div class="badges"><span class="b deliv">🚚 Dostawa</span><span class="b away">NA WYNOS</span></div>
+          </div>
+          <div class="cust"><b>Katarzyna Nowak</b></div>
+          <div class="phone">📞 512 880 431 · ul. Długa 5, Kościerzyna</div>
+          <div class="items">
+            <span class="q">1×</span> Pizza Quattro Formaggi<br>
+            <span class="q">1×</span> Sałatka Cezar &nbsp; · &nbsp; <span class="q">1×</span> Dowóz Kościerzyna
+          </div>
+          <div class="eta-set">
+            <div class="big">⏱ 14:05</div>
+            <div class="muted">dostawa za ~23 min<div class="prog"><i style="width:48%"></i></div></div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="r1">
+            <div class="onum">#1042</div>
+            <div class="badges"><span class="b pick">🏠 Odbiór</span><span class="b away">NA WYNOS</span></div>
+          </div>
+          <div class="cust"><b>Piotr Lewandowski</b></div>
+          <div class="phone">📞 604 771 028 · odbiór osobisty</div>
+          <div class="items"><span class="q">1×</span> Pizza Hawajska &nbsp;·&nbsp; <span class="q">3×</span> Sok pomarańczowy</div>
+          <div class="eta-set">
+            <div class="big">⏱ 13:55</div>
+            <div class="muted">odbiór za ~13 min<div class="prog"><i style="width:67%"></i></div></div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- ZAPLANOWANE NA GODZINĘ -->
+    <div class="col">
+      <h2>🗓 Na godzinę <span class="count">2</span></h2>
+      <div class="cards">
+
+        <div class="card">
+          <div class="r1">
+            <div class="onum">#1039</div>
+            <div class="badges"><span class="b deliv">🚚 Dostawa</span><span class="b away">NA WYNOS</span></div>
+          </div>
+          <div class="cust"><b>Firma „Bukowo" Sp. z o.o.</b></div>
+          <div class="phone">📞 58 686 12 00 · ul. Przemysłowa 3 · NIP 5911234567</div>
+          <div class="items"><span class="q">6×</span> Pizza Margherita &nbsp;·&nbsp; <span class="q">6×</span> Pizza Capricciosa</div>
+          <div class="foot"><div class="total">312,00 zł</div><div class="pay">na <b style="color:#ffd27a">18:00</b> · 💳 karta</div></div>
+        </div>
+
+        <div class="card">
+          <div class="r1">
+            <div class="onum">#1040</div>
+            <div class="badges"><span class="b pick">🏠 Odbiór</span><span class="b away">NA WYNOS</span></div>
+          </div>
+          <div class="cust"><b>Tomasz Wójcik</b></div>
+          <div class="phone">📞 691 003 552 · odbiór osobisty</div>
+          <div class="items"><span class="q">1×</span> Pizza Wiejska &nbsp;·&nbsp; <span class="q">1×</span> Piwo bezalk.</div>
+          <div class="foot"><div class="total">46,00 zł</div><div class="pay">na <b style="color:#ffd27a">19:30</b> · 💵 gotówka</div></div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+</body>
+</html>

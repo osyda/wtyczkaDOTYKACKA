@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+<meta charset="utf-8">
+<title>Mamma Rosa — Architektura systemu</title>
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; font-family:-apple-system,"Segoe UI",Roboto,Arial,sans-serif; }
+  body { width:1280px; min-height:920px; background:#0f1115; color:#e7e9ee; padding:26px 30px; }
+  h1 { font-size:23px; margin-bottom:3px; }
+  h1 .em { color:#e23b3b; }
+  .sub { color:#8b93a4; font-size:13.5px; margin-bottom:22px; }
+
+  .flow { display:grid; grid-template-columns: 1fr 1.25fr 1fr; gap:18px; align-items:stretch; }
+  .node { background:#161a22; border:1px solid #262d3a; border-radius:16px; padding:16px; }
+  .node h2 { font-size:13px; text-transform:uppercase; letter-spacing:.7px; color:#9aa3b4; margin-bottom:12px; display:flex; align-items:center; gap:8px; }
+  .box { background:#1c222c; border:1px solid #2c3442; border-radius:11px; padding:12px 13px; margin-bottom:10px; }
+  .box .bt { font-weight:700; font-size:14px; display:flex; align-items:center; gap:8px; }
+  .box .bd { font-size:12px; color:#9aa3b4; margin-top:4px; line-height:1.45; }
+  .core { border-color:#e23b3b; box-shadow:0 0 0 1px rgba(226,59,59,.25); }
+  .core h2 { color:#ff9a9a; }
+  .pos { border-color:#2c6b41; }
+  .pos h2 { color:#7ee3a3; }
+  .tag { display:inline-block; font-size:10.5px; font-weight:700; padding:2px 7px; border-radius:6px; background:#222a36; color:#9fb6d6; margin-top:8px; }
+
+  .arrows { text-align:center; color:#5a6678; font-size:12px; margin:14px 0 22px; letter-spacing:.5px; }
+
+  .road { margin-top:8px; }
+  .road h2 { font-size:15px; margin-bottom:14px; }
+  .phases { display:grid; grid-template-columns: repeat(6,1fr); gap:12px; }
+  .ph { background:#161a22; border:1px solid #262d3a; border-radius:14px; padding:13px; position:relative; }
+  .ph .n { font-size:11px; font-weight:800; color:#e23b3b; letter-spacing:.5px; }
+  .ph .h { font-size:13.5px; font-weight:700; margin:5px 0 7px; }
+  .ph ul { list-style:none; font-size:11.5px; color:#9aa3b4; line-height:1.7; }
+  .ph li:before { content:"› "; color:#5a6678; }
+  .ph.first { border-color:#e9a13b; }
+  .ph.first .n { color:#e9a13b; }
+  .nowtag { position:absolute; top:-9px; right:10px; background:#e9a13b; color:#1a1408; font-size:10px; font-weight:800; padding:2px 8px; border-radius:6px; }
+
+  .legend { display:flex; gap:18px; margin-top:18px; font-size:12px; color:#8b93a4; }
+  .legend span b { color:#cdd4e0; }
+</style>
+</head>
+<body>
+  <h1>Mamma Rosa — <span class="em">nowy system zamówień</span> · architektura</h1>
+  <div class="sub">Jeden projekt Next.js na Vercel zastępuje Orderable + wtyczkę dostawy + „śmieszną apkę" + drugi tablet. Stara wtyczka działa równolegle aż do przełączenia.</div>
+
+  <div class="flow">
+    <!-- KLIENT -->
+    <div class="node">
+      <h2>🛒 Klient (www / telefon)</h2>
+      <div class="box"><div class="bt">📱 Sklep „pode mnie"</div><div class="bd">Menu z Dotykački · dostawa/odbiór · ASAP lub na godzinę · dostawa 4 zł / 2 zł</div></div>
+      <div class="box"><div class="bt">✅ Strona „dziękujemy"</div><div class="bd">Live status + ETA ustalone przez obsługę (na żywo)</div></div>
+      <div class="box"><div class="bt">📞 Telefon stacjonarny</div><div class="bd">Połączenie przychodzące → rozpoznanie numeru</div><span class="tag">CTI · Faza 4</span></div>
+    </div>
+
+    <!-- MIDDLEWARE -->
+    <div class="node core">
+      <h2>⚙️ Nasz serwis (Next.js / Vercel)</h2>
+      <div class="box"><div class="bt">🔐 Auth Dotykačka</div><div class="bd">Connector v2 → refresh token → access token (cache)</div></div>
+      <div class="box"><div class="bt">🧾 Tworzenie rachunku</div><div class="bd">pos-actions · order/create · na wynos per pozycja · dodatki jako customizations · dostawa jako pozycja</div></div>
+      <div class="box"><div class="bt">👤 Klient = encja (nie notatka!)</div><div class="bd">szukaj po telefonie → utwórz/zaktualizuj → podepnij customer-id</div></div>
+      <div class="box"><div class="bt">⏱ ETA + kolejka + retry</div><div class="bd">stan zamówień, idempotencja, ponawianie gdy kasa zamknięta</div></div>
+    </div>
+
+    <!-- POS / KELNERKA -->
+    <div class="node pos">
+      <h2>🍽 Sala / POS</h2>
+      <div class="box"><div class="bt">🖥 Monitor kelnerki (PWA)</div><div class="bd">Na tym samym komputerze co Dotykačka. Nowe zamówienia + ustawianie ETA + karta klienta z telefonu</div><span class="tag">koniec drugiego tabletu</span></div>
+      <div class="box"><div class="bt">🟢 Dotykačka POS</div><div class="bd">Rachunek z podpiętym klientem, flagą „na wynos", poprawnym opisem — gotowy do fiskalizacji</div></div>
+    </div>
+  </div>
+
+  <div class="arrows">KLIENT  ───▶  NASZ SERWIS  ───▶  DOTYKAČKA POS &nbsp;&nbsp;|&nbsp;&nbsp; ETA / status  ◀───  MONITOR KELNERKI  ◀───  NASZ SERWIS</div>
+
+  <div class="road">
+    <h2>🗺 Roadmapa — budujemy fazami (każda działa osobno)</h2>
+    <div class="phases">
+      <div class="ph first">
+        <span class="nowtag">START</span>
+        <div class="n">FAZA 0</div><div class="h">Szkielet</div>
+        <ul><li>Next.js + Vercel</li><li>Połączenie z API</li><li>Pobranie menu z POS</li></ul>
+      </div>
+      <div class="ph">
+        <div class="n">FAZA 1</div><div class="h">Menu + koszyk</div>
+        <ul><li>Produkty + dodatki</li><li>Dostawa/odbiór</li><li>ASAP / godzina</li></ul>
+      </div>
+      <div class="ph">
+        <div class="n">FAZA 2</div><div class="h">Checkout → POS</div>
+        <ul><li>order/create</li><li>na wynos + dodatki</li><li>klient jako encja</li></ul>
+      </div>
+      <div class="ph">
+        <div class="n">FAZA 3</div><div class="h">Monitor + ETA</div>
+        <ul><li>panel kelnerki</li><li>ustawianie czasu</li><li>koniec 2. tabletu</li></ul>
+      </div>
+      <div class="ph">
+        <div class="n">FAZA 4</div><div class="h">Telefon / CTI</div>
+        <ul><li>numer → klient</li><li>karta klienta</li><li>szybki rachunek</li></ul>
+      </div>
+      <div class="ph">
+        <div class="n">FAZA 5</div><div class="h">Płatności online</div>
+        <ul><li>Przelewy24 / BLIK</li><li>auto-fiskalizacja</li><li>(opcjonalnie)</li></ul>
+      </div>
+    </div>
+  </div>
+
+  <div class="legend">
+    <span>🟠 <b>Faza 0</b> — zaczynamy od tego</span>
+    <span>🔴 <b>Nasz serwis</b> — serce systemu</span>
+    <span>🟢 <b>POS</b> — Dotykačka dostaje gotowy rachunek</span>
+  </div>
+</body>
+</html>

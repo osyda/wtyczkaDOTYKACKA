@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+<meta charset="utf-8">
+<title>Mamma Rosa — Menu (klient)</title>
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; font-family:-apple-system,"Segoe UI",Roboto,Arial,sans-serif; }
+  body { width:414px; height:896px; background:#fff8f0; color:#2a211c; overflow:hidden; position:relative; }
+  .hero { background:linear-gradient(135deg,#b21f1f,#7d1414); color:#fff; padding:18px 18px 16px; }
+  .hrow { display:flex; align-items:center; justify-content:space-between; }
+  .hbrand { display:flex; align-items:center; gap:10px; }
+  .hlogo { width:40px; height:40px; border-radius:11px; background:#fff; display:flex; align-items:center; justify-content:center; font-size:23px; }
+  .hbrand b { font-size:19px; letter-spacing:.3px; display:block; }
+  .hbrand span { font-size:12px; opacity:.85; }
+  .hmode { display:flex; gap:6px; margin-top:14px; background:rgba(255,255,255,.15); padding:4px; border-radius:11px; }
+  .hmode div { flex:1; text-align:center; padding:8px 0; border-radius:8px; font-size:13.5px; font-weight:600; }
+  .hmode .on { background:#fff; color:#b21f1f; }
+  .hinfo { margin-top:11px; font-size:12.5px; opacity:.9; display:flex; gap:14px; }
+
+  .cats { display:flex; gap:8px; padding:13px 18px; overflow:auto; background:#fff; border-bottom:1px solid #f0e3d6; }
+  .cats div { white-space:nowrap; font-size:13px; font-weight:600; color:#8a7a6e; padding:7px 13px; border-radius:999px; background:#f6ece2; }
+  .cats .on { background:#b21f1f; color:#fff; }
+
+  .list { padding:14px 18px 120px; overflow:auto; height:calc(896px - 250px); }
+  .sec { font-size:15px; font-weight:800; margin:6px 0 12px; color:#7d1414; }
+  .item { display:flex; gap:13px; background:#fff; border:1px solid #f0e3d6; border-radius:15px; padding:12px; margin-bottom:12px; }
+  .ph { width:74px; height:74px; border-radius:11px; flex-shrink:0; display:flex; align-items:center; justify-content:center; font-size:36px; background:#fbeede; }
+  .it-b { flex:1; min-width:0; }
+  .it-b h3 { font-size:15px; margin-bottom:3px; }
+  .it-b p { font-size:12px; color:#9a8a7c; line-height:1.4; }
+  .it-f { display:flex; align-items:center; justify-content:space-between; margin-top:9px; }
+  .price { font-weight:800; font-size:15px; color:#2a211c; }
+  .add { width:34px; height:34px; border-radius:10px; background:#15803d; color:#fff; border:none; font-size:20px; font-weight:700; }
+
+  .cart { position:absolute; left:14px; right:14px; bottom:16px; background:#15803d; color:#fff; border-radius:15px; padding:14px 18px; display:flex; align-items:center; justify-content:space-between; box-shadow:0 10px 24px rgba(21,128,61,.35); }
+  .cart .c-l { display:flex; align-items:center; gap:11px; }
+  .c-badge { background:#fff; color:#15803d; font-weight:800; width:26px; height:26px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:14px; }
+  .cart b { font-size:16px; }
+  .cart .go { font-size:14px; font-weight:700; display:flex; align-items:center; gap:6px; }
+</style>
+</head>
+<body>
+  <div class="hero">
+    <div class="hrow">
+      <div class="hbrand">
+        <div class="hlogo">🍕</div>
+        <div><b>Mamma Rosa</b><span>Kościerzyna · Pizza & Pasta</span></div>
+      </div>
+      <div style="font-size:13px;background:rgba(255,255,255,.15);padding:6px 11px;border-radius:999px">🟢 Otwarte</div>
+    </div>
+    <div class="hmode">
+      <div class="on">🚚 Dostawa</div>
+      <div>🏠 Odbiór osobisty</div>
+    </div>
+    <div class="hinfo"><span>⏱ Dziś ~40 min</span><span>🛵 Dowóz od 4 zł</span><span>⭐ 4,9 (320)</span></div>
+  </div>
+
+  <div class="cats">
+    <div class="on">Pizza</div><div>Pasta</div><div>Sałatki</div><div>Dodatki</div><div>Napoje</div><div>Desery</div>
+  </div>
+
+  <div class="list">
+    <div class="sec">🍕 Pizza (32 cm)</div>
+
+    <div class="item">
+      <div class="ph">🍕</div>
+      <div class="it-b">
+        <h3>Capricciosa</h3>
+        <p>Sos pomidorowy, mozzarella, szynka, pieczarki, karczochy</p>
+        <div class="it-f"><span class="price">34,00 zł</span><button class="add">+</button></div>
+      </div>
+    </div>
+
+    <div class="item">
+      <div class="ph">🍕</div>
+      <div class="it-b">
+        <h3>Margherita</h3>
+        <p>Sos pomidorowy, mozzarella, bazylia</p>
+        <div class="it-f"><span class="price">26,00 zł</span><button class="add">+</button></div>
+      </div>
+    </div>
+
+    <div class="item">
+      <div class="ph">🍕</div>
+      <div class="it-b">
+        <h3>Diavola</h3>
+        <p>Sos pomidorowy, mozzarella, salami pikantne, papryczki</p>
+        <div class="it-f"><span class="price">34,00 zł</span><button class="add">+</button></div>
+      </div>
+    </div>
+
+    <div class="item">
+      <div class="ph">🍕</div>
+      <div class="it-b">
+        <h3>Quattro Formaggi</h3>
+        <p>Mozzarella, gorgonzola, parmezan, ser pleśniowy</p>
+        <div class="it-f"><span class="price">36,00 zł</span><button class="add">+</button></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="cart">
+    <div class="c-l"><div class="c-badge">3</div><b>79,00 zł</b></div>
+    <div class="go">Przejdź do koszyka →</div>
+  </div>
+</body>
+</html>
