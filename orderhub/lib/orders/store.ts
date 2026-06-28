@@ -1,12 +1,10 @@
 /**
  * Magazyn zamówień.
  *
- * FAZA 2/3: implementacja in-memory (Map w pamięci procesu) — wystarcza do działania
- * całego przepływu lokalnie i na pojedynczej instancji.
- *
- * ⚠️ DO ZROBIENIA przy wdrożeniu na Vercel (środowisko serverless = wiele instancji):
- * podmienić na trwały magazyn (Postgres/Neon lub Vercel KV). Interfejs `OrderStore`
- * jest celowo wąski, żeby podmiana była prosta.
+ * Dwie implementacje wybierane automatycznie (patrz `pickStore`):
+ * - in-memory (Map) — lokalnie / gdy brak konfiguracji Redis,
+ * - Redis (Vercel KV / Upstash) — produkcja, gdy ustawione KV_REST_API_URL/TOKEN
+ *   (trwałość + działanie na wielu instancjach serverless). Patrz `kvStore.ts`.
  */
 
 import type { NewOrderInput, Order, OrderStatus } from "./types";
@@ -80,7 +78,20 @@ export const memoryStore: OrderStore = {
   },
 };
 
-export const orderStore = memoryStore;
+// Wybór magazynu: trwały Redis (Vercel KV / Upstash) gdy skonfigurowany, inaczej pamięć.
+function pickStore(): OrderStore {
+  const url = process.env.KV_REST_API_URL || process.env.UPSTASH_REDIS_REST_URL;
+  const token = process.env.KV_REST_API_TOKEN || process.env.UPSTASH_REDIS_REST_TOKEN;
+  if (url && token) {
+    // Import dynamiczny, by nie inicjalizować klienta bez konfiguracji.
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const { makeKvStore } = require("./kvStore") as typeof import("./kvStore");
+    return makeKvStore();
+  }
+  return memoryStore;
+}
+
+export const orderStore: OrderStore = pickStore();
 
 export function setEta(order: Order, minutes: number): Partial<Order> {
   const etaAt = new Date(Date.now() + minutes * 60_000).toISOString();
