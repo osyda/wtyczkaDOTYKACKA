@@ -64,7 +64,7 @@ export function Shop({ menu }: { menu: Menu }) {
       {/* Tytuł + sort */}
       <div className="flex items-end justify-between px-6 pb-5 pt-6">
         <h1 className="font-display text-[34px] font-semibold leading-[1.05]">
-          Mamma&nbsp;Rosa
+          Mammarosa
           <br />
           <span className="text-[#9B8B86]">menu dostawy</span>
         </h1>

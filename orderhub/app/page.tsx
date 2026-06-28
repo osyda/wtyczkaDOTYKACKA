@@ -11,9 +11,9 @@ export default async function Home() {
       <div className="mx-auto max-w-2xl px-6 py-16">
         <div className="mb-2 flex items-center gap-3">
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/brand/icon-white.png" alt="Mamma Rosa" className="h-12 w-12 object-contain" />
+          <img src="/brand/icon-white.png" alt="Mammarosa" className="h-12 w-12 object-contain" />
           <div>
-            <h1 className="text-2xl font-bold">Mamma Rosa — OrderHub</h1>
+            <h1 className="text-2xl font-bold">Mammarosa — OrderHub</h1>
             <p className="text-sm text-[#B7A691]">Nowy system zamówień · Faza 0 (szkielet)</p>
           </div>
         </div>

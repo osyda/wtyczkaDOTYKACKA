@@ -108,7 +108,7 @@ export default function PanelPage() {
       <main className="grid min-h-screen place-items-center bg-[#1F1714] px-6 text-[#F3E7D5]">
         <div className="w-full max-w-xs text-center">
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/brand/icon-white.png" alt="Mamma Rosa" className="mx-auto mb-4 h-14 w-14 object-contain" />
+          <img src="/brand/icon-white.png" alt="Mammarosa" className="mx-auto mb-4 h-14 w-14 object-contain" />
           <h1 className="mb-1 text-lg font-bold">Panel obsługi</h1>
           <p className="mb-5 text-sm text-[#B7A691]">Podaj PIN, aby zobaczyć zamówienia.</p>
           <input
@@ -138,9 +138,9 @@ export default function PanelPage() {
       <div className="flex h-14 items-center justify-between border-b border-[#3A322B] bg-[#2A2521] px-5">
         <div className="flex items-center gap-3">
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/brand/icon-white.png" alt="Mamma Rosa" className="h-9 w-9 object-contain" />
+          <img src="/brand/icon-white.png" alt="Mammarosa" className="h-9 w-9 object-contain" />
           <div className="font-bold">
-            Mamma Rosa <span className="text-sm font-normal text-[#B7A691]">· Zamówienia online</span>
+            Mammarosa <span className="text-sm font-normal text-[#B7A691]">· Zamówienia online</span>
           </div>
         </div>
         <div className="flex items-center gap-3 text-sm">

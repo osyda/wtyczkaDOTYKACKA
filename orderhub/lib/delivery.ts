@@ -1,5 +1,5 @@
 /**
- * Reguła dostawy Mamma Rosa (automatyczne wyliczanie):
+ * Reguła dostawy Mammarosa (automatyczne wyliczanie):
  * - Kościerzyna: 5 zł (stała, płaska),
  * - poza Kościerzyną: 2 zł za każdy km, do 15 km od Kościerzyny,
  * - powyżej 15 km: poza zasięgiem dostawy.

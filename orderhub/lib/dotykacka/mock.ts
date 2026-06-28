@@ -16,7 +16,7 @@ const PIZZA_ADDONS = [
 export function mockMenu(): Menu {
   return {
     source: "mock",
-    branch: "Mamma Rosa (DEMO)",
+    branch: "Mammarosa (DEMO)",
     productCount: 11,
     fetchedAt: new Date(0).toISOString(),
     categories: [

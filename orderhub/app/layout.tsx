@@ -21,8 +21,8 @@ const fraunces = Fraunces({
 });
 
 export const metadata: Metadata = {
-  title: "Mamma Rosa — Zamów online",
-  description: "Zamów pizzę z dostawą lub na wynos — Mamma Rosa, Kościerzyna.",
+  title: "Mammarosa — Zamów online",
+  description: "Zamów pizzę z dostawą lub na wynos — Mammarosa, Kościerzyna.",
 };
 
 export default function RootLayout({

@@ -2,9 +2,9 @@ import type { MetadataRoute } from "next";
 
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: "Mamma Rosa — Zamówienia",
-    short_name: "Mamma Rosa",
-    description: "Zamawianie online + panel zamówień Mamma Rosa.",
+    name: "Mammarosa — Zamówienia",
+    short_name: "Mammarosa",
+    description: "Zamawianie online + panel zamówień Mammarosa.",
     start_url: "/panel",
     display: "standalone",
     background_color: "#1F1714",
