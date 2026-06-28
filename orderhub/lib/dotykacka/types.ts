@@ -45,12 +45,19 @@ export interface DotyPage<T> {
 
 /* ---- Znormalizowany kształt pod UI (sklep / panel) ---- */
 
+export interface MenuAddon {
+  id: string;
+  name: string;
+  price: number;
+}
+
 export interface MenuProduct {
   id: string;
   name: string;
   description: string;
   price: number;
   color?: string;
+  addons?: MenuAddon[];
 }
 
 export interface MenuCategory {
