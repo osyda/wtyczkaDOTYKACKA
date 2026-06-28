@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
 import { useCart, lineTotal } from "@/lib/cart/CartProvider";
 import { zl } from "@/lib/format";
@@ -14,8 +15,11 @@ type TimeMode = "asap" | "scheduled";
 type Payment = "cash" | "card";
 
 export default function CheckoutPage() {
+  const router = useRouter();
   const { lines, subtotal, setQty, remove, clear } = useCart();
 
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [mode, setMode] = useState<FulfillmentMode>("delivery");
   const [timeMode, setTimeMode] = useState<TimeMode>("asap");
   const [scheduledTime, setScheduledTime] = useState("18:00");
@@ -30,7 +34,6 @@ export default function CheckoutPage() {
     zip: "",
     note: "",
   });
-  const [placed, setPlaced] = useState(false);
 
   const delivery = useMemo(
     () => quoteDelivery(mode, zone, km),
@@ -45,30 +48,48 @@ export default function CheckoutPage() {
     phoneValid &&
     (mode === "pickup" || form.street.trim().length > 2);
 
-  if (placed) {
-    return (
-      <main className="min-h-screen bg-[#fff8f0] text-[#2a211c]">
-        <div className="mx-auto max-w-md px-6 py-20 text-center">
-          <div className="mx-auto mb-4 flex h-20 w-20 items-center justify-center rounded-full bg-[#15803d] text-4xl text-white">
-            ✓
-          </div>
-          <h1 className="text-2xl font-extrabold">Dziękujemy{form.name ? `, ${form.name.split(" ")[0]}` : ""}!</h1>
-          <p className="mt-2 text-[#6a5a4e]">
-            Zamówienie zostało skompletowane.
-            <br />
-            <span className="text-sm text-[#9a8a7c]">
-              (Faza 1: podgląd — wysyłka do POS Dotykačka będzie w Fazie 2)
-            </span>
-          </p>
-          <Link
-            href="/menu"
-            className="mt-6 inline-block rounded-2xl bg-[#b21f1f] px-6 py-3 font-bold text-white"
-          >
-            Wróć do menu
-          </Link>
-        </div>
-      </main>
-    );
+  async function submitOrder() {
+    setSubmitting(true);
+    setError(null);
+    const payload = {
+      mode,
+      timeMode,
+      scheduledTime: timeMode === "scheduled" ? scheduledTime : undefined,
+      customer: {
+        name: form.name,
+        phone: form.phone,
+        street: form.street,
+        city: form.city,
+        zip: form.zip,
+        note: form.note,
+      },
+      items: lines.map((l) => ({
+        productId: l.productId,
+        name: l.name,
+        qty: l.qty,
+        basePrice: l.basePrice,
+        addons: l.addons,
+        lineTotal: lineTotal(l),
+      })),
+      subtotal,
+      deliveryFee: delivery.fee,
+      total,
+      payment,
+    };
+    try {
+      const res = await fetch("/api/orders", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error ?? "Błąd wysyłki zamówienia.");
+      clear();
+      router.push(`/dziekujemy/${data.order.id}`);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Błąd wysyłki.");
+      setSubmitting(false);
+    }
   }
 
   if (lines.length === 0) {
@@ -232,16 +253,14 @@ export default function CheckoutPage() {
 
       {/* CTA */}
       <div className="fixed inset-x-0 bottom-0 z-40 border-t border-[#f0e3d6] bg-white px-4 py-3">
+        {error && <p className="mx-auto mb-2 max-w-md text-center text-sm text-[#b21f1f]">{error}</p>}
         <button
-          disabled={!canOrder}
-          onClick={() => {
-            setPlaced(true);
-            clear();
-          }}
+          disabled={!canOrder || submitting}
+          onClick={submitOrder}
           className="mx-auto flex max-w-md items-center justify-between rounded-2xl px-5 py-4 font-extrabold text-white disabled:opacity-40"
           style={{ background: "#15803d", width: "100%", maxWidth: "28rem" }}
         >
-          <span>{canOrder ? "Zamawiam" : "Uzupełnij dane"}</span>
+          <span>{submitting ? "Wysyłam…" : canOrder ? "Zamawiam" : "Uzupełnij dane"}</span>
           <span>{zl(total)} →</span>
         </button>
       </div>

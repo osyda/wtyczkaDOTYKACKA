@@ -11,6 +11,9 @@ export const dotykackaConfig = {
   refreshToken: process.env.DOTYKACKA_REFRESH_TOKEN?.trim() || "",
   cloudId: process.env.DOTYKACKA_CLOUD_ID?.trim() || "",
   branchId: process.env.DOTYKACKA_BRANCH_ID?.trim() || "",
+  // Produkty POS reprezentujące koszt dostawy (żeby suma w POS zgadzała się z Woo/sklepem).
+  deliveryCityProductId: process.env.DOTYKACKA_DELIVERY_CITY_PRODUCT_ID?.trim() || "",
+  deliveryKmProductId: process.env.DOTYKACKA_DELIVERY_KM_PRODUCT_ID?.trim() || "",
 };
 
 /** Czy mamy komplet danych do realnego wywołania API. Jeśli nie — używamy mocka. */

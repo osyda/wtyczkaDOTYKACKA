@@ -65,12 +65,23 @@ export default async function Home() {
               Podgląd menu zaciągniętego z Dotykački.
             </p>
           </Link>
-          <a
-            href="/api/dotykacka/health"
+          <Link
+            href="/panel"
             className="rounded-2xl border border-[#262d3a] bg-[#161a22] p-5 transition hover:border-[#e23b3b]"
           >
-            <div className="text-lg font-bold">🩺 /api/dotykacka/health</div>
-            <p className="mt-1 text-sm text-[#9aa3b4]">Surowy JSON diagnostyki połączenia.</p>
+            <div className="text-lg font-bold">🖥 Panel kelnerki</div>
+            <p className="mt-1 text-sm text-[#9aa3b4]">
+              Monitor zamówień + ustawianie ETA + CTI (PWA).
+            </p>
+          </Link>
+        </div>
+
+        <div className="mt-3">
+          <a
+            href="/api/dotykacka/health"
+            className="block rounded-2xl border border-[#262d3a] bg-[#161a22] p-4 text-sm transition hover:border-[#e23b3b]"
+          >
+            🩺 <code>/api/dotykacka/health</code> — surowy JSON diagnostyki połączenia
           </a>
         </div>
 
