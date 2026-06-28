@@ -36,22 +36,64 @@ export default function CheckoutPage() {
     note: "",
   });
   const [manualKm, setManualKm] = useState<number | "">("");
+  const [coords, setCoords] = useState<{ lat: number; lng: number } | null>(null);
+  const [geoStatus, setGeoStatus] = useState<"idle" | "locating" | "error">("idle");
   const [quote, setQuote] = useState<Quote>(flatCityQuote());
   const [quoting, setQuoting] = useState(false);
 
-  // Automatyczne wyliczanie dostawy z adresu (debounce).
+  function locateMe() {
+    if (typeof navigator === "undefined" || !navigator.geolocation) {
+      setGeoStatus("error");
+      return;
+    }
+    setGeoStatus("locating");
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        setCoords({ lat: pos.coords.latitude, lng: pos.coords.longitude });
+        setGeoStatus("idle");
+      },
+      () => setGeoStatus("error"),
+      { enableHighAccuracy: true, timeout: 10000 }
+    );
+  }
+
+  // Automatyczne wyliczanie dostawy: GPS klienta → adres → fallback.
   useEffect(() => {
     if (mode === "pickup") {
       setQuote(pickupQuote());
       return;
     }
-    // Kościerzyna → natychmiast 5 zł (bez odpytywania serwera).
+
+    // 1) Lokalizacja GPS klienta (priorytet).
+    if (coords) {
+      const ctrl = new AbortController();
+      (async () => {
+        setQuoting(true);
+        try {
+          const res = await fetch("/api/delivery/quote", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ mode, lat: coords.lat, lng: coords.lng }),
+            signal: ctrl.signal,
+          });
+          setQuote(await res.json());
+        } catch {
+          /* anulowane */
+        } finally {
+          setQuoting(false);
+        }
+      })();
+      return () => ctrl.abort();
+    }
+
+    // 2) Adres w Kościerzynie → natychmiast 5 zł.
     if (isKoscierzyna(form.city)) {
       setQuote(flatCityQuote());
       return;
     }
     if (form.street.trim().length < 3) return;
 
+    // 3) Adres poza miastem (debounce).
     const ctrl = new AbortController();
     const t = setTimeout(async () => {
       setQuoting(true);
@@ -79,7 +121,7 @@ export default function CheckoutPage() {
       clearTimeout(t);
       ctrl.abort();
     };
-  }, [mode, form.street, form.city, form.zip, manualKm]);
+  }, [mode, coords, form.street, form.city, form.zip, manualKm]);
 
   const deliveryFee = quote.fee;
   const total = subtotal + deliveryFee;
@@ -200,43 +242,79 @@ export default function CheckoutPage() {
             onChange={(v) => setMode(v as FulfillmentMode)}
           />
           {mode === "delivery" && (
-            <div className="mt-3 rounded-xl border border-[#E7D4BC] bg-[#FFF8EC] p-3 text-sm">
-              {form.street.trim().length < 3 ? (
-                <span className="text-[#9a8a7c]">Podaj adres — opłata policzy się automatycznie.</span>
-              ) : quoting ? (
-                <span className="text-[#9a8a7c]">Liczę odległość…</span>
-              ) : quote.outOfRange ? (
-                <span className="font-semibold text-[#B7382F]">
-                  🚫 {quote.label}. Wybierz odbiór osobisty.
-                </span>
-              ) : quote.needsManual ? (
-                <span className="text-[#9a8a7c]">Podaj odległość (km), aby policzyć dostawę:</span>
-              ) : (
-                <div className="flex items-center justify-between">
-                  <span className="font-semibold text-[#5C6B3C]">
-                    {quote.inCity ? "📍 Kościerzyna — stawka płaska" : `📍 ${quote.km} km od Kościerzyny`}
+            <div className="mt-3 space-y-2">
+              {/* Przycisk: policz z lokalizacji klienta */}
+              <button
+                type="button"
+                onClick={locateMe}
+                className="flex w-full items-center justify-center gap-2 rounded-xl border-2 border-[#5C6B3C] bg-[#EDEFE2] px-3 py-2.5 text-sm font-bold text-[#5C6B3C]"
+              >
+                📍 {coords ? "Lokalizacja ustawiona — przelicz ponownie" : "Policz z mojej lokalizacji"}
+              </button>
+              {geoStatus === "locating" && (
+                <p className="text-xs text-[#9a8a7c]">Ustalam Twoją lokalizację…</p>
+              )}
+              {geoStatus === "error" && (
+                <p className="text-xs text-[#B7382F]">
+                  Nie udało się pobrać lokalizacji — podaj adres ręcznie poniżej.
+                </p>
+              )}
+
+              {/* Wynik wyceny */}
+              <div className="rounded-xl border border-[#E7D4BC] bg-[#FFF8EC] p-3 text-sm">
+                {quoting ? (
+                  <span className="text-[#9a8a7c]">Liczę odległość…</span>
+                ) : quote.outOfRange ? (
+                  <span className="font-semibold text-[#B7382F]">🚫 {quote.label}. Wybierz odbiór osobisty.</span>
+                ) : (coords || !quote.needsManual) && (coords || form.street.trim().length >= 3) ? (
+                  <div className="flex items-center justify-between">
+                    <span className="font-semibold text-[#5C6B3C]">
+                      {quote.inCity
+                        ? "📍 Kościerzyna — stawka płaska"
+                        : `📍 ${quote.km} km ${coords ? "od Ciebie" : "od Kościerzyny"}`}
+                    </span>
+                    <span className="font-extrabold">{zl(deliveryFee)}</span>
+                  </div>
+                ) : quote.needsManual ? (
+                  <span className="text-[#9a8a7c]">Podaj odległość (km), aby policzyć dostawę:</span>
+                ) : (
+                  <span className="text-[#9a8a7c]">
+                    Użyj lokalizacji lub podaj adres — opłata policzy się automatycznie.
                   </span>
-                  <span className="font-extrabold">{zl(deliveryFee)}</span>
-                </div>
-              )}
-              {quote.needsManual && (
-                <label className="mt-2 block">
-                  <span className="mb-1 block text-xs text-[#9a8a7c]">
-                    Odległość (km) — automat wymaga klucza map (dodamy); na razie podaj ręcznie:
-                  </span>
-                  <input
-                    type="number"
-                    min={1}
-                    max={15}
-                    value={manualKm}
-                    onChange={(e) => setManualKm(e.target.value === "" ? "" : Number(e.target.value))}
-                    className="w-full rounded-xl border border-[#E0CDB2] bg-white px-3 py-2.5 text-sm"
-                  />
-                </label>
-              )}
-              {quote.estimated && !quote.needsManual && (
-                <p className="mt-1 text-xs text-[#9a8a7c]">Wartość szacowana — do potwierdzenia.</p>
-              )}
+                )}
+
+                {coords && (
+                  <button
+                    type="button"
+                    onClick={() => setCoords(null)}
+                    className="mt-1 text-xs font-semibold text-[#B7382F]"
+                  >
+                    ✕ wpisz adres zamiast lokalizacji
+                  </button>
+                )}
+
+                {quote.needsManual && !coords && (
+                  <label className="mt-2 block">
+                    <span className="mb-1 block text-xs text-[#9a8a7c]">
+                      Odległość (km) — pełen automat wymaga klucza map (dodamy); na razie podaj ręcznie:
+                    </span>
+                    <input
+                      type="number"
+                      min={1}
+                      max={15}
+                      value={manualKm}
+                      onChange={(e) => setManualKm(e.target.value === "" ? "" : Number(e.target.value))}
+                      className="w-full rounded-xl border border-[#E0CDB2] bg-white px-3 py-2.5 text-sm"
+                    />
+                  </label>
+                )}
+
+                {coords && quote.estimated && !quote.outOfRange && (
+                  <p className="mt-1 text-xs text-[#9a8a7c]">
+                    Policzono z Twojej lokalizacji (szacunek; z kluczem map — dokładną trasą drogową).
+                  </p>
+                )}
+              </div>
             </div>
           )}
         </Card>

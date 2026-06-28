@@ -6,18 +6,21 @@ import {
   pickupQuote,
   type DeliveryQuote,
 } from "@/lib/delivery";
-import { estimateDrivingKm, hasGeocoder } from "@/lib/geo";
+import { estimateDrivingKm, distanceFromRestaurant, hasGeocoder, CITY_RADIUS_KM } from "@/lib/geo";
 
 export const dynamic = "force-dynamic";
 
 /**
  * POST /api/delivery/quote
- * body: { mode, street, city, zip, manualKm? }
+ * body: { mode, lat?, lng?, street?, city?, zip?, manualKm? }
  * Zwraca automatycznie policzoną opłatę za dostawę.
+ * Priorytet: lokalizacja GPS (lat/lng) → adres → fallback ręczny.
  */
 export async function POST(req: Request) {
   let body: {
     mode?: "delivery" | "pickup";
+    lat?: number;
+    lng?: number;
     street?: string;
     city?: string;
     zip?: string;
@@ -33,7 +36,16 @@ export async function POST(req: Request) {
     return NextResponse.json(pickupQuote());
   }
 
-  // Kościerzyna → płaska stawka, bez liczenia odległości.
+  // 1) Lokalizacja klienta z GPS — najdokładniejsze, działa też bez klucza (szacunek).
+  if (typeof body.lat === "number" && typeof body.lng === "number") {
+    const { km, accurate } = await distanceFromRestaurant(body.lat, body.lng);
+    if (km <= CITY_RADIUS_KM) {
+      return NextResponse.json(flatCityQuote()); // w obrębie Kościerzyny
+    }
+    return NextResponse.json(kmQuote(km, !accurate));
+  }
+
+  // 2) Adres w Kościerzynie → płaska stawka.
   if (isKoscierzyna(body.city)) {
     return NextResponse.json(flatCityQuote());
   }

@@ -17,6 +17,10 @@ const ORIGIN = {
   lng: Number(process.env.RESTAURANT_LNG) || 17.9766,
 };
 
+// Promień „terenu Kościerzyny" (stawka płaska) i współczynnik krętości dróg dla szacunku bez klucza.
+export const CITY_RADIUS_KM = Number(process.env.DELIVERY_CITY_RADIUS_KM) || 3;
+const ROAD_FACTOR = 1.3;
+
 export function hasGeocoder(): boolean {
   return ORS_KEY.length > 0;
 }
@@ -77,4 +81,36 @@ export async function estimateDrivingKm(address: string): Promise<number | null>
   } catch {
     return null;
   }
+}
+
+/** Odległość w linii prostej (km) — wzór haversine, bez żadnego API. */
+export function haversineKm(aLat: number, aLng: number, bLat: number, bLng: number): number {
+  const R = 6371;
+  const dLat = ((bLat - aLat) * Math.PI) / 180;
+  const dLng = ((bLng - aLng) * Math.PI) / 180;
+  const s =
+    Math.sin(dLat / 2) ** 2 +
+    Math.cos((aLat * Math.PI) / 180) * Math.cos((bLat * Math.PI) / 180) * Math.sin(dLng / 2) ** 2;
+  return R * 2 * Math.atan2(Math.sqrt(s), Math.sqrt(1 - s));
+}
+
+/**
+ * Odległość od restauracji do współrzędnych klienta (z GPS).
+ * - z kluczem ORS → realna trasa drogowa (accurate=true),
+ * - bez klucza → szacunek z linii prostej × współczynnik dróg (accurate=false).
+ */
+export async function distanceFromRestaurant(
+  lat: number,
+  lng: number
+): Promise<{ km: number; accurate: boolean }> {
+  if (ORS_KEY) {
+    try {
+      const km = await drivingKm({ lat, lng });
+      if (km !== null) return { km: Math.round(km * 10) / 10, accurate: true };
+    } catch {
+      /* spadamy do szacunku */
+    }
+  }
+  const straight = haversineKm(ORIGIN.lat, ORIGIN.lng, lat, lng);
+  return { km: Math.round(straight * ROAD_FACTOR * 10) / 10, accurate: false };
 }
