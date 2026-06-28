@@ -44,11 +44,12 @@ DELIVERY_CITY_RADIUS_KM=3
 
 Po dodaniu zmiennych → **Redeploy**.
 
-## 4. (Zalecane przed publicznym startem) ochrona panelu
-⚠️ `/panel` i staffowe API (lista zamówień, ETA, status) są teraz **otwarte** — każdy z linkiem
-zobaczy dane klientów. Przed udostępnieniem klientom trzeba to zabezpieczić. Opcje:
-- szybkie: **Vercel → Settings → Deployment Protection** (hasło na całość na czas testów), albo
-- docelowe: dodać **PIN/login dla `/panel`** (mogę dorobić — ~mała zmiana).
+## 4. Ochrona panelu (PIN) — GOTOWE, wystarczy ustawić
+Panel `/panel` oraz staffowe API (lista zamówień, ETA, status, CTI) są chronione PIN-em.
+- Ustaw zmienną **`STAFF_PIN`** (np. losowe 4–6 cyfr) w Environment Variables → Redeploy.
+- Wejście na `/panel` poprosi o PIN; sesja trzyma się 12 h (cookie).
+- Endpointy klienta (składanie zamówień, wycena dostawy, status własnego zamówienia) pozostają publiczne.
+- Bez ustawionego `STAFF_PIN` ochrona jest wyłączona (wygodne na DEMO, ale NIE zostawiaj tak publicznie).
 
 ## 5. Domena (opcjonalnie)
 - Settings → **Domains** → dodaj np. `zamow.mammarosa.pl` i ustaw rekord CNAME u operatora DNS.

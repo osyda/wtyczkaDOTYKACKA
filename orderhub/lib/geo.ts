@@ -83,6 +83,45 @@ export async function estimateDrivingKm(address: string): Promise<number | null>
   }
 }
 
+export interface ReverseAddress {
+  street?: string;
+  city?: string;
+  zip?: string;
+}
+
+/**
+ * Reverse geocoding: współrzędne → adres (ulica/miasto/kod).
+ * Wymaga klucza ORS. Bez klucza zwraca null (klient wpisuje adres ręcznie).
+ */
+export async function reverseGeocode(lat: number, lng: number): Promise<ReverseAddress | null> {
+  if (!ORS_KEY) return null;
+  try {
+    const url = new URL("https://api.openrouteservice.org/geocode/reverse");
+    url.searchParams.set("api_key", ORS_KEY);
+    url.searchParams.set("point.lat", String(lat));
+    url.searchParams.set("point.lon", String(lng));
+    url.searchParams.set("size", "1");
+    url.searchParams.set("boundary.country", "PL");
+
+    const res = await fetch(url, { cache: "no-store" });
+    if (!res.ok) return null;
+    const data = (await res.json()) as {
+      features?: { properties?: Record<string, string> }[];
+    };
+    const p = data.features?.[0]?.properties;
+    if (!p) return null;
+
+    const houseStreet = [p.street, p.housenumber].filter(Boolean).join(" ").trim();
+    return {
+      street: houseStreet || p.name || undefined,
+      city: p.locality || p.localadmin || p.county || undefined,
+      zip: p.postalcode || undefined,
+    };
+  } catch {
+    return null;
+  }
+}
+
 /** Odległość w linii prostej (km) — wzór haversine, bez żadnego API. */
 export function haversineKm(aLat: number, aLng: number, bLat: number, bLng: number): number {
   const R = 6371;

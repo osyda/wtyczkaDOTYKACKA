@@ -16,6 +16,37 @@ export default function PanelPage() {
   const [caller, setCaller] = useState<CallerInfo | null>(null);
   const [simPhone, setSimPhone] = useState("");
 
+  // Bramka PIN dla obsługi.
+  const [authReady, setAuthReady] = useState(false);
+  const [needPin, setNeedPin] = useState(false);
+  const [pin, setPin] = useState("");
+  const [pinError, setPinError] = useState(false);
+
+  useEffect(() => {
+    fetch("/api/staff/check")
+      .then((r) => r.json())
+      .then((d) => {
+        setNeedPin(Boolean(d.required) && !d.authed);
+        setAuthReady(true);
+      })
+      .catch(() => setAuthReady(true));
+  }, []);
+
+  const submitPin = async () => {
+    setPinError(false);
+    const res = await fetch("/api/staff/login", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ pin }),
+    });
+    if (res.ok) {
+      setNeedPin(false);
+      setPin("");
+    } else {
+      setPinError(true);
+    }
+  };
+
   const refresh = useCallback(async () => {
     try {
       const res = await fetch("/api/orders", { cache: "no-store" });
@@ -67,6 +98,39 @@ export default function PanelPage() {
   const news = orders.filter(isNew);
   const prog = orders.filter(inProgress);
   const sched = orders.filter(scheduled);
+
+  if (!authReady) {
+    return <main className="grid min-h-screen place-items-center bg-[#1F1714] text-[#B7A691]">Ładowanie…</main>;
+  }
+
+  if (needPin) {
+    return (
+      <main className="grid min-h-screen place-items-center bg-[#1F1714] px-6 text-[#F3E7D5]">
+        <div className="w-full max-w-xs text-center">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src="/brand/icon-white.png" alt="Mamma Rosa" className="mx-auto mb-4 h-14 w-14 object-contain" />
+          <h1 className="mb-1 text-lg font-bold">Panel obsługi</h1>
+          <p className="mb-5 text-sm text-[#B7A691]">Podaj PIN, aby zobaczyć zamówienia.</p>
+          <input
+            type="password"
+            inputMode="numeric"
+            value={pin}
+            onChange={(e) => setPin(e.target.value)}
+            onKeyDown={(e) => e.key === "Enter" && submitPin()}
+            placeholder="PIN"
+            className="w-full rounded-xl border border-[#3A322B] bg-[#2A2521] px-4 py-3 text-center text-lg tracking-widest outline-none focus:border-[#C08A3E]"
+          />
+          {pinError && <p className="mt-2 text-sm text-[#B7382F]">Błędny PIN — spróbuj ponownie.</p>}
+          <button
+            onClick={submitPin}
+            className="mt-4 w-full rounded-xl bg-[#B7382F] px-4 py-3 font-bold text-white"
+          >
+            Wejdź
+          </button>
+        </div>
+      </main>
+    );
+  }
 
   return (
     <main className="min-h-screen bg-[#1F1714] text-[#F3E7D5]">

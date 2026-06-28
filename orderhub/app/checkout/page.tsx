@@ -48,9 +48,30 @@ export default function CheckoutPage() {
     }
     setGeoStatus("locating");
     navigator.geolocation.getCurrentPosition(
-      (pos) => {
-        setCoords({ lat: pos.coords.latitude, lng: pos.coords.longitude });
+      async (pos) => {
+        const lat = pos.coords.latitude;
+        const lng = pos.coords.longitude;
+        setCoords({ lat, lng });
         setGeoStatus("idle");
+        // Auto-uzupełnienie adresu z GPS (gdy skonfigurowany klucz map).
+        try {
+          const res = await fetch("/api/geo/reverse", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ lat, lng }),
+          });
+          const a = await res.json();
+          if (a.available) {
+            setForm((f) => ({
+              ...f,
+              street: a.street || f.street,
+              city: a.city || f.city,
+              zip: a.zip || f.zip,
+            }));
+          }
+        } catch {
+          /* brak klucza / błąd — klient wpisze ręcznie */
+        }
       },
       () => setGeoStatus("error"),
       { enableHighAccuracy: true, timeout: 10000 }
