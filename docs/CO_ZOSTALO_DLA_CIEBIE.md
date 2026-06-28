@@ -15,9 +15,13 @@ Mam gotowe narzędzia Vercela. Gdy dasz zielone światło, zdeployuję `orderhub
 link do podglądu. Uwaga techniczna: na Vercelu magazyn zamówień (teraz in-memory) trzeba
 podmienić na **Postgres (Neon) lub Vercel KV** — to ~pół godziny pracy, zrobię przy deployu.
 
-## 3. Stawki dostawy  💰 (do potwierdzenia)
-W kodzie: **Kościerzyna 4 zł / poza 2 zł за km**. W starej wtyczce było 5 zł / 2 zł za km.
-Podaj poprawne, to ustawię na sztywno. (Plik: `orderhub/lib/delivery.ts`.)
+## 3. Dostawa  💰 (USTAWIONE) + klucz map do automatu
+Reguła wpisana zgodnie z Twoim poleceniem: **Kościerzyna 5 zł (płaska), poza 2 zł/km do 15 km**
+(powyżej 15 km = poza zasięgiem). Liczy się automatycznie z adresu.
+Żeby odległość liczyła się **w pełni automatycznie** (bez ręcznego podawania km), potrzebny jest
+**darmowy klucz OpenRouteService** (https://openrouteservice.org — rejestracja, plan darmowy):
+wpiszemy go jako `ORS_API_KEY`. Potwierdź też dokładny adres/współrzędne lokalu
+(`RESTAURANT_LAT/LNG`, teraz domyślnie centrum Kościerzyny).
 
 ## 4. Telefon / CTI  📞 (zależy od typu linii)
 Lookup klienta po numerze już działa. Brakuje realnego źródła zdarzenia „dzwoni numer":

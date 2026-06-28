@@ -2,17 +2,20 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { useCart, lineTotal } from "@/lib/cart/CartProvider";
 import { zl } from "@/lib/format";
 import {
-  quoteDelivery,
-  type DeliveryZone,
+  isKoscierzyna,
+  pickupQuote,
+  flatCityQuote,
+  type DeliveryQuote,
   type FulfillmentMode,
 } from "@/lib/delivery";
 
 type TimeMode = "asap" | "scheduled";
 type Payment = "cash" | "card";
+type Quote = DeliveryQuote & { needsManual?: boolean };
 
 export default function CheckoutPage() {
   const router = useRouter();
@@ -23,8 +26,6 @@ export default function CheckoutPage() {
   const [mode, setMode] = useState<FulfillmentMode>("delivery");
   const [timeMode, setTimeMode] = useState<TimeMode>("asap");
   const [scheduledTime, setScheduledTime] = useState("18:00");
-  const [zone, setZone] = useState<DeliveryZone>("kosc");
-  const [km, setKm] = useState(3);
   const [payment, setPayment] = useState<Payment>("cash");
   const [form, setForm] = useState({
     name: "",
@@ -34,19 +35,61 @@ export default function CheckoutPage() {
     zip: "",
     note: "",
   });
+  const [manualKm, setManualKm] = useState<number | "">("");
+  const [quote, setQuote] = useState<Quote>(flatCityQuote());
+  const [quoting, setQuoting] = useState(false);
 
-  const delivery = useMemo(
-    () => quoteDelivery(mode, zone, km),
-    [mode, zone, km]
-  );
-  const total = subtotal + delivery.fee;
+  // Automatyczne wyliczanie dostawy z adresu (debounce).
+  useEffect(() => {
+    if (mode === "pickup") {
+      setQuote(pickupQuote());
+      return;
+    }
+    // Kościerzyna → natychmiast 5 zł (bez odpytywania serwera).
+    if (isKoscierzyna(form.city)) {
+      setQuote(flatCityQuote());
+      return;
+    }
+    if (form.street.trim().length < 3) return;
+
+    const ctrl = new AbortController();
+    const t = setTimeout(async () => {
+      setQuoting(true);
+      try {
+        const res = await fetch("/api/delivery/quote", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            mode,
+            street: form.street,
+            city: form.city,
+            zip: form.zip,
+            manualKm: typeof manualKm === "number" ? manualKm : undefined,
+          }),
+          signal: ctrl.signal,
+        });
+        setQuote(await res.json());
+      } catch {
+        /* anulowane / błąd */
+      } finally {
+        setQuoting(false);
+      }
+    }, 500);
+    return () => {
+      clearTimeout(t);
+      ctrl.abort();
+    };
+  }, [mode, form.street, form.city, form.zip, manualKm]);
+
+  const deliveryFee = quote.fee;
+  const total = subtotal + deliveryFee;
 
   const phoneValid = form.phone.replace(/\D/g, "").length >= 9;
   const canOrder =
     lines.length > 0 &&
     form.name.trim().length > 1 &&
     phoneValid &&
-    (mode === "pickup" || form.street.trim().length > 2);
+    (mode === "pickup" || (form.street.trim().length > 2 && quote.available && !quote.outOfRange));
 
   async function submitOrder() {
     setSubmitting(true);
@@ -72,7 +115,7 @@ export default function CheckoutPage() {
         lineTotal: lineTotal(l),
       })),
       subtotal,
-      deliveryFee: delivery.fee,
+      deliveryFee,
       total,
       payment,
     };
@@ -157,27 +200,42 @@ export default function CheckoutPage() {
             onChange={(v) => setMode(v as FulfillmentMode)}
           />
           {mode === "delivery" && (
-            <div className="mt-3 space-y-3">
-              <Segmented
-                color="red"
-                options={[
-                  { value: "kosc", label: "Kościerzyna · 4 zł" },
-                  { value: "outside", label: "Poza · 2 zł/km" },
-                ]}
-                value={zone}
-                onChange={(v) => setZone(v as DeliveryZone)}
-              />
-              {zone === "outside" && (
-                <label className="block">
-                  <span className="mb-1 block text-xs text-[#9a8a7c]">Odległość (km)</span>
+            <div className="mt-3 rounded-xl border border-[#E7D4BC] bg-[#FFF8EC] p-3 text-sm">
+              {form.street.trim().length < 3 ? (
+                <span className="text-[#9a8a7c]">Podaj adres — opłata policzy się automatycznie.</span>
+              ) : quoting ? (
+                <span className="text-[#9a8a7c]">Liczę odległość…</span>
+              ) : quote.outOfRange ? (
+                <span className="font-semibold text-[#B7382F]">
+                  🚫 {quote.label}. Wybierz odbiór osobisty.
+                </span>
+              ) : quote.needsManual ? (
+                <span className="text-[#9a8a7c]">Podaj odległość (km), aby policzyć dostawę:</span>
+              ) : (
+                <div className="flex items-center justify-between">
+                  <span className="font-semibold text-[#5C6B3C]">
+                    {quote.inCity ? "📍 Kościerzyna — stawka płaska" : `📍 ${quote.km} km od Kościerzyny`}
+                  </span>
+                  <span className="font-extrabold">{zl(deliveryFee)}</span>
+                </div>
+              )}
+              {quote.needsManual && (
+                <label className="mt-2 block">
+                  <span className="mb-1 block text-xs text-[#9a8a7c]">
+                    Odległość (km) — automat wymaga klucza map (dodamy); na razie podaj ręcznie:
+                  </span>
                   <input
                     type="number"
                     min={1}
-                    value={km}
-                    onChange={(e) => setKm(Number(e.target.value))}
-                    className="w-full rounded-xl border border-[#E0CDB2] bg-[#FFF8EC] px-3 py-2.5 text-sm"
+                    max={15}
+                    value={manualKm}
+                    onChange={(e) => setManualKm(e.target.value === "" ? "" : Number(e.target.value))}
+                    className="w-full rounded-xl border border-[#E0CDB2] bg-white px-3 py-2.5 text-sm"
                   />
                 </label>
+              )}
+              {quote.estimated && !quote.needsManual && (
+                <p className="mt-1 text-xs text-[#9a8a7c]">Wartość szacowana — do potwierdzenia.</p>
               )}
             </div>
           )}
@@ -243,7 +301,10 @@ export default function CheckoutPage() {
         {/* Podsumowanie */}
         <Card title="Podsumowanie">
           <Row label="Produkty" value={zl(subtotal)} />
-          <Row label={delivery.label} value={delivery.fee > 0 ? zl(delivery.fee) : "0,00 zł"} />
+          <Row
+            label={mode === "pickup" ? "Odbiór osobisty" : quote.inCity ? "Dostawa — Kościerzyna" : `Dostawa${quote.km ? ` (${quote.km} km)` : ""}`}
+            value={deliveryFee > 0 ? zl(deliveryFee) : "0,00 zł"}
+          />
           <div className="mt-2 flex justify-between border-t border-dashed border-[#E7D4BC] pt-3 text-lg font-extrabold">
             <span>Razem</span>
             <span>{zl(total)}</span>

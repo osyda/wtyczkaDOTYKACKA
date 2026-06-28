@@ -1,35 +1,75 @@
 /**
- * Reguła naliczania dostawy.
- * UWAGA: stawki do potwierdzenia z właścicielem (rozbieżność w starej wtyczce: 5 zł / 2 zł za km).
- * Domyślnie: Kościerzyna = stała opłata, poza Kościerzyną = stawka za km.
+ * Reguła dostawy Mamma Rosa (automatyczne wyliczanie):
+ * - Kościerzyna: 5 zł (stała, płaska),
+ * - poza Kościerzyną: 2 zł za każdy km, do 15 km od Kościerzyny,
+ * - powyżej 15 km: poza zasięgiem dostawy.
+ *
+ * Odległość liczona automatycznie z adresu (geokodowanie + trasa) — patrz lib/geo.ts.
  */
 
 export type FulfillmentMode = "delivery" | "pickup";
-export type DeliveryZone = "kosc" | "outside";
 
 export const DELIVERY = {
-  cityFlat: 4, // zł — Kościerzyna (stała)
-  outsidePerKm: 2, // zł/km — poza Kościerzyną
+  cityFlat: 5, // zł — Kościerzyna
+  perKm: 2, // zł/km — poza Kościerzyną
+  maxKm: 15, // km — granica zasięgu
   currency: "zł",
 };
 
 export interface DeliveryQuote {
-  fee: number;
+  available: boolean; // czy dowozimy pod ten adres
+  fee: number; // zł
+  km?: number; // policzona odległość (poza miastem)
+  inCity: boolean;
+  outOfRange?: boolean; // > maxKm
+  estimated?: boolean; // true gdy fallback bez geokodera (do potwierdzenia)
   label: string;
 }
 
-export function quoteDelivery(
-  mode: FulfillmentMode,
-  zone: DeliveryZone,
-  km: number
-): DeliveryQuote {
-  if (mode === "pickup") {
-    return { fee: 0, label: "Odbiór osobisty — bez opłaty" };
+/** Czy adres jest w Kościerzynie (po nazwie miasta). */
+export function isKoscierzyna(city?: string): boolean {
+  const c = (city ?? "")
+    .trim()
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[̀-ͯ]/g, "") // usuń znaki diakrytyczne (ś→s, ó→o, ...)
+    .replace(/ł/g, "l");
+  return c.includes("koscierzyna");
+}
+
+export function flatCityQuote(): DeliveryQuote {
+  return {
+    available: true,
+    fee: DELIVERY.cityFlat,
+    inCity: true,
+    label: `Dostawa — Kościerzyna (${DELIVERY.cityFlat} zł)`,
+  };
+}
+
+export function pickupQuote(): DeliveryQuote {
+  return { available: true, fee: 0, inCity: false, label: "Odbiór osobisty — bez opłaty" };
+}
+
+export function kmQuote(km: number, estimated = false): DeliveryQuote {
+  const rounded = Math.round(km * 10) / 10;
+  if (rounded > DELIVERY.maxKm) {
+    return {
+      available: false,
+      fee: 0,
+      km: rounded,
+      inCity: false,
+      outOfRange: true,
+      estimated,
+      label: `Poza zasięgiem dostawy (${rounded} km > ${DELIVERY.maxKm} km)`,
+    };
   }
-  if (zone === "kosc") {
-    return { fee: DELIVERY.cityFlat, label: "Dostawa — Kościerzyna" };
-  }
-  const safeKm = Number.isFinite(km) && km > 0 ? km : 1;
-  const fee = Math.round(DELIVERY.outsidePerKm * safeKm * 100) / 100;
-  return { fee, label: `Dostawa — poza Kościerzyną (${safeKm} km × ${DELIVERY.outsidePerKm} zł)` };
+  const fee = Math.round(DELIVERY.perKm * rounded * 100) / 100;
+  return {
+    available: true,
+    fee,
+    km: rounded,
+    inCity: false,
+    estimated,
+    label: `Dostawa — ${rounded} km × ${DELIVERY.perKm} zł${estimated ? " (szacowane)" : ""}`,
+  };
 }
