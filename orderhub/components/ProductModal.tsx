@@ -29,18 +29,39 @@ export function ProductModal({
       onClick={onClose}
     >
       <div
-        className="w-full max-w-md rounded-t-3xl bg-white p-5 text-[#1F1714] sm:rounded-3xl"
+        className="w-full max-w-md overflow-hidden rounded-t-3xl bg-white text-[#1F1714] sm:rounded-3xl"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="mb-1 flex items-start justify-between">
-          <h2 className="text-xl font-extrabold">{product.name}</h2>
-          <button onClick={onClose} className="text-2xl leading-none text-[#9a8a7c]">
+        {/* Nagłówek ze zdjęciem / placeholderem */}
+        <div
+          className="relative aspect-[16/10] w-full"
+          style={{
+            background: product.color
+              ? `radial-gradient(120% 120% at 30% 20%, ${product.color}40 0%, ${product.color}26 45%, #FFF8EC 100%)`
+              : "radial-gradient(120% 120% at 30% 20%, #F3E6D2 0%, #FFF8EC 100%)",
+          }}
+        >
+          {product.image ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={product.image} alt={product.name} className="h-full w-full object-cover" />
+          ) : (
+            <span className="absolute inset-0 flex items-center justify-center text-7xl drop-shadow-sm">
+              {product.emoji ?? "🍕"}
+            </span>
+          )}
+          <button
+            onClick={onClose}
+            className="absolute right-3 top-3 flex h-9 w-9 items-center justify-center rounded-full bg-white/85 text-xl leading-none text-[#1F1714] shadow"
+          >
             ×
           </button>
         </div>
-        {product.description && (
-          <p className="mb-4 text-sm text-[#9a8a7c]">{product.description}</p>
-        )}
+
+        <div className="p-5">
+          <h2 className="font-display text-2xl font-semibold">{product.name}</h2>
+          {product.description && (
+            <p className="mb-4 mt-1 text-sm text-[#9a8a7c]">{product.description}</p>
+          )}
 
         {addons.length > 0 && (
           <div className="mb-4">
@@ -98,6 +119,7 @@ export function ProductModal({
           <span>Dodaj do koszyka</span>
           <span>{zl(unit * qty)}</span>
         </button>
+        </div>
       </div>
     </div>
   );

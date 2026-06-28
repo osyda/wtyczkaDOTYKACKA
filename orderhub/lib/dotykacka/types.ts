@@ -57,6 +57,8 @@ export interface MenuProduct {
   description: string;
   price: number;
   color?: string;
+  image?: string; // zdjęcie potrawy (Dotykačka imageUrl) — gdy brak, pokazujemy placeholder
+  emoji?: string; // emoji wg kategorii (placeholder)
   addons?: MenuAddon[];
 }
 

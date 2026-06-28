@@ -46,6 +46,7 @@ export async function getMenu(): Promise<Menu> {
       description: p.description ?? "",
       price: toNumber(p.priceWithVat),
       color: p.hexColor,
+      image: p.imageUrl,
     });
     productCount++;
   }
