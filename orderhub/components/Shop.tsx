@@ -1,11 +1,11 @@
 "use client";
 
+import Link from "next/link";
 import { useState } from "react";
 import type { Menu, MenuProduct } from "@/lib/dotykacka/types";
 import { zl } from "@/lib/format";
 import { useCart } from "@/lib/cart/CartProvider";
 import { ProductModal } from "./ProductModal";
-import { CartBar } from "./CartBar";
 
 function emojiFor(cat: string, name: string): string {
   const s = `${cat} ${name}`.toLowerCase();
@@ -19,63 +19,117 @@ function emojiFor(cat: string, name: string): string {
   return "🍽️";
 }
 
+// Naprzemienne odcienie kart (jak w referencji: jaśniejszy / ciemniejszy róż).
+const CARD_TINTS = [
+  "linear-gradient(180deg,#D8A9A2 0%,#C88E88 100%)",
+  "linear-gradient(180deg,#C58C8A 0%,#B07A79 100%)",
+];
+
 export function Shop({ menu }: { menu: Menu }) {
   const isLive = menu.source === "live";
   const [activeCat, setActiveCat] = useState(menu.categories[0]?.id ?? "");
   const [modalProduct, setModalProduct] = useState<MenuProduct | null>(null);
-  const { addProduct } = useCart();
+  const { addProduct, itemCount } = useCart();
 
   const onAdd = (p: MenuProduct) => {
     if (p.addons && p.addons.length > 0) setModalProduct(p);
     else addProduct(p, 1, []);
   };
 
+  const current = menu.categories.find((c) => c.id === activeCat) ?? menu.categories[0];
+
   return (
-    <main className="min-h-screen bg-[#F7E9D5] pb-28 text-[#1F1714]">
-      {/* Hero */}
-      <div className="relative overflow-hidden bg-gradient-to-br from-[#B7382F] to-[#8E2C24] px-5 pb-7 pt-6 text-white">
-        <div className="pointer-events-none absolute -right-10 -top-10 h-44 w-44 rounded-full bg-white/5" />
-        <div className="pointer-events-none absolute -bottom-16 -left-10 h-44 w-44 rounded-full bg-black/10" />
-        <div className="relative mx-auto max-w-3xl">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src="/brand/icon-white.png" alt="Mamma Rosa" className="h-12 w-12 object-contain" />
-              <div>
-                <h1 className="font-display text-2xl font-semibold leading-tight">Mamma Rosa</h1>
-                <p className="text-xs opacity-85">Kościerzyna · Pizza &amp; Pasta</p>
-              </div>
-            </div>
-            <span
-              className={`rounded-full px-3 py-1.5 text-xs font-semibold ${
-                isLive ? "bg-[#5C6B3C] text-white" : "bg-[#E0C089] text-[#1F1714]"
-              }`}
-            >
-              {isLive ? "🟢 Na żywo" : "🟡 DEMO"}
-            </span>
-          </div>
-          <div className="mt-4 flex flex-wrap gap-2 text-xs">
-            <span className="rounded-full bg-white/15 px-3 py-1.5 font-medium backdrop-blur">⏱ ~35 min</span>
-            <span className="rounded-full bg-white/15 px-3 py-1.5 font-medium backdrop-blur">🛵 dostawa od 5 zł</span>
-            <span className="rounded-full bg-white/15 px-3 py-1.5 font-medium backdrop-blur">🏠 odbiór osobisty</span>
-          </div>
+    <main className="min-h-screen bg-[#F3ECE7] pb-24 text-[#33272A]">
+      {/* Header */}
+      <div className="flex items-center justify-between px-6 pt-6">
+        <button className="text-2xl text-[#33272A]" aria-label="Menu">≡</button>
+        <div className="flex items-center gap-3">
+          <span className="rounded-full bg-white/70 px-3 py-1 text-xs font-semibold text-[#9B8B86]">
+            {isLive ? "🟢 live" : "DEMO"}
+          </span>
+          <Link
+            href="/checkout"
+            className="relative flex h-10 w-10 items-center justify-center rounded-full bg-white text-lg shadow-sm"
+          >
+            🛒
+            {itemCount > 0 && (
+              <span className="absolute -right-1 -top-1 flex h-5 w-5 items-center justify-center rounded-full bg-[#C88E88] text-[11px] font-bold text-white">
+                {itemCount}
+              </span>
+            )}
+          </Link>
         </div>
       </div>
 
-      {/* Kategorie (sticky) */}
-      <div className="sticky top-0 z-30 border-b border-[#E7D4BC] bg-[#F7E9D5]/95 backdrop-blur">
+      {/* Tytuł + sort */}
+      <div className="flex items-end justify-between px-6 pb-5 pt-6">
+        <h1 className="font-display text-[34px] font-semibold leading-[1.05]">
+          Mamma&nbsp;Rosa
+          <br />
+          <span className="text-[#9B8B86]">menu dostawy</span>
+        </h1>
+        <div className="pb-1 text-right text-xs text-[#9B8B86]">
+          Sortuj wg
+          <br />
+          <span className="font-semibold text-[#33272A]">Popularności ⌄</span>
+        </div>
+      </div>
+
+      {/* Siatka produktów */}
+      <div className="grid grid-cols-2 gap-4 px-5">
+        {current?.products.map((p, i) => {
+          const emoji = p.emoji ?? emojiFor(current.name, p.name);
+          return (
+            <div
+              key={p.id}
+              className="relative rounded-[28px] px-4 pb-7 pt-6 text-center text-[#33272A] shadow-[0_14px_30px_rgba(120,70,70,0.18)]"
+              style={{ background: CARD_TINTS[i % 2] }}
+            >
+              {/* Talerz / zdjęcie */}
+              <div className="mx-auto mb-3 h-28 w-28 overflow-hidden rounded-full shadow-[0_10px_22px_rgba(0,0,0,0.28)]">
+                {p.image ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={p.image} alt={p.name} className="h-full w-full object-cover" />
+                ) : (
+                  <div
+                    className="flex h-full w-full items-center justify-center text-5xl"
+                    style={{ background: "radial-gradient(circle at 35% 30%,#4b3a3a,#241b1b)" }}
+                  >
+                    {emoji}
+                  </div>
+                )}
+              </div>
+
+              <div className="text-lg font-extrabold">{zl(p.price)}</div>
+              <div className="mx-auto mt-1 min-h-[34px] text-sm font-medium leading-tight">
+                {p.name}
+              </div>
+              <div className="mt-1 text-xs tracking-wide text-white/70">★★★★★</div>
+
+              {/* Przycisk + */}
+              <button
+                onClick={() => onAdd(p)}
+                aria-label={`Dodaj ${p.name}`}
+                className="absolute -bottom-4 left-1/2 flex h-11 w-11 -translate-x-1/2 items-center justify-center rounded-full bg-[#5E423F] text-2xl font-light text-white shadow-lg transition active:scale-95"
+              >
+                +
+              </button>
+            </div>
+          );
+        })}
+      </div>
+
+      {/* Dolny pasek kategorii */}
+      <div className="fixed inset-x-0 bottom-0 z-30 border-t border-[#E6DAD4] bg-[#F3ECE7]/95 backdrop-blur">
         <div className="mx-auto flex max-w-3xl gap-2 overflow-auto px-5 py-3">
           {menu.categories.map((c) => (
             <button
               key={c.id}
-              onClick={() => {
-                setActiveCat(c.id);
-                document.getElementById(`cat-${c.id}`)?.scrollIntoView({ behavior: "smooth", block: "start" });
-              }}
-              className={`whitespace-nowrap rounded-full px-4 py-2 text-sm font-semibold transition ${
+              onClick={() => setActiveCat(c.id)}
+              className={`whitespace-nowrap rounded-full px-5 py-2.5 text-sm font-semibold transition ${
                 activeCat === c.id
-                  ? "bg-[#B7382F] text-white shadow-sm"
-                  : "bg-white text-[#8a7a6e] hover:bg-[#F0E2CD]"
+                  ? "bg-[#5E423F] text-white"
+                  : "bg-white text-[#9B8B86]"
               }`}
             >
               {c.name}
@@ -84,59 +138,6 @@ export function Shop({ menu }: { menu: Menu }) {
         </div>
       </div>
 
-      {/* Lista */}
-      <div className="mx-auto max-w-3xl px-5 py-6">
-        {menu.categories.map((cat) => (
-          <section key={cat.id} id={`cat-${cat.id}`} className="mb-9 scroll-mt-20">
-            <h2 className="mb-4 font-display text-2xl font-semibold text-[#8E2C24]">{cat.name}</h2>
-            <div className="grid grid-cols-2 gap-4">
-              {cat.products.map((p) => {
-                const emoji = p.emoji ?? emojiFor(cat.name, p.name);
-                return (
-                  <button
-                    key={p.id}
-                    onClick={() => onAdd(p)}
-                    className="group flex flex-col overflow-hidden rounded-3xl border border-[#EEDFC9] bg-white text-left shadow-[0_6px_18px_rgba(31,23,20,0.05)] transition hover:-translate-y-0.5 hover:shadow-[0_12px_28px_rgba(31,23,20,0.1)]"
-                  >
-                    {/* Zdjęcie / placeholder */}
-                    <div
-                      className="relative aspect-[5/4] w-full"
-                      style={{
-                        background: p.color
-                          ? `radial-gradient(120% 120% at 30% 20%, ${p.color}33 0%, ${p.color}1f 45%, #FFF8EC 100%)`
-                          : "radial-gradient(120% 120% at 30% 20%, #F3E6D2 0%, #FFF8EC 100%)",
-                      }}
-                    >
-                      {p.image ? (
-                        // eslint-disable-next-line @next/next/no-img-element
-                        <img src={p.image} alt={p.name} className="h-full w-full object-cover" />
-                      ) : (
-                        <span className="absolute inset-0 flex items-center justify-center text-6xl drop-shadow-sm">
-                          {emoji}
-                        </span>
-                      )}
-                      {/* Floating add */}
-                      <span className="absolute -bottom-3 right-3 flex h-10 w-10 items-center justify-center rounded-full bg-[#5C6B3C] text-2xl font-bold text-white shadow-lg transition group-hover:scale-105">
-                        +
-                      </span>
-                    </div>
-                    {/* Treść */}
-                    <div className="flex flex-1 flex-col p-3 pt-4">
-                      <h3 className="font-display text-base font-semibold leading-tight">{p.name}</h3>
-                      {p.description && (
-                        <p className="mt-1 line-clamp-2 text-xs leading-snug text-[#9a8a7c]">{p.description}</p>
-                      )}
-                      <div className="mt-2 font-extrabold text-[#1F1714]">{zl(p.price)}</div>
-                    </div>
-                  </button>
-                );
-              })}
-            </div>
-          </section>
-        ))}
-      </div>
-
-      <CartBar />
       {modalProduct && (
         <ProductModal product={modalProduct} onClose={() => setModalProduct(null)} />
       )}
