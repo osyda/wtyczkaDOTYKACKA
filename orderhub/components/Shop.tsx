@@ -22,14 +22,13 @@ export function Shop({ menu }: { menu: Menu }) {
   };
 
   return (
-    <main className="min-h-screen bg-[#fff8f0] pb-28 text-[#2a211c]">
+    <main className="min-h-screen bg-[#F7E9D5] pb-28 text-[#1F1714]">
       {/* Hero */}
-      <div className="bg-gradient-to-br from-[#b21f1f] to-[#7d1414] px-5 py-6 text-white">
+      <div className="bg-gradient-to-br from-[#B7382F] to-[#8E2C24] px-5 py-6 text-white">
         <div className="mx-auto flex max-w-3xl items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-white text-2xl">
-              🍕
-            </div>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="/brand/icon-white.png" alt="Mamma Rosa" className="h-11 w-11 object-contain" />
             <div>
               <h1 className="text-xl font-bold leading-tight">Mamma Rosa</h1>
               <p className="text-xs opacity-85">Kościerzyna · Pizza &amp; Pasta</p>
@@ -46,7 +45,7 @@ export function Shop({ menu }: { menu: Menu }) {
       </div>
 
       {/* Kategorie (sticky) */}
-      <div className="sticky top-0 z-30 border-b border-[#f0e3d6] bg-white">
+      <div className="sticky top-0 z-30 border-b border-[#E7D4BC] bg-white">
         <div className="mx-auto flex max-w-3xl gap-2 overflow-auto px-5 py-3">
           {menu.categories.map((c) => (
             <button
@@ -56,7 +55,7 @@ export function Shop({ menu }: { menu: Menu }) {
                 document.getElementById(`cat-${c.id}`)?.scrollIntoView({ behavior: "smooth", block: "start" });
               }}
               className={`whitespace-nowrap rounded-full px-4 py-2 text-sm font-semibold ${
-                activeCat === c.id ? "bg-[#b21f1f] text-white" : "bg-[#f6ece2] text-[#8a7a6e]"
+                activeCat === c.id ? "bg-[#B7382F] text-white" : "bg-[#F0E2CD] text-[#8a7a6e]"
               }`}
             >
               {c.name}
@@ -69,17 +68,17 @@ export function Shop({ menu }: { menu: Menu }) {
       <div className="mx-auto max-w-3xl px-5 py-6">
         {menu.categories.map((cat) => (
           <section key={cat.id} id={`cat-${cat.id}`} className="mb-8 scroll-mt-20">
-            <h2 className="mb-3 text-lg font-extrabold text-[#7d1414]">{cat.name}</h2>
+            <h2 className="mb-3 text-lg font-extrabold text-[#8E2C24]">{cat.name}</h2>
             <div className="grid gap-3 sm:grid-cols-2">
               {cat.products.map((p) => (
                 <button
                   key={p.id}
                   onClick={() => onAdd(p)}
-                  className="flex gap-3 rounded-2xl border border-[#f0e3d6] bg-white p-3 text-left transition hover:border-[#b21f1f]"
+                  className="flex gap-3 rounded-2xl border border-[#E7D4BC] bg-white p-3 text-left transition hover:border-[#B7382F]"
                 >
                   <div
                     className="flex h-16 w-16 flex-shrink-0 items-center justify-center rounded-xl text-2xl"
-                    style={{ background: p.color ? `${p.color}22` : "#fbeede" }}
+                    style={{ background: p.color ? `${p.color}22` : "#F3E6D2" }}
                   >
                     🍕
                   </div>
@@ -92,7 +91,7 @@ export function Shop({ menu }: { menu: Menu }) {
                     )}
                     <div className="mt-2 flex items-center justify-between">
                       <span className="font-extrabold">{zl(p.price)}</span>
-                      <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#15803d] text-xl font-bold text-white">
+                      <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#5C6B3C] text-xl font-bold text-white">
                         +
                       </span>
                     </div>

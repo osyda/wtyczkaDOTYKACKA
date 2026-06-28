@@ -7,13 +7,13 @@ export default function manifest(): MetadataRoute.Manifest {
     description: "Zamawianie online + panel zamówień Mamma Rosa.",
     start_url: "/panel",
     display: "standalone",
-    background_color: "#0f1115",
-    theme_color: "#b21f1f",
+    background_color: "#1F1714",
+    theme_color: "#B7382F",
     icons: [
       {
-        src: "/icon.svg",
-        sizes: "any",
-        type: "image/svg+xml",
+        src: "/brand/icon-tomato.png",
+        sizes: "165x160",
+        type: "image/png",
         purpose: "any",
       },
     ],

@@ -94,14 +94,14 @@ export default function CheckoutPage() {
 
   if (lines.length === 0) {
     return (
-      <main className="min-h-screen bg-[#fff8f0] text-[#2a211c]">
+      <main className="min-h-screen bg-[#F7E9D5] text-[#1F1714]">
         <Header />
         <div className="mx-auto max-w-md px-6 py-20 text-center">
           <div className="mb-3 text-5xl">🛒</div>
           <h1 className="text-xl font-bold">Koszyk jest pusty</h1>
           <Link
             href="/menu"
-            className="mt-5 inline-block rounded-2xl bg-[#15803d] px-6 py-3 font-bold text-white"
+            className="mt-5 inline-block rounded-2xl bg-[#5C6B3C] px-6 py-3 font-bold text-white"
           >
             Zobacz menu
           </Link>
@@ -111,14 +111,14 @@ export default function CheckoutPage() {
   }
 
   return (
-    <main className="min-h-screen bg-[#fff8f0] pb-32 text-[#2a211c]">
+    <main className="min-h-screen bg-[#F7E9D5] pb-32 text-[#1F1714]">
       <Header />
       <div className="mx-auto max-w-md space-y-4 px-4 py-5">
         {/* Pozycje */}
         <Card title="Twoje zamówienie">
           <div className="space-y-3">
             {lines.map((l) => (
-              <div key={l.lineId} className="flex gap-3 border-b border-[#f0e3d6] pb-3 last:border-0 last:pb-0">
+              <div key={l.lineId} className="flex gap-3 border-b border-[#E7D4BC] pb-3 last:border-0 last:pb-0">
                 <div className="flex-1">
                   <div className="font-semibold">{l.name}</div>
                   {l.addons.length > 0 && (
@@ -128,16 +128,16 @@ export default function CheckoutPage() {
                   )}
                   <button
                     onClick={() => remove(l.lineId)}
-                    className="mt-1 text-xs font-semibold text-[#b21f1f]"
+                    className="mt-1 text-xs font-semibold text-[#B7382F]"
                   >
                     Usuń
                   </button>
                 </div>
                 <div className="flex flex-col items-end justify-between">
                   <div className="flex items-center gap-2">
-                    <button onClick={() => setQty(l.lineId, l.qty - 1)} className="h-7 w-7 rounded-lg bg-[#f6ece2] font-bold">−</button>
+                    <button onClick={() => setQty(l.lineId, l.qty - 1)} className="h-7 w-7 rounded-lg bg-[#F0E2CD] font-bold">−</button>
                     <span className="w-5 text-center font-bold">{l.qty}</span>
-                    <button onClick={() => setQty(l.lineId, l.qty + 1)} className="h-7 w-7 rounded-lg bg-[#f6ece2] font-bold">+</button>
+                    <button onClick={() => setQty(l.lineId, l.qty + 1)} className="h-7 w-7 rounded-lg bg-[#F0E2CD] font-bold">+</button>
                   </div>
                   <div className="text-sm font-bold">{zl(lineTotal(l))}</div>
                 </div>
@@ -175,7 +175,7 @@ export default function CheckoutPage() {
                     min={1}
                     value={km}
                     onChange={(e) => setKm(Number(e.target.value))}
-                    className="w-full rounded-xl border border-[#ece0d2] bg-[#faf3ec] px-3 py-2.5 text-sm"
+                    className="w-full rounded-xl border border-[#E0CDB2] bg-[#FFF8EC] px-3 py-2.5 text-sm"
                   />
                 </label>
               )}
@@ -205,7 +205,7 @@ export default function CheckoutPage() {
                 type="time"
                 value={scheduledTime}
                 onChange={(e) => setScheduledTime(e.target.value)}
-                className="w-full rounded-xl border border-[#ece0d2] bg-[#faf3ec] px-3 py-2.5 text-sm"
+                className="w-full rounded-xl border border-[#E0CDB2] bg-[#FFF8EC] px-3 py-2.5 text-sm"
               />
             </label>
           )}
@@ -234,7 +234,7 @@ export default function CheckoutPage() {
           <div className="space-y-2">
             <Radio label="💵 Gotówka" checked={payment === "cash"} onClick={() => setPayment("cash")} />
             <Radio label="💳 Karta (terminal)" checked={payment === "card"} onClick={() => setPayment("card")} />
-            <div className="flex items-center gap-3 rounded-xl border-2 border-[#eaddcf] p-3 text-sm font-semibold opacity-50">
+            <div className="flex items-center gap-3 rounded-xl border-2 border-[#E3D2BA] p-3 text-sm font-semibold opacity-50">
               🌐 Online — wkrótce
             </div>
           </div>
@@ -244,7 +244,7 @@ export default function CheckoutPage() {
         <Card title="Podsumowanie">
           <Row label="Produkty" value={zl(subtotal)} />
           <Row label={delivery.label} value={delivery.fee > 0 ? zl(delivery.fee) : "0,00 zł"} />
-          <div className="mt-2 flex justify-between border-t border-dashed border-[#f0e3d6] pt-3 text-lg font-extrabold">
+          <div className="mt-2 flex justify-between border-t border-dashed border-[#E7D4BC] pt-3 text-lg font-extrabold">
             <span>Razem</span>
             <span>{zl(total)}</span>
           </div>
@@ -252,13 +252,13 @@ export default function CheckoutPage() {
       </div>
 
       {/* CTA */}
-      <div className="fixed inset-x-0 bottom-0 z-40 border-t border-[#f0e3d6] bg-white px-4 py-3">
-        {error && <p className="mx-auto mb-2 max-w-md text-center text-sm text-[#b21f1f]">{error}</p>}
+      <div className="fixed inset-x-0 bottom-0 z-40 border-t border-[#E7D4BC] bg-white px-4 py-3">
+        {error && <p className="mx-auto mb-2 max-w-md text-center text-sm text-[#B7382F]">{error}</p>}
         <button
           disabled={!canOrder || submitting}
           onClick={submitOrder}
           className="mx-auto flex max-w-md items-center justify-between rounded-2xl px-5 py-4 font-extrabold text-white disabled:opacity-40"
-          style={{ background: "#15803d", width: "100%", maxWidth: "28rem" }}
+          style={{ background: "#5C6B3C", width: "100%", maxWidth: "28rem" }}
         >
           <span>{submitting ? "Wysyłam…" : canOrder ? "Zamawiam" : "Uzupełnij dane"}</span>
           <span>{zl(total)} →</span>
@@ -270,7 +270,7 @@ export default function CheckoutPage() {
 
 function Header() {
   return (
-    <div className="flex items-center gap-3 bg-[#b21f1f] px-4 py-3.5 text-white">
+    <div className="flex items-center gap-3 bg-[#B7382F] px-4 py-3.5 text-white">
       <Link href="/menu" className="text-2xl leading-none">←</Link>
       <b className="text-lg">Twoje zamówienie</b>
     </div>
@@ -279,7 +279,7 @@ function Header() {
 
 function Card({ title, children }: { title: string; children: React.ReactNode }) {
   return (
-    <div className="rounded-2xl border border-[#f0e3d6] bg-white p-4">
+    <div className="rounded-2xl border border-[#E7D4BC] bg-white p-4">
       <div className="mb-3 text-xs font-semibold uppercase tracking-wide text-[#9a8a7c]">{title}</div>
       {children}
     </div>
@@ -297,7 +297,7 @@ function Segmented({
   onChange: (v: string) => void;
   color?: "green" | "red";
 }) {
-  const on = color === "red" ? "border-[#b21f1f] bg-[#fcecec] text-[#b21f1f]" : "border-[#15803d] bg-[#eaf6ee] text-[#15803d]";
+  const on = color === "red" ? "border-[#B7382F] bg-[#F7E3E1] text-[#B7382F]" : "border-[#5C6B3C] bg-[#EDEFE2] text-[#5C6B3C]";
   return (
     <div className="flex gap-2">
       {options.map((o) => (
@@ -305,7 +305,7 @@ function Segmented({
           key={o.value}
           onClick={() => onChange(o.value)}
           className={`flex-1 rounded-xl border-2 px-2 py-3 text-sm font-bold ${
-            value === o.value ? on : "border-[#eaddcf] text-[#8a7a6e]"
+            value === o.value ? on : "border-[#E3D2BA] text-[#8a7a6e]"
           }`}
         >
           {o.label}
@@ -333,7 +333,7 @@ function Field({
         value={value}
         placeholder={placeholder}
         onChange={(e) => onChange(e.target.value)}
-        className="w-full rounded-xl border border-[#ece0d2] bg-[#faf3ec] px-3 py-2.5 text-sm outline-none focus:border-[#b21f1f]"
+        className="w-full rounded-xl border border-[#E0CDB2] bg-[#FFF8EC] px-3 py-2.5 text-sm outline-none focus:border-[#B7382F]"
       />
     </label>
   );
@@ -344,11 +344,11 @@ function Radio({ label, checked, onClick }: { label: string; checked: boolean; o
     <button
       onClick={onClick}
       className={`flex w-full items-center gap-3 rounded-xl border-2 p-3 text-sm font-semibold ${
-        checked ? "border-[#15803d] bg-[#eaf6ee]" : "border-[#eaddcf]"
+        checked ? "border-[#5C6B3C] bg-[#EDEFE2]" : "border-[#E3D2BA]"
       }`}
     >
       <span className="flex-1 text-left">{label}</span>
-      <span className={`h-4 w-4 rounded-full border-2 ${checked ? "border-[#15803d] bg-[#15803d]" : "border-[#c9b9a9]"}`} />
+      <span className={`h-4 w-4 rounded-full border-2 ${checked ? "border-[#5C6B3C] bg-[#5C6B3C]" : "border-[#c9b9a9]"}`} />
     </button>
   );
 }

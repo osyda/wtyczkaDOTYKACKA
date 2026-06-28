@@ -29,7 +29,7 @@ export function ProductModal({
       onClick={onClose}
     >
       <div
-        className="w-full max-w-md rounded-t-3xl bg-white p-5 text-[#2a211c] sm:rounded-3xl"
+        className="w-full max-w-md rounded-t-3xl bg-white p-5 text-[#1F1714] sm:rounded-3xl"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="mb-1 flex items-start justify-between">
@@ -52,12 +52,12 @@ export function ProductModal({
                 <label
                   key={a.id}
                   className={`flex cursor-pointer items-center gap-3 rounded-xl border-2 p-3 text-sm ${
-                    selected[a.id] ? "border-[#15803d] bg-[#eaf6ee]" : "border-[#eaddcf]"
+                    selected[a.id] ? "border-[#5C6B3C] bg-[#EDEFE2]" : "border-[#E3D2BA]"
                   }`}
                 >
                   <input
                     type="checkbox"
-                    className="h-4 w-4 accent-[#15803d]"
+                    className="h-4 w-4 accent-[#5C6B3C]"
                     checked={!!selected[a.id]}
                     onChange={(e) => setSelected((s) => ({ ...s, [a.id]: e.target.checked }))}
                   />
@@ -74,14 +74,14 @@ export function ProductModal({
           <div className="flex items-center gap-4">
             <button
               onClick={() => setQty((q) => Math.max(1, q - 1))}
-              className="h-9 w-9 rounded-lg bg-[#f6ece2] text-xl font-bold"
+              className="h-9 w-9 rounded-lg bg-[#F0E2CD] text-xl font-bold"
             >
               −
             </button>
             <span className="w-6 text-center text-lg font-bold">{qty}</span>
             <button
               onClick={() => setQty((q) => q + 1)}
-              className="h-9 w-9 rounded-lg bg-[#f6ece2] text-xl font-bold"
+              className="h-9 w-9 rounded-lg bg-[#F0E2CD] text-xl font-bold"
             >
               +
             </button>
@@ -93,7 +93,7 @@ export function ProductModal({
             addProduct(product, qty, chosen);
             onClose();
           }}
-          className="flex w-full items-center justify-between rounded-2xl bg-[#15803d] px-5 py-4 font-extrabold text-white"
+          className="flex w-full items-center justify-between rounded-2xl bg-[#5C6B3C] px-5 py-4 font-extrabold text-white"
         >
           <span>Dodaj do koszyka</span>
           <span>{zl(unit * qty)}</span>

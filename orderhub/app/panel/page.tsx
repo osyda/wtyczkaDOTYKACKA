@@ -69,22 +69,21 @@ export default function PanelPage() {
   const sched = orders.filter(scheduled);
 
   return (
-    <main className="min-h-screen bg-[#0f1115] text-[#e7e9ee]">
+    <main className="min-h-screen bg-[#1F1714] text-[#F3E7D5]">
       {/* Top */}
-      <div className="flex h-14 items-center justify-between border-b border-[#262b36] bg-[#171a21] px-5">
+      <div className="flex h-14 items-center justify-between border-b border-[#3A322B] bg-[#2A2521] px-5">
         <div className="flex items-center gap-3">
-          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-[#e23b3b] to-[#a01919] text-lg">
-            🍕
-          </div>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src="/brand/icon-white.png" alt="Mamma Rosa" className="h-9 w-9 object-contain" />
           <div className="font-bold">
-            Mamma Rosa <span className="text-sm font-normal text-[#8b93a4]">· Zamówienia online</span>
+            Mamma Rosa <span className="text-sm font-normal text-[#B7A691]">· Zamówienia online</span>
           </div>
         </div>
         <div className="flex items-center gap-3 text-sm">
-          <span className="flex items-center gap-2 rounded-full bg-[#1d2530] px-3 py-1.5">
+          <span className="flex items-center gap-2 rounded-full bg-[#2E2620] px-3 py-1.5">
             <span className="h-2.5 w-2.5 rounded-full bg-green-500" /> POS online
           </span>
-          <span className="rounded-full bg-[#1d2530] px-3 py-1.5">📦 {orders.length}</span>
+          <span className="rounded-full bg-[#2E2620] px-3 py-1.5">📦 {orders.length}</span>
           <span className="font-mono text-base font-semibold tabular-nums">{now}</span>
         </div>
       </div>
@@ -92,7 +91,7 @@ export default function PanelPage() {
       {/* CTI */}
       <div className="px-4 pt-3">
         {caller ? (
-          <div className="flex items-center gap-3 rounded-xl border border-[#1f7a3d] bg-gradient-to-r from-[#13351f] to-[#0f1115] px-4 py-3">
+          <div className="flex items-center gap-3 rounded-xl border border-[#1f7a3d] bg-gradient-to-r from-[#13351f] to-[#1F1714] px-4 py-3">
             <div className="flex h-9 w-9 items-center justify-center rounded-full bg-[#1f7a3d] text-lg">📞</div>
             <div className="text-sm">
               <b>Połączenie · {caller.phone}</b>
@@ -107,13 +106,13 @@ export default function PanelPage() {
             </button>
           </div>
         ) : (
-          <div className="flex items-center gap-2 rounded-xl border border-[#262b36] bg-[#13161c] px-4 py-2.5 text-sm">
-            <span className="text-[#8b93a4]">CTI (demo):</span>
+          <div className="flex items-center gap-2 rounded-xl border border-[#3A322B] bg-[#211A17] px-4 py-2.5 text-sm">
+            <span className="text-[#B7A691]">CTI (demo):</span>
             <input
               value={simPhone}
               onChange={(e) => setSimPhone(e.target.value)}
               placeholder="numer telefonu"
-              className="w-40 rounded-lg border border-[#2a313e] bg-[#1a1f28] px-3 py-1.5 text-sm outline-none"
+              className="w-40 rounded-lg border border-[#3A322B] bg-[#2A2521] px-3 py-1.5 text-sm outline-none"
             />
             <button
               onClick={simulateCall}
@@ -121,7 +120,7 @@ export default function PanelPage() {
             >
               📞 Symuluj połączenie
             </button>
-            <span className="text-xs text-[#5a6678]">
+            <span className="text-xs text-[#8A7A6B]">
               (docelowo: webhook centralki / apka na Androidzie)
             </span>
           </div>
@@ -130,7 +129,7 @@ export default function PanelPage() {
 
       {/* Board */}
       <div className="grid grid-cols-1 gap-3 p-4 md:grid-cols-3">
-        <Column title="🔔 Nowe — ustaw czas" accent="#ffd27a" count={news.length}>
+        <Column title="🔔 Nowe — ustaw czas" accent="#E0C089" count={news.length}>
           {news.map((o) => (
             <Card key={o.id} order={o} highlight>
               <EtaButtons order={o} onSet={setEta} />
@@ -142,7 +141,7 @@ export default function PanelPage() {
         <Column title="👨‍🍳 W realizacji" count={prog.length}>
           {prog.map((o) => (
             <Card key={o.id} order={o}>
-              <div className="mt-2 rounded-lg border border-[#2c6b41] bg-[#10261a] px-3 py-2">
+              <div className="mt-2 rounded-lg border border-[#4A6030] bg-[#10261a] px-3 py-2">
                 <div className="text-lg font-extrabold text-[#7ee3a3]">⏱ {o.etaAt ? clock(o.etaAt) : o.scheduledTime}</div>
               </div>
               <StatusButtons order={o} onAdvance={advance} />
@@ -154,8 +153,8 @@ export default function PanelPage() {
         <Column title="🗓 Na godzinę" count={sched.length}>
           {sched.map((o) => (
             <Card key={o.id} order={o}>
-              <div className="mt-2 text-sm text-[#9aa3b4]">
-                Zaplanowane na <b className="text-[#ffd27a]">{o.scheduledTime}</b>
+              <div className="mt-2 text-sm text-[#B7A691]">
+                Zaplanowane na <b className="text-[#E0C089]">{o.scheduledTime}</b>
               </div>
               <StatusButtons order={o} onAdvance={advance} />
             </Card>
@@ -179,13 +178,13 @@ function Column({
   children: React.ReactNode;
 }) {
   return (
-    <div className="flex flex-col rounded-2xl border border-[#222834] bg-[#13161c] p-3">
+    <div className="flex flex-col rounded-2xl border border-[#3A322B] bg-[#211A17] p-3">
       <h2
         className="mb-3 flex items-center gap-2 text-xs font-semibold uppercase tracking-wide"
-        style={{ color: accent ?? "#9aa3b4" }}
+        style={{ color: accent ?? "#B7A691" }}
       >
         {title}
-        <span className="rounded-full bg-[#262c38] px-2 text-[#cdd4e0]">{count}</span>
+        <span className="rounded-full bg-[#3A322B] px-2 text-[#E7D8C4]">{count}</span>
       </h2>
       <div className="flex flex-col gap-3">{children}</div>
     </div>
@@ -193,7 +192,7 @@ function Column({
 }
 
 function Empty() {
-  return <div className="rounded-xl border border-dashed border-[#262c38] py-6 text-center text-sm text-[#5a6678]">—</div>;
+  return <div className="rounded-xl border border-dashed border-[#3A322B] py-6 text-center text-sm text-[#8A7A6B]">—</div>;
 }
 
 function Card({
@@ -207,8 +206,8 @@ function Card({
 }) {
   return (
     <div
-      className={`rounded-xl border bg-[#1a1f28] p-3 ${
-        highlight ? "border-[#e9a13b] shadow-[0_0_0_2px_rgba(233,161,59,0.22)]" : "border-[#2a313e]"
+      className={`rounded-xl border bg-[#2A2521] p-3 ${
+        highlight ? "border-[#C08A3E] shadow-[0_0_0_2px_rgba(233,161,59,0.22)]" : "border-[#3A322B]"
       }`}
     >
       <div className="mb-1.5 flex items-center justify-between">
@@ -226,23 +225,23 @@ function Card({
       <div className="text-sm">
         <b>{order.customer.name}</b>
       </div>
-      <div className="mb-2 text-xs text-[#8b93a4]">
+      <div className="mb-2 text-xs text-[#B7A691]">
         📞 {order.customer.phone}
         {order.mode === "delivery" && order.customer.street ? ` · ${order.customer.street}, ${order.customer.city ?? ""}` : " · odbiór osobisty"}
       </div>
-      <div className="border-t border-dashed border-[#2c333f] pt-2 text-xs leading-relaxed text-[#c6cdd9]">
+      <div className="border-t border-dashed border-[#3A322B] pt-2 text-xs leading-relaxed text-[#E0D2BE]">
         {order.items.map((it, i) => (
           <div key={i}>
-            <span className="font-bold text-[#ffd27a]">{it.qty}×</span> {it.name}
+            <span className="font-bold text-[#E0C089]">{it.qty}×</span> {it.name}
             {it.addons.length > 0 && (
-              <span className="text-[#8b93a4]"> ({it.addons.map((a) => a.name).join(", ")})</span>
+              <span className="text-[#B7A691]"> ({it.addons.map((a) => a.name).join(", ")})</span>
             )}
           </div>
         ))}
       </div>
       <div className="mt-2 flex items-center justify-between">
         <div className="font-extrabold">{zl(order.total)}</div>
-        <div className="text-xs text-[#9aa3b4]">
+        <div className="text-xs text-[#B7A691]">
           {order.payment === "cash" ? "💵 gotówka" : order.payment === "card" ? "💳 karta" : "🌐 online"}
         </div>
       </div>
@@ -255,12 +254,12 @@ function EtaButtons({ order, onSet }: { order: Order; onSet: (id: string, m: num
   const opts = order.mode === "pickup" ? [15, 20, 30, 45] : [30, 45, 60, 75];
   return (
     <div className="mt-3 flex items-center gap-1.5">
-      <span className="text-[11px] text-[#9aa3b4]">Gotowe za:</span>
+      <span className="text-[11px] text-[#B7A691]">Gotowe za:</span>
       {opts.map((m) => (
         <button
           key={m}
           onClick={() => onSet(order.id, m)}
-          className="flex-1 rounded-lg border border-[#38424f] bg-[#222a36] py-2 text-sm font-bold hover:border-[#e23b3b] hover:bg-[#e23b3b]"
+          className="flex-1 rounded-lg border border-[#4A4038] bg-[#2E2620] py-2 text-sm font-bold hover:border-[#B7382F] hover:bg-[#B7382F]"
         >
           {m}&#39;
         </button>
@@ -294,7 +293,7 @@ function StatusButtons({ order, onAdvance }: { order: Order; onAdvance: (id: str
         <button
           key={n.status}
           onClick={() => onAdvance(order.id, n.status)}
-          className="flex-1 rounded-lg border border-[#2c6b41] bg-[#10261a] py-2 text-xs font-bold text-[#7ee3a3] hover:bg-[#15321f]"
+          className="flex-1 rounded-lg border border-[#4A6030] bg-[#10261a] py-2 text-xs font-bold text-[#7ee3a3] hover:bg-[#15321f]"
         >
           {n.label}
         </button>

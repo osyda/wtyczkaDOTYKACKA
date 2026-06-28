@@ -42,10 +42,10 @@ export default function ThankYouPage() {
 
   if (notFound) {
     return (
-      <main className="grid min-h-screen place-items-center bg-[#fff8f0] text-[#2a211c]">
+      <main className="grid min-h-screen place-items-center bg-[#F7E9D5] text-[#1F1714]">
         <div className="text-center">
           <p className="text-lg font-bold">Nie znaleziono zamówienia</p>
-          <Link href="/menu" className="mt-3 inline-block text-[#b21f1f] underline">
+          <Link href="/menu" className="mt-3 inline-block text-[#B7382F] underline">
             Wróć do menu
           </Link>
         </div>
@@ -55,7 +55,7 @@ export default function ThankYouPage() {
 
   if (!order) {
     return (
-      <main className="grid min-h-screen place-items-center bg-[#fff8f0] text-[#9a8a7c]">
+      <main className="grid min-h-screen place-items-center bg-[#F7E9D5] text-[#9a8a7c]">
         Ładowanie…
       </main>
     );
@@ -96,8 +96,8 @@ export default function ThankYouPage() {
   ];
 
   return (
-    <main className="min-h-screen bg-[#fff8f0] text-[#2a211c]">
-      <div className="bg-gradient-to-br from-[#15803d] to-[#0c6330] px-6 py-8 text-center text-white">
+    <main className="min-h-screen bg-[#F7E9D5] text-[#1F1714]">
+      <div className="bg-gradient-to-br from-[#5C6B3C] to-[#434E2A] px-6 py-8 text-center text-white">
         <div className="mx-auto mb-3 flex h-16 w-16 items-center justify-center rounded-full bg-white/20 text-3xl">
           ✓
         </div>
@@ -109,14 +109,14 @@ export default function ThankYouPage() {
       </div>
 
       <div className="mx-auto max-w-md px-5 py-5">
-        <div className="rounded-3xl border border-[#f0e3d6] bg-white p-6 text-center shadow-[0_8px_22px_rgba(178,31,31,0.06)]">
+        <div className="rounded-3xl border border-[#E7D4BC] bg-white p-6 text-center shadow-[0_8px_22px_rgba(178,31,31,0.06)]">
           <div className="text-xs font-semibold uppercase tracking-wide text-[#9a8a7c]">
             {isPickup ? "Odbiór około" : "Dostawa około"}
           </div>
-          <div className="my-1 text-5xl font-extrabold text-[#b21f1f]">{bigTime}</div>
+          <div className="my-1 text-5xl font-extrabold text-[#B7382F]">{bigTime}</div>
           <div className="text-sm text-[#6a5a4e]">{sub}</div>
-          <div className="mt-3 inline-flex items-center gap-2 rounded-full bg-[#eaf6ee] px-3 py-1.5 text-xs font-bold text-[#15803d]">
-            <span className="h-2 w-2 rounded-full bg-[#15803d]" /> Status aktualizuje się na żywo
+          <div className="mt-3 inline-flex items-center gap-2 rounded-full bg-[#EDEFE2] px-3 py-1.5 text-xs font-bold text-[#5C6B3C]">
+            <span className="h-2 w-2 rounded-full bg-[#5C6B3C]" /> Status aktualizuje się na żywo
           </div>
         </div>
 
@@ -127,9 +127,9 @@ export default function ThankYouPage() {
                 <div
                   className={`flex h-8 w-8 items-center justify-center rounded-full text-sm ${
                     s.now
-                      ? "bg-[#b21f1f] text-white"
+                      ? "bg-[#B7382F] text-white"
                       : s.done
-                        ? "bg-[#15803d] text-white"
+                        ? "bg-[#5C6B3C] text-white"
                         : "bg-[#eee2d5] text-[#b0a294]"
                   }`}
                 >
@@ -144,7 +144,7 @@ export default function ThankYouPage() {
           ))}
         </div>
 
-        <div className="rounded-2xl border border-[#f0e3d6] bg-white p-4">
+        <div className="rounded-2xl border border-[#E7D4BC] bg-white p-4">
           <div className="mb-2 text-xs font-semibold uppercase tracking-wide text-[#9a8a7c]">
             Szczegóły
           </div>
@@ -165,7 +165,7 @@ export default function ThankYouPage() {
               <span>{zl(order.deliveryFee)}</span>
             </div>
           )}
-          <div className="mt-2 flex justify-between border-t border-dashed border-[#f0e3d6] pt-2 font-extrabold">
+          <div className="mt-2 flex justify-between border-t border-dashed border-[#E7D4BC] pt-2 font-extrabold">
             <span>Razem · {order.payment === "cash" ? "gotówka" : order.payment === "card" ? "karta" : "online"}</span>
             <span>{zl(order.total)}</span>
           </div>
