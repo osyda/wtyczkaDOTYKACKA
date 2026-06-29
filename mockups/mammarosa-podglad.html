@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<title>Mammarosa — podgląd</title>
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent;
+       font-family:-apple-system,"Segoe UI",Roboto,Arial,sans-serif; }
+  .serif { font-family:"Fraunces","Georgia","Times New Roman",serif; letter-spacing:-.01em; }
+  html,body { background:#E9E0DA; }
+  body { display:flex; justify-content:center; }
+  .phone { width:100%; max-width:430px; min-height:100vh; background:#F3ECE7; color:#33272A;
+           position:relative; overflow-x:hidden; padding-bottom:92px; }
+
+  .header { display:flex; align-items:center; justify-content:space-between; padding:22px 24px 0; }
+  .burger { font-size:26px; background:none; border:none; color:#33272A; }
+  .hright { display:flex; align-items:center; gap:12px; }
+  .demo { background:rgba(255,255,255,.7); color:#9B8B86; font-size:12px; font-weight:700;
+          padding:5px 12px; border-radius:999px; }
+  .cart-btn { position:relative; width:42px; height:42px; border-radius:50%; background:#fff; border:none;
+              font-size:19px; box-shadow:0 4px 12px rgba(0,0,0,.08); }
+  .badge { position:absolute; top:-4px; right:-4px; min-width:20px; height:20px; padding:0 5px;
+           border-radius:999px; background:#C88E88; color:#fff; font-size:11px; font-weight:800;
+           display:none; align-items:center; justify-content:center; }
+  .badge.show { display:flex; }
+
+  .titlebar { display:flex; align-items:flex-end; justify-content:space-between; padding:26px 24px 18px; }
+  .title { font-size:34px; font-weight:600; line-height:1.05; }
+  .title .muted { color:#9B8B86; }
+  .sort { text-align:right; font-size:12px; color:#9B8B86; padding-bottom:4px; }
+  .sort b { color:#33272A; }
+
+  .grid { display:grid; grid-template-columns:1fr 1fr; gap:16px; padding:0 20px; }
+  .card { position:relative; border-radius:28px; padding:24px 16px 28px; text-align:center;
+          box-shadow:0 14px 30px rgba(120,70,70,.18); }
+  .plate { width:112px; height:112px; margin:0 auto 12px; border-radius:50%; display:flex;
+           align-items:center; justify-content:center; font-size:48px;
+           background:radial-gradient(circle at 35% 30%,#4b3a3a,#241b1b);
+           box-shadow:0 10px 22px rgba(0,0,0,.28); }
+  .price { font-size:19px; font-weight:800; }
+  .pname { font-size:14px; font-weight:500; line-height:1.2; margin-top:4px; min-height:34px; }
+  .stars { margin-top:4px; font-size:12px; color:rgba(255,255,255,.7); letter-spacing:2px; }
+  .add { position:absolute; left:50%; bottom:-18px; transform:translateX(-50%); width:44px; height:44px;
+         border-radius:50%; background:#5E423F; color:#fff; border:none; font-size:26px; font-weight:300;
+         box-shadow:0 8px 16px rgba(94,66,63,.5); }
+  .add:active { transform:translateX(-50%) scale(.93); }
+
+  .cats { position:fixed; left:0; right:0; bottom:0; z-index:30; border-top:1px solid #E6DAD4;
+          background:rgba(243,236,231,.96); backdrop-filter:blur(8px); }
+  .cats-in { display:flex; gap:10px; overflow:auto; padding:14px 20px; max-width:430px; margin:0 auto; }
+  .chip { white-space:nowrap; border:none; border-radius:999px; padding:11px 22px; font-size:14px;
+          font-weight:700; background:#fff; color:#9B8B86; }
+  .chip.on { background:#5E423F; color:#fff; }
+
+  /* Koszyk */
+  .overlay { position:fixed; inset:0; z-index:50; background:rgba(0,0,0,.45); display:none;
+             align-items:flex-end; justify-content:center; }
+  .overlay.show { display:flex; }
+  .sheet { width:100%; max-width:430px; background:#F3ECE7; border-radius:26px 26px 0 0; padding:20px 20px 26px;
+           max-height:80vh; overflow:auto; }
+  .sheet h2 { font-size:22px; font-weight:600; }
+  .close { float:right; background:none; border:none; font-size:26px; color:#9B8B86; }
+  .line { display:flex; align-items:center; justify-content:space-between; gap:10px;
+          border-bottom:1px dashed #E0D2CC; padding:12px 0; }
+  .line .nm { font-weight:600; font-size:15px; }
+  .qty { display:flex; align-items:center; gap:10px; }
+  .qbtn { width:30px; height:30px; border-radius:9px; border:none; background:#E7DAD3; font-weight:800; font-size:16px; }
+  .tot { display:flex; justify-content:space-between; font-size:19px; font-weight:800; padding-top:14px; }
+  .order { width:100%; margin-top:16px; background:#5E423F; color:#fff; border:none; border-radius:16px;
+           padding:16px; font-size:16px; font-weight:800; }
+  .empty { text-align:center; color:#9B8B86; padding:30px 0; }
+  .note { text-align:center; font-size:11px; color:#B6A79F; padding:18px 24px 4px; }
+</style>
+</head>
+<body>
+<div class="phone">
+  <div class="header">
+    <button class="burger">≡</button>
+    <div class="hright">
+      <span class="demo">PODGLĄD</span>
+      <button class="cart-btn" onclick="openCart()">🛒<span class="badge" id="badge">0</span></button>
+    </div>
+  </div>
+
+  <div class="titlebar">
+    <div class="title serif">Mammarosa<br><span class="muted">menu dostawy</span></div>
+    <div class="sort">Sortuj wg<br><b>Popularności ⌄</b></div>
+  </div>
+
+  <div class="grid" id="grid"></div>
+  <div class="note">Podgląd demonstracyjny · w miejscu talerza wskoczą zdjęcia potraw z systemu sprzedażowego.</div>
+
+  <div class="cats"><div class="cats-in" id="cats"></div></div>
+</div>
+
+<div class="overlay" id="overlay" onclick="if(event.target===this)closeCart()">
+  <div class="sheet">
+    <button class="close" onclick="closeCart()">×</button>
+    <h2 class="serif">Twoje zamówienie</h2>
+    <div id="cartLines"></div>
+    <div class="tot"><span>Razem</span><span id="cartTotal">0,00 zł</span></div>
+    <button class="order" onclick="alert('To podgląd — w pełnej wersji zamówienie trafia do systemu na sali.')">Zamawiam</button>
+  </div>
+</div>
+
+<script>
+  const TINTS = ["linear-gradient(180deg,#D8A9A2 0%,#C88E88 100%)","linear-gradient(180deg,#C58C8A 0%,#B07A79 100%)"];
+  const MENU = {
+    "Pizza": [
+      {id:"p1", n:"Margherita", p:26, e:"🍕"},
+      {id:"p2", n:"Capricciosa", p:34, e:"🍕"},
+      {id:"p3", n:"Diavola", p:34, e:"🍕"},
+      {id:"p4", n:"Hawajska", p:32, e:"🍕"},
+      {id:"p5", n:"Quattro Formaggi", p:36, e:"🍕"},
+      {id:"p6", n:"Wiejska", p:33, e:"🍕"},
+    ],
+    "Napoje": [
+      {id:"d1", n:"Coca-Cola 0,5l", p:7, e:"🥤"},
+      {id:"d2", n:"Sok pomarańczowy", p:6, e:"🥤"},
+      {id:"d3", n:"Woda 0,5l", p:5, e:"💧"},
+    ],
+    "Desery": [
+      {id:"s1", n:"Tiramisu", p:16, e:"🍰"},
+      {id:"s2", n:"Panna cotta", p:15, e:"🍮"},
+    ],
+  };
+  const cats = Object.keys(MENU);
+  let active = cats[0];
+  const cart = {}; // id -> {n,p,qty}
+
+  function zl(v){ return v.toFixed(2).replace(".",",")+" zł"; }
+
+  function renderCats(){
+    document.getElementById("cats").innerHTML = cats.map(c =>
+      `<button class="chip ${c===active?'on':''}" onclick="setCat('${c}')">${c}</button>`).join("");
+  }
+  function setCat(c){ active=c; renderCats(); renderGrid(); }
+
+  function renderGrid(){
+    document.getElementById("grid").innerHTML = MENU[active].map((it,i)=>`
+      <div class="card" style="background:${TINTS[i%2]}">
+        <div class="plate">${it.e}</div>
+        <div class="price">${zl(it.p)}</div>
+        <div class="pname">${it.n}</div>
+        <div class="stars">★★★★★</div>
+        <button class="add" onclick="addItem('${it.id}','${it.n.replace(/'/g,"\\'")}',${it.p})">+</button>
+      </div>`).join("");
+  }
+
+  function addItem(id,n,p){
+    if(!cart[id]) cart[id]={n,p,qty:0};
+    cart[id].qty++;
+    updateBadge();
+  }
+  function chQty(id,delta){
+    if(!cart[id])return;
+    cart[id].qty+=delta;
+    if(cart[id].qty<=0) delete cart[id];
+    updateBadge(); renderCart();
+  }
+  function count(){ return Object.values(cart).reduce((s,l)=>s+l.qty,0); }
+  function total(){ return Object.values(cart).reduce((s,l)=>s+l.p*l.qty,0); }
+  function updateBadge(){
+    const b=document.getElementById("badge"); const c=count();
+    b.textContent=c; b.classList.toggle("show", c>0);
+  }
+  function openCart(){ renderCart(); document.getElementById("overlay").classList.add("show"); }
+  function closeCart(){ document.getElementById("overlay").classList.remove("show"); }
+  function renderCart(){
+    const lines=Object.entries(cart);
+    const wrap=document.getElementById("cartLines");
+    if(!lines.length){ wrap.innerHTML='<div class="empty">Koszyk jest pusty</div>'; }
+    else { wrap.innerHTML=lines.map(([id,l])=>`
+      <div class="line">
+        <div><div class="nm">${l.n}</div><div style="font-size:12px;color:#9B8B86">${zl(l.p)}</div></div>
+        <div class="qty">
+          <button class="qbtn" onclick="chQty('${id}',-1)">−</button>
+          <b>${l.qty}</b>
+          <button class="qbtn" onclick="chQty('${id}',1)">+</button>
+        </div>
+      </div>`).join(""); }
+    document.getElementById("cartTotal").textContent=zl(total());
+  }
+
+  renderCats(); renderGrid(); updateBadge();
+</script>
+</body>
+</html>
