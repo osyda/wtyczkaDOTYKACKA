@@ -12,9 +12,11 @@ const LIME = "#D5E36B";
 export function ProductModal({
   product,
   onClose,
+  onAdded,
 }: {
   product: MenuProduct;
   onClose: () => void;
+  onAdded?: (name: string, qty: number) => void;
 }) {
   const { addProduct } = useCart();
   const [qty, setQty] = useState(1);
@@ -120,6 +122,7 @@ export function ProductModal({
             onClick={() => {
               addProduct(product, qty, chosen);
               onClose();
+              onAdded?.(product.name, qty);
             }}
             className="mt-5 flex w-full items-center justify-between rounded-full py-4 pl-6 pr-6 text-[15px] font-bold text-[#F5F1E8]"
             style={{ background: INK }}

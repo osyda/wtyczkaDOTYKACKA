@@ -70,13 +70,6 @@ function IconCake({ className }: { className?: string }) {
     </svg>
   );
 }
-function IconPlus({ className }: { className?: string }) {
-  return (
-    <svg viewBox="0 0 24 24" className={className}>
-      <path d="M12 5 V19 M5 12 H19" {...stroke} />
-    </svg>
-  );
-}
 function IconArrow({ className }: { className?: string }) {
   return (
     <svg viewBox="0 0 24 24" className={className}>
@@ -103,12 +96,20 @@ export function Shop({ menu }: { menu: Menu }) {
   const [activeCat, setActiveCat] = useState<string>("all");
   const [query, setQuery] = useState("");
   const [modalProduct, setModalProduct] = useState<MenuProduct | null>(null);
-  const { addProduct, itemCount, subtotal } = useCart();
+  const [toast, setToast] = useState<string | null>(null);
+  const { lines, itemCount, subtotal } = useCart();
 
-  const onAdd = (p: MenuProduct) => {
-    if (p.addons && p.addons.length > 0) setModalProduct(p);
-    else addProduct(p, 1, []);
+  // Świadome dodawanie: klik w kartę ZAWSZE otwiera kartę produktu —
+  // dodanie wyłącznie przyciskiem w środku (zero przypadkowych kliknięć).
+  const onOpen = (p: MenuProduct) => setModalProduct(p);
+
+  const onAdded = (name: string, qty: number) => {
+    setToast(`Dodano: ${name} ×${qty}`);
+    window.setTimeout(() => setToast(null), 2400);
   };
+
+  const inCartQty = (productId: string) =>
+    lines.filter((l) => l.productId === productId).reduce((s, l) => s + l.qty, 0);
 
   const products = useMemo(() => {
     const all = menu.categories.flatMap((c) => c.products.map((p) => ({ ...p, cat: c.name, catId: c.id })));
@@ -202,40 +203,48 @@ export function Shop({ menu }: { menu: Menu }) {
 
         {/* Karty */}
         <div className="grid grid-cols-2 gap-3.5">
-          {products.map((p) => (
-            <div
-              key={p.id}
-              className="group overflow-hidden rounded-[24px] bg-white shadow-[0_2px_14px_rgba(29,42,34,0.06)] transition hover:shadow-[0_10px_28px_rgba(29,42,34,0.10)]"
-            >
-              <button onClick={() => onAdd(p)} className="block w-full text-left">
-                <div className="relative aspect-square w-full bg-[radial-gradient(120%_120%_at_30%_20%,#FBF8F1_0%,#F1EADB_100%)] p-5">
-                  {p.image ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img src={p.image} alt={p.name} className="h-full w-full rounded-2xl object-cover" />
-                  ) : (
-                    <DishArt kind={dishKindFor(p.name)} className="h-full w-full" />
-                  )}
-                </div>
-                <div className="px-3.5 pb-3.5 pt-1">
-                  <div className="truncate text-[15px] font-bold tracking-[-0.01em]">{p.name}</div>
-                  {p.description ? (
-                    <div className="mt-0.5 truncate text-[11.5px] text-[#A79E8C]">{p.description}</div>
-                  ) : (
-                    <div className="mt-0.5 text-[11.5px] text-transparent">·</div>
-                  )}
-                  <div className="mt-2.5 flex items-center justify-between">
-                    <span className="text-[15px] font-extrabold">{zl(p.price)}</span>
-                    <span
-                      className="flex h-9 w-9 items-center justify-center rounded-full text-[#F5F1E8] transition group-hover:scale-105"
-                      style={{ background: INK }}
-                    >
-                      <IconPlus className="h-4.5 w-4.5" />
-                    </span>
+          {products.map((p) => {
+            const qty = inCartQty(p.id);
+            return (
+              <div
+                key={p.id}
+                className="group relative overflow-hidden rounded-[24px] bg-white shadow-[0_2px_14px_rgba(29,42,34,0.06)] transition hover:shadow-[0_10px_28px_rgba(29,42,34,0.10)]"
+              >
+                {qty > 0 && (
+                  <span
+                    className="absolute right-2.5 top-2.5 z-10 rounded-full px-2.5 py-1 text-[11px] font-extrabold shadow-md"
+                    style={{ background: LIME, color: INK }}
+                  >
+                    W koszyku ×{qty}
+                  </span>
+                )}
+                <button onClick={() => onOpen(p)} className="block w-full text-left">
+                  <div className="relative aspect-square w-full bg-[radial-gradient(120%_120%_at_30%_20%,#FBF8F1_0%,#F1EADB_100%)] p-5">
+                    {p.image ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src={p.image} alt={p.name} className="h-full w-full rounded-2xl object-cover" />
+                    ) : (
+                      <DishArt kind={dishKindFor(p.name)} className="h-full w-full" />
+                    )}
                   </div>
-                </div>
-              </button>
-            </div>
-          ))}
+                  <div className="px-3.5 pb-3.5 pt-1">
+                    <div className="truncate text-[15px] font-bold tracking-[-0.01em]">{p.name}</div>
+                    {p.description ? (
+                      <div className="mt-0.5 truncate text-[11.5px] text-[#A79E8C]">{p.description}</div>
+                    ) : (
+                      <div className="mt-0.5 text-[11.5px] text-transparent">·</div>
+                    )}
+                    <div className="mt-2.5 flex items-center justify-between">
+                      <span className="text-[15px] font-extrabold">{zl(p.price)}</span>
+                      <span className="rounded-full bg-[#F5F1E8] px-3.5 py-2 text-[12px] font-bold text-[#6E6759] transition group-hover:bg-[#EDE6D6]">
+                        Wybierz
+                      </span>
+                    </div>
+                  </div>
+                </button>
+              </div>
+            );
+          })}
         </div>
 
         {products.length === 0 && (
@@ -280,7 +289,23 @@ export function Shop({ menu }: { menu: Menu }) {
         )}
       </div>
 
-      {modalProduct && <ProductModal product={modalProduct} onClose={() => setModalProduct(null)} />}
+      {/* Toast — widoczne potwierdzenie dodania */}
+      <div
+        className="pointer-events-none fixed left-1/2 top-4 z-[60] flex -translate-x-1/2 items-center whitespace-nowrap gap-2.5 rounded-full py-3 pl-3 pr-5 text-sm font-semibold text-[#F5F1E8] shadow-[0_16px_36px_rgba(29,42,34,0.4)] transition-transform duration-300"
+        style={{ background: INK, transform: `translate(-50%, ${toast ? "0" : "-90px"})` }}
+      >
+        <span
+          className="flex h-6 w-6 items-center justify-center rounded-full text-[13px] font-extrabold"
+          style={{ background: LIME, color: INK }}
+        >
+          ✓
+        </span>
+        {toast ?? ""}
+      </div>
+
+      {modalProduct && (
+        <ProductModal product={modalProduct} onClose={() => setModalProduct(null)} onAdded={onAdded} />
+      )}
     </main>
   );
 }
