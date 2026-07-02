@@ -43,7 +43,11 @@ export function ProductModal({
         <div className="relative bg-[radial-gradient(120%_120%_at_30%_15%,#FBF8F1_0%,#EFE7D6_100%)] px-10 pb-2 pt-8">
           {product.image ? (
             // eslint-disable-next-line @next/next/no-img-element
-            <img src={product.image} alt={product.name} className="mx-auto aspect-square w-56 rounded-3xl object-cover" />
+            <img
+              src={product.image}
+              alt={product.name}
+              className="mx-auto aspect-square w-56 object-contain drop-shadow-[0_20px_26px_rgba(29,42,34,0.3)]"
+            />
           ) : (
             <DishArt kind={dishKindFor(product.name)} className="mx-auto aspect-square w-56" />
           )}

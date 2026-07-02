@@ -222,7 +222,11 @@ export function Shop({ menu }: { menu: Menu }) {
                   <div className="relative aspect-square w-full bg-[radial-gradient(120%_120%_at_30%_20%,#FBF8F1_0%,#F1EADB_100%)] p-5">
                     {p.image ? (
                       // eslint-disable-next-line @next/next/no-img-element
-                      <img src={p.image} alt={p.name} className="h-full w-full rounded-2xl object-cover" />
+                      <img
+                        src={p.image}
+                        alt={p.name}
+                        className="h-full w-full object-contain drop-shadow-[0_16px_20px_rgba(29,42,34,0.28)]"
+                      />
                     ) : (
                       <DishArt kind={dishKindFor(p.name)} className="h-full w-full" />
                     )}

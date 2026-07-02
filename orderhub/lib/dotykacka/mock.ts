@@ -1,6 +1,8 @@
 /**
- * Przykładowe menu (tryb MOCK) — używane, gdy nie ma jeszcze kluczy do Dotykački.
- * Pozwala zobaczyć działający ekran zanim podłączymy realne dane.
+ * Menu demonstracyjne (tryb MOCK) — prawdziwe pizze Mammarosa ze zdjęciami
+ * (tła wycięte, /public/food/*.webp). Używane, dopóki nie podłączymy Dotykački.
+ * ⚠️ CENY I OPISY ROBOCZE — do potwierdzenia z właścicielem; docelowo wszystko
+ * przyjdzie z API Dotykački (imageUrl produktów ma priorytet).
  */
 
 import type { Menu } from "./types";
@@ -14,39 +16,44 @@ const PIZZA_ADDONS = [
 ];
 
 export function mockMenu(): Menu {
+  const pizzas = [
+    { id: "pz-margherita", name: "Margherita", description: "Sos pomidorowy, mozzarella, oregano", price: 26, image: "/food/margherita.webp" },
+    { id: "pz-vesuvio", name: "Vesuvio", description: "Sos pomidorowy, mozzarella, szynka", price: 30, image: "/food/vesuvio.webp" },
+    { id: "pz-capricciosa", name: "Capricciosa", description: "Szynka, pieczarki, mozzarella", price: 32, image: "/food/capricciosa.webp" },
+    { id: "pz-milanese", name: "Milanese", description: "Kurczak, kukurydza, pieczarki", price: 33, image: "/food/milanese.webp" },
+    { id: "pz-carbonara", name: "Carbonara", description: "Sos śmietanowy, boczek, pieczarki, cebula", price: 34, image: "/food/carbonara.webp" },
+    { id: "pz-gyros", name: "Gyros", description: "Kurczak gyros, czerwona cebula, pomidorki", price: 35, image: "/food/gyros.webp" },
+    { id: "pz-mista", name: "Mista", description: "Salami, pieczarki, czerwona cebula", price: 33, image: "/food/mista.webp" },
+    { id: "pz-palermo", name: "Palermo", description: "Salami, boczek, papryczki chili", price: 35, image: "/food/palermo.webp" },
+    { id: "pz-vegetariana", name: "Vegetariana", description: "Pieczarki, papryka, świeże warzywa", price: 32, image: "/food/vegetariana.webp" },
+    { id: "pz-campagnola", name: "Campagnola", description: "Salami, cebula, mozzarella", price: 34, image: "/food/campagnola.webp" },
+    { id: "pz-labussola", name: "La Bussola", description: "Szynka, krewetki, mozzarella", price: 36, image: "/food/labussola.webp" },
+    { id: "pz-formaggi", name: "Quattro Formaggi", description: "Cztery sery, bazylia", price: 36, image: "/food/formaggi.webp" },
+    { id: "pz-parma", name: "Parma", description: "Szynka dojrzewająca, pomidorki, bazylia", price: 38, image: "/food/parma.webp" },
+  ].map((p) => ({ ...p, addons: PIZZA_ADDONS }));
+
   return {
     source: "mock",
     branch: "Mammarosa (DEMO)",
-    productCount: 11,
+    productCount: pizzas.length + 5,
     fetchedAt: new Date(0).toISOString(),
     categories: [
-      {
-        id: "c-pizza",
-        name: "Pizza",
-        products: [
-          { id: "p1", name: "Margherita", description: "Sos pomidorowy, mozzarella, bazylia", price: 26, color: "#c0392b", addons: PIZZA_ADDONS },
-          { id: "p2", name: "Capricciosa", description: "Szynka, pieczarki, karczochy, mozzarella", price: 34, color: "#d35400", addons: PIZZA_ADDONS },
-          { id: "p3", name: "Diavola", description: "Salami pikantne, papryczki, mozzarella", price: 34, color: "#8e44ad", addons: PIZZA_ADDONS },
-          { id: "p4", name: "Hawajska", description: "Szynka, ananas, mozzarella", price: 32, color: "#2980b9", addons: PIZZA_ADDONS },
-          { id: "p5", name: "Quattro Formaggi", description: "Cztery sery", price: 36, color: "#16a085", addons: PIZZA_ADDONS },
-          { id: "p6", name: "Wiejska", description: "Boczek, cebula, kiełbasa, mozzarella", price: 33, color: "#27ae60", addons: PIZZA_ADDONS },
-        ],
-      },
+      { id: "c-pizza", name: "Pizza", products: pizzas },
       {
         id: "c-napoje",
         name: "Napoje",
         products: [
-          { id: "p7", name: "Coca-Cola 0,5l", description: "", price: 7, color: "#f39c12" },
-          { id: "p8", name: "Sok pomarańczowy", description: "", price: 6, color: "#7f8c8d" },
-          { id: "p9", name: "Woda 0,5l", description: "", price: 5, color: "#1abc9c" },
+          { id: "d1", name: "Coca-Cola 0,5l", description: "Mocno schłodzona", price: 7 },
+          { id: "d2", name: "Sok pomarańczowy", description: "100% wyciskany", price: 6 },
+          { id: "d3", name: "Woda 0,5l", description: "Gazowana lub niegazowana", price: 5 },
         ],
       },
       {
         id: "c-desery",
         name: "Desery",
         products: [
-          { id: "p10", name: "Tiramisu", description: "Klasyczne", price: 16, color: "#c0392b" },
-          { id: "p11", name: "Panna cotta", description: "Z sosem malinowym", price: 15, color: "#a04000" },
+          { id: "s1", name: "Tiramisu", description: "Mascarpone, espresso, kakao", price: 16 },
+          { id: "s2", name: "Panna cotta", description: "Z sosem malinowym", price: 15 },
         ],
       },
     ],
