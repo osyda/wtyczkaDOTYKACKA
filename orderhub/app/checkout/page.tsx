@@ -12,10 +12,65 @@ import {
   type DeliveryQuote,
   type FulfillmentMode,
 } from "@/lib/delivery";
+import { DishArt, dishKindFor } from "@/components/DishArt";
 
 type TimeMode = "asap" | "scheduled";
 type Payment = "cash" | "card";
 type Quote = DeliveryQuote & { needsManual?: boolean };
+
+const INK = "#1D2A22";
+const LIME = "#D5E36B";
+
+/* ---------- Ikony kreskowe ---------- */
+const stroke = { fill: "none", stroke: "currentColor", strokeWidth: 1.8, strokeLinecap: "round" as const, strokeLinejoin: "round" as const };
+
+const IconBack = ({ className }: { className?: string }) => (
+  <svg viewBox="0 0 24 24" className={className}><path d="M20 12 H4 M10 6 L4 12 L10 18" {...stroke} /></svg>
+);
+const IconPin = ({ className }: { className?: string }) => (
+  <svg viewBox="0 0 24 24" className={className}>
+    <path d="M12 21 C12 21 5 14.6 5 9.8 A7 7 0 0 1 19 9.8 C19 14.6 12 21 12 21 Z" {...stroke} />
+    <circle cx="12" cy="9.8" r="2.6" {...stroke} />
+  </svg>
+);
+const IconCash = ({ className }: { className?: string }) => (
+  <svg viewBox="0 0 24 24" className={className}>
+    <rect x="3" y="6.5" width="18" height="11" rx="2.5" {...stroke} />
+    <circle cx="12" cy="12" r="2.6" {...stroke} />
+    <path d="M6.5 9.8 v0.01 M17.5 14.2 v0.01" {...stroke} />
+  </svg>
+);
+const IconCard = ({ className }: { className?: string }) => (
+  <svg viewBox="0 0 24 24" className={className}>
+    <rect x="3" y="5.5" width="18" height="13" rx="2.5" {...stroke} />
+    <path d="M3 10 H21 M6.5 14.5 H11" {...stroke} />
+  </svg>
+);
+const IconClock = ({ className }: { className?: string }) => (
+  <svg viewBox="0 0 24 24" className={className}>
+    <circle cx="12" cy="12" r="8.5" {...stroke} /><path d="M12 7.5 V12 L15 14" {...stroke} />
+  </svg>
+);
+const IconBolt = ({ className }: { className?: string }) => (
+  <svg viewBox="0 0 24 24" className={className}><path d="M13 3 L5 13.5 H11 L10 21 L19 9.5 H13 Z" {...stroke} /></svg>
+);
+const IconTruck = ({ className }: { className?: string }) => (
+  <svg viewBox="0 0 24 24" className={className}>
+    <path d="M3 7 H14 V16 H3 Z M14 10 H18.5 L21 13 V16 H14" {...stroke} />
+    <circle cx="7" cy="17.8" r="1.7" {...stroke} /><circle cx="17" cy="17.8" r="1.7" {...stroke} />
+  </svg>
+);
+const IconBag = ({ className }: { className?: string }) => (
+  <svg viewBox="0 0 24 24" className={className}>
+    <path d="M5.5 8.5 H18.5 L17.5 20 a1.8 1.8 0 0 1 -1.8 1.6 H8.3 A1.8 1.8 0 0 1 6.5 20 Z" {...stroke} />
+    <path d="M9 11 V7.5 a3 3 0 0 1 6 0 V11" {...stroke} />
+  </svg>
+);
+const IconArrow = ({ className }: { className?: string }) => (
+  <svg viewBox="0 0 24 24" className={className}><path d="M4 12 H20 M14 6 L20 12 L14 18" {...stroke} /></svg>
+);
+
+/* ---------- Strona ---------- */
 
 export default function CheckoutPage() {
   const router = useRouter();
@@ -53,7 +108,6 @@ export default function CheckoutPage() {
         const lng = pos.coords.longitude;
         setCoords({ lat, lng });
         setGeoStatus("idle");
-        // Auto-uzupełnienie adresu z GPS (gdy skonfigurowany klucz map).
         try {
           const res = await fetch("/api/geo/reverse", {
             method: "POST",
@@ -70,7 +124,7 @@ export default function CheckoutPage() {
             }));
           }
         } catch {
-          /* brak klucza / błąd — klient wpisze ręcznie */
+          /* brak klucza map — klient wpisze ręcznie */
         }
       },
       () => setGeoStatus("error"),
@@ -78,14 +132,12 @@ export default function CheckoutPage() {
     );
   }
 
-  // Automatyczne wyliczanie dostawy: GPS klienta → adres → fallback.
+  // Automatyczna wycena dostawy: GPS → adres → fallback ręczny.
   useEffect(() => {
     if (mode === "pickup") {
       setQuote(pickupQuote());
       return;
     }
-
-    // 1) Lokalizacja GPS klienta (priorytet).
     if (coords) {
       const ctrl = new AbortController();
       (async () => {
@@ -106,15 +158,11 @@ export default function CheckoutPage() {
       })();
       return () => ctrl.abort();
     }
-
-    // 2) Adres w Kościerzynie → natychmiast 5 zł.
     if (isKoscierzyna(form.city)) {
       setQuote(flatCityQuote());
       return;
     }
     if (form.street.trim().length < 3) return;
-
-    // 3) Adres poza miastem (debounce).
     const ctrl = new AbortController();
     const t = setTimeout(async () => {
       setQuoting(true);
@@ -133,7 +181,7 @@ export default function CheckoutPage() {
         });
         setQuote(await res.json());
       } catch {
-        /* anulowane / błąd */
+        /* anulowane */
       } finally {
         setQuoting(false);
       }
@@ -198,18 +246,25 @@ export default function CheckoutPage() {
     }
   }
 
+  /* ---- Pusty koszyk ---- */
   if (lines.length === 0) {
     return (
-      <main className="min-h-screen bg-[#F7E9D5] text-[#1F1714]">
-        <Header />
-        <div className="mx-auto max-w-md px-6 py-20 text-center">
-          <div className="mb-3 text-5xl">🛒</div>
-          <h1 className="text-xl font-bold">Koszyk jest pusty</h1>
+      <main className="grid min-h-screen place-items-center bg-[#F5F1E8] px-6" style={{ color: INK }}>
+        <div className="text-center">
+          <div
+            className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-white shadow-sm"
+            style={{ color: "#A79E8C" }}
+          >
+            <IconBag className="h-7 w-7" />
+          </div>
+          <h1 className="text-xl font-bold tracking-[-0.01em]">Koszyk jest pusty</h1>
+          <p className="mt-1 text-sm text-[#A79E8C]">Wybierz coś pysznego z menu.</p>
           <Link
             href="/menu"
-            className="mt-5 inline-block rounded-2xl bg-[#5C6B3C] px-6 py-3 font-bold text-white"
+            className="mt-6 inline-flex items-center gap-2 rounded-full px-7 py-3.5 text-sm font-bold text-[#F5F1E8]"
+            style={{ background: INK }}
           >
-            Zobacz menu
+            Zobacz menu <IconArrow className="h-4 w-4" />
           </Link>
         </div>
       </main>
@@ -217,232 +272,248 @@ export default function CheckoutPage() {
   }
 
   return (
-    <main className="min-h-screen bg-[#F7E9D5] pb-32 text-[#1F1714]">
-      <Header />
-      <div className="mx-auto max-w-md space-y-4 px-4 py-5">
+    <main className="min-h-screen bg-[#F5F1E8] pb-36" style={{ color: INK }}>
+      <div className="mx-auto max-w-md px-5">
+        {/* Nagłówek */}
+        <div className="flex items-center gap-3 pt-6">
+          <Link
+            href="/menu"
+            aria-label="Wróć do menu"
+            className="flex h-11 w-11 items-center justify-center rounded-full bg-white shadow-sm"
+          >
+            <IconBack className="h-5 w-5" />
+          </Link>
+          <h1 className="text-[22px] font-bold tracking-[-0.02em]">Twoje zamówienie</h1>
+        </div>
+
         {/* Pozycje */}
-        <Card title="Twoje zamówienie">
-          <div className="space-y-3">
-            {lines.map((l) => (
-              <div key={l.lineId} className="flex gap-3 border-b border-[#E7D4BC] pb-3 last:border-0 last:pb-0">
-                <div className="flex-1">
-                  <div className="font-semibold">{l.name}</div>
-                  {l.addons.length > 0 && (
-                    <div className="text-xs text-[#9a8a7c]">
-                      {l.addons.map((a) => `+ ${a.name}`).join(", ")}
-                    </div>
-                  )}
-                  <button
-                    onClick={() => remove(l.lineId)}
-                    className="mt-1 text-xs font-semibold text-[#B7382F]"
-                  >
-                    Usuń
-                  </button>
-                </div>
-                <div className="flex flex-col items-end justify-between">
-                  <div className="flex items-center gap-2">
-                    <button onClick={() => setQty(l.lineId, l.qty - 1)} className="h-7 w-7 rounded-lg bg-[#F0E2CD] font-bold">−</button>
-                    <span className="w-5 text-center font-bold">{l.qty}</span>
-                    <button onClick={() => setQty(l.lineId, l.qty + 1)} className="h-7 w-7 rounded-lg bg-[#F0E2CD] font-bold">+</button>
-                  </div>
-                  <div className="text-sm font-bold">{zl(lineTotal(l))}</div>
-                </div>
+        <section className="mt-5 space-y-2.5">
+          {lines.map((l) => (
+            <div key={l.lineId} className="flex items-center gap-3 rounded-3xl bg-white p-3 shadow-[0_2px_12px_rgba(29,42,34,0.05)]">
+              <div className="h-16 w-16 flex-none">
+                {l.image ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={l.image} alt="" className="h-full w-full object-contain drop-shadow-[0_6px_8px_rgba(29,42,34,0.25)]" />
+                ) : (
+                  <DishArt kind={dishKindFor(l.name)} className="h-full w-full" />
+                )}
               </div>
-            ))}
-          </div>
-        </Card>
+              <div className="min-w-0 flex-1">
+                <div className="truncate text-[14.5px] font-bold tracking-[-0.01em]">{l.name}</div>
+                {l.addons.length > 0 && (
+                  <div className="truncate text-[11.5px] text-[#A79E8C]">
+                    {l.addons.map((a) => `+ ${a.name}`).join(", ")}
+                  </div>
+                )}
+                <div className="mt-1 text-[13.5px] font-extrabold">{zl(lineTotal(l))}</div>
+              </div>
+              <div className="flex flex-none items-center gap-0.5 rounded-full bg-[#F5F1E8] p-1">
+                <button
+                  onClick={() => (l.qty === 1 ? remove(l.lineId) : setQty(l.lineId, l.qty - 1))}
+                  className="flex h-8 w-8 items-center justify-center rounded-full text-base font-extrabold transition hover:bg-white"
+                >
+                  −
+                </button>
+                <span className="w-6 text-center text-[14px] font-extrabold">{l.qty}</span>
+                <button
+                  onClick={() => setQty(l.lineId, l.qty + 1)}
+                  className="flex h-8 w-8 items-center justify-center rounded-full text-base font-extrabold transition hover:bg-white"
+                >
+                  +
+                </button>
+              </div>
+            </div>
+          ))}
+        </section>
 
         {/* Sposób odbioru */}
-        <Card title="Sposób odbioru">
-          <Segmented
-            options={[
-              { value: "delivery", label: "🚚 Dostawa" },
-              { value: "pickup", label: "🏠 Odbiór osobisty" },
-            ]}
-            value={mode}
-            onChange={(v) => setMode(v as FulfillmentMode)}
-          />
-          {mode === "delivery" && (
-            <div className="mt-3 space-y-2">
-              {/* Przycisk: policz z lokalizacji klienta */}
-              <button
-                type="button"
-                onClick={locateMe}
-                className="flex w-full items-center justify-center gap-2 rounded-xl border-2 border-[#5C6B3C] bg-[#EDEFE2] px-3 py-2.5 text-sm font-bold text-[#5C6B3C]"
-              >
-                📍 {coords ? "Lokalizacja ustawiona — przelicz ponownie" : "Policz z mojej lokalizacji"}
-              </button>
-              {geoStatus === "locating" && (
-                <p className="text-xs text-[#9a8a7c]">Ustalam Twoją lokalizację…</p>
+        <Lbl>Sposób odbioru</Lbl>
+        <Segmented
+          value={mode}
+          onChange={(v) => setMode(v as FulfillmentMode)}
+          options={[
+            { value: "delivery", label: "Dostawa", icon: <IconTruck className="h-4.5 w-4.5" /> },
+            { value: "pickup", label: "Odbiór osobisty", icon: <IconBag className="h-4.5 w-4.5" /> },
+          ]}
+        />
+
+        {mode === "delivery" && (
+          <div className="mt-2.5 space-y-2.5">
+            <button
+              type="button"
+              onClick={locateMe}
+              className="flex w-full items-center justify-center gap-2 rounded-full bg-white py-3.5 text-sm font-bold shadow-[0_2px_12px_rgba(29,42,34,0.05)] transition hover:shadow-md"
+            >
+              <IconPin className="h-4.5 w-4.5" />
+              {coords ? "Lokalizacja ustawiona — przelicz ponownie" : "Policz dostawę z mojej lokalizacji"}
+            </button>
+            {geoStatus === "locating" && <P muted>Ustalam Twoją lokalizację…</P>}
+            {geoStatus === "error" && <P error>Nie udało się pobrać lokalizacji — podaj adres poniżej.</P>}
+
+            <div className="rounded-3xl bg-white p-4 shadow-[0_2px_12px_rgba(29,42,34,0.05)]">
+              {quoting ? (
+                <P muted>Liczę odległość…</P>
+              ) : quote.outOfRange ? (
+                <P error>{quote.label}. Wybierz odbiór osobisty.</P>
+              ) : (coords || !quote.needsManual) && (coords || form.street.trim().length >= 3) ? (
+                <div className="flex items-center justify-between">
+                  <span className="flex items-center gap-2 text-[13.5px] font-semibold">
+                    <IconPin className="h-4 w-4 text-[#A79E8C]" />
+                    {quote.inCity ? "Kościerzyna — stawka stała" : `${quote.km} km ${coords ? "od Ciebie" : "od Kościerzyny"}`}
+                  </span>
+                  <span className="text-[15px] font-extrabold">{zl(deliveryFee)}</span>
+                </div>
+              ) : quote.needsManual ? (
+                <P muted>Podaj odległość (km), aby policzyć dostawę:</P>
+              ) : (
+                <P muted>Użyj lokalizacji lub wpisz adres — dostawa policzy się sama.</P>
               )}
-              {geoStatus === "error" && (
-                <p className="text-xs text-[#B7382F]">
-                  Nie udało się pobrać lokalizacji — podaj adres ręcznie poniżej.
+
+              {coords && (
+                <button
+                  type="button"
+                  onClick={() => setCoords(null)}
+                  className="mt-1.5 text-xs font-bold text-[#A79E8C] underline underline-offset-2"
+                >
+                  wpisz adres zamiast lokalizacji
+                </button>
+              )}
+
+              {quote.needsManual && !coords && (
+                <input
+                  type="number"
+                  min={1}
+                  max={15}
+                  value={manualKm}
+                  onChange={(e) => setManualKm(e.target.value === "" ? "" : Number(e.target.value))}
+                  placeholder="Odległość w km"
+                  className="mt-2.5 w-full rounded-2xl bg-[#F5F1E8] px-4 py-3 text-[15px] outline-none placeholder:text-[#B9B09D]"
+                />
+              )}
+              {coords && quote.estimated && !quote.outOfRange && (
+                <p className="mt-1.5 text-[11px] text-[#B9B09D]">
+                  Szacunek z lokalizacji — z kluczem map policzymy dokładną trasę.
                 </p>
               )}
-
-              {/* Wynik wyceny */}
-              <div className="rounded-xl border border-[#E7D4BC] bg-[#FFF8EC] p-3 text-sm">
-                {quoting ? (
-                  <span className="text-[#9a8a7c]">Liczę odległość…</span>
-                ) : quote.outOfRange ? (
-                  <span className="font-semibold text-[#B7382F]">🚫 {quote.label}. Wybierz odbiór osobisty.</span>
-                ) : (coords || !quote.needsManual) && (coords || form.street.trim().length >= 3) ? (
-                  <div className="flex items-center justify-between">
-                    <span className="font-semibold text-[#5C6B3C]">
-                      {quote.inCity
-                        ? "📍 Kościerzyna — stawka płaska"
-                        : `📍 ${quote.km} km ${coords ? "od Ciebie" : "od Kościerzyny"}`}
-                    </span>
-                    <span className="font-extrabold">{zl(deliveryFee)}</span>
-                  </div>
-                ) : quote.needsManual ? (
-                  <span className="text-[#9a8a7c]">Podaj odległość (km), aby policzyć dostawę:</span>
-                ) : (
-                  <span className="text-[#9a8a7c]">
-                    Użyj lokalizacji lub podaj adres — opłata policzy się automatycznie.
-                  </span>
-                )}
-
-                {coords && (
-                  <button
-                    type="button"
-                    onClick={() => setCoords(null)}
-                    className="mt-1 text-xs font-semibold text-[#B7382F]"
-                  >
-                    ✕ wpisz adres zamiast lokalizacji
-                  </button>
-                )}
-
-                {quote.needsManual && !coords && (
-                  <label className="mt-2 block">
-                    <span className="mb-1 block text-xs text-[#9a8a7c]">
-                      Odległość (km) — pełen automat wymaga klucza map (dodamy); na razie podaj ręcznie:
-                    </span>
-                    <input
-                      type="number"
-                      min={1}
-                      max={15}
-                      value={manualKm}
-                      onChange={(e) => setManualKm(e.target.value === "" ? "" : Number(e.target.value))}
-                      className="w-full rounded-xl border border-[#E0CDB2] bg-white px-3 py-2.5 text-sm"
-                    />
-                  </label>
-                )}
-
-                {coords && quote.estimated && !quote.outOfRange && (
-                  <p className="mt-1 text-xs text-[#9a8a7c]">
-                    Policzono z Twojej lokalizacji (szacunek; z kluczem map — dokładną trasą drogową).
-                  </p>
-                )}
-              </div>
             </div>
-          )}
-        </Card>
+          </div>
+        )}
 
         {/* Na kiedy */}
-        <Card title="Na kiedy?">
-          <Segmented
-            color="red"
-            options={[
-              { value: "asap", label: "⚡ Najszybciej" },
-              { value: "scheduled", label: "🕒 Na godzinę" },
-            ]}
-            value={timeMode}
-            onChange={(v) => setTimeMode(v as TimeMode)}
+        <Lbl>Na kiedy?</Lbl>
+        <Segmented
+          value={timeMode}
+          onChange={(v) => setTimeMode(v as TimeMode)}
+          options={[
+            { value: "asap", label: "Najszybciej", icon: <IconBolt className="h-4.5 w-4.5" /> },
+            { value: "scheduled", label: "Na godzinę", icon: <IconClock className="h-4.5 w-4.5" /> },
+          ]}
+        />
+        {timeMode === "asap" ? (
+          <p className="mt-2 px-1 text-xs text-[#A79E8C]">
+            Obsługa potwierdzi czas przygotowania — zobaczysz go po złożeniu zamówienia.
+          </p>
+        ) : (
+          <input
+            type="time"
+            value={scheduledTime}
+            onChange={(e) => setScheduledTime(e.target.value)}
+            className="mt-2.5 w-full rounded-2xl bg-white px-4 py-3.5 text-[15px] font-semibold shadow-[0_2px_12px_rgba(29,42,34,0.05)] outline-none"
           />
-          {timeMode === "asap" ? (
-            <p className="mt-2 text-xs text-[#9a8a7c]">
-              Obsługa ustali czas przygotowania — zobaczysz go na stronie potwierdzenia.
-            </p>
-          ) : (
-            <label className="mt-3 block">
-              <span className="mb-1 block text-xs text-[#9a8a7c]">Wybierz godzinę</span>
-              <input
-                type="time"
-                value={scheduledTime}
-                onChange={(e) => setScheduledTime(e.target.value)}
-                className="w-full rounded-xl border border-[#E0CDB2] bg-[#FFF8EC] px-3 py-2.5 text-sm"
-              />
-            </label>
-          )}
-        </Card>
+        )}
 
         {/* Dane */}
-        <Card title="Dane kontaktowe">
-          <div className="space-y-2.5">
-            <Field label="Imię i nazwisko" value={form.name} onChange={(v) => setForm({ ...form, name: v })} placeholder="Jan Kowalski" />
-            <Field label="Telefon" value={form.phone} onChange={(v) => setForm({ ...form, phone: v })} placeholder="500 100 200" />
-            {mode === "delivery" && (
-              <>
-                <Field label="Ulica i numer" value={form.street} onChange={(v) => setForm({ ...form, street: v })} placeholder="ul. Świętojańska 12" />
-                <div className="flex gap-2">
-                  <Field label="Miasto" value={form.city} onChange={(v) => setForm({ ...form, city: v })} />
-                  <Field label="Kod" value={form.zip} onChange={(v) => setForm({ ...form, zip: v })} placeholder="83-400" />
+        <Lbl>Dane kontaktowe</Lbl>
+        <div className="space-y-2.5">
+          <Field placeholder="Imię i nazwisko" value={form.name} onChange={(v) => setForm({ ...form, name: v })} />
+          <Field placeholder="Telefon" inputMode="tel" value={form.phone} onChange={(v) => setForm({ ...form, phone: v })} />
+          {mode === "delivery" && (
+            <>
+              <Field placeholder="Ulica i numer" value={form.street} onChange={(v) => setForm({ ...form, street: v })} />
+              <div className="flex gap-2.5">
+                <Field placeholder="Miasto" value={form.city} onChange={(v) => setForm({ ...form, city: v })} />
+                <div className="w-32 flex-none">
+                  <Field placeholder="Kod" value={form.zip} onChange={(v) => setForm({ ...form, zip: v })} />
                 </div>
-              </>
-            )}
-            <Field label="Uwagi" value={form.note} onChange={(v) => setForm({ ...form, note: v })} placeholder="np. domofon 12" />
-          </div>
-        </Card>
+              </div>
+            </>
+          )}
+          <Field placeholder="Uwagi (np. domofon, piętro)" value={form.note} onChange={(v) => setForm({ ...form, note: v })} />
+        </div>
 
         {/* Płatność */}
-        <Card title="Płatność">
-          <div className="space-y-2">
-            <Radio label="💵 Gotówka" checked={payment === "cash"} onClick={() => setPayment("cash")} />
-            <Radio label="💳 Karta (terminal)" checked={payment === "card"} onClick={() => setPayment("card")} />
-            <div className="flex items-center gap-3 rounded-xl border-2 border-[#E3D2BA] p-3 text-sm font-semibold opacity-50">
-              🌐 Online — wkrótce
-            </div>
+        <Lbl>Płatność {mode === "delivery" ? "przy dostawie" : "przy odbiorze"}</Lbl>
+        <div className="space-y-2.5">
+          <PayOption
+            icon={<IconCash className="h-5 w-5" />}
+            label="Gotówka"
+            checked={payment === "cash"}
+            onClick={() => setPayment("cash")}
+          />
+          <PayOption
+            icon={<IconCard className="h-5 w-5" />}
+            label="Karta (terminal)"
+            checked={payment === "card"}
+            onClick={() => setPayment("card")}
+          />
+          <div className="flex items-center gap-3 rounded-3xl bg-white/60 px-4 py-3.5 text-[#B9B09D]">
+            <span className="flex h-5 w-5 items-center justify-center">
+              <svg viewBox="0 0 24 24" className="h-5 w-5"><circle cx="12" cy="12" r="8.5" {...stroke} /><path d="M3.5 12 H20.5 M12 3.5 C15 7 15 17 12 20.5 C9 17 9 7 12 3.5" {...stroke} /></svg>
+            </span>
+            <span className="flex-1 text-[14px] font-semibold">Płatność online</span>
+            <span className="text-[11px] font-bold uppercase tracking-wider">wkrótce</span>
           </div>
-        </Card>
+        </div>
 
         {/* Podsumowanie */}
-        <Card title="Podsumowanie">
+        <Lbl>Podsumowanie</Lbl>
+        <div className="rounded-3xl bg-white p-4 shadow-[0_2px_12px_rgba(29,42,34,0.05)]">
           <Row label="Produkty" value={zl(subtotal)} />
           <Row
             label={mode === "pickup" ? "Odbiór osobisty" : quote.inCity ? "Dostawa — Kościerzyna" : `Dostawa${quote.km ? ` (${quote.km} km)` : ""}`}
             value={deliveryFee > 0 ? zl(deliveryFee) : "0,00 zł"}
           />
-          <div className="mt-2 flex justify-between border-t border-dashed border-[#E7D4BC] pt-3 text-lg font-extrabold">
-            <span>Razem</span>
-            <span>{zl(total)}</span>
+          <div className="mt-2 flex items-center justify-between border-t border-dashed border-[#E7DFCE] pt-3">
+            <span className="text-[16px] font-extrabold">Razem</span>
+            <span className="text-[18px] font-extrabold">{zl(total)}</span>
           </div>
-        </Card>
+        </div>
       </div>
 
       {/* CTA */}
-      <div className="fixed inset-x-0 bottom-0 z-40 border-t border-[#E7D4BC] bg-white px-4 py-3">
-        {error && <p className="mx-auto mb-2 max-w-md text-center text-sm text-[#B7382F]">{error}</p>}
-        <button
-          disabled={!canOrder || submitting}
-          onClick={submitOrder}
-          className="mx-auto flex max-w-md items-center justify-between rounded-2xl px-5 py-4 font-extrabold text-white disabled:opacity-40"
-          style={{ background: "#5C6B3C", width: "100%", maxWidth: "28rem" }}
-        >
-          <span>{submitting ? "Wysyłam…" : canOrder ? "Zamawiam" : "Uzupełnij dane"}</span>
-          <span>{zl(total)} →</span>
-        </button>
+      <div className="fixed inset-x-0 bottom-5 z-40 flex justify-center px-5">
+        <div className="w-full max-w-md">
+          {error && <p className="mb-2 text-center text-sm font-semibold text-[#B7382F]">{error}</p>}
+          <button
+            disabled={!canOrder || submitting}
+            onClick={submitOrder}
+            className="flex w-full items-center justify-between rounded-full py-4 pl-7 pr-7 text-[15px] font-bold text-[#F5F1E8] shadow-[0_16px_36px_rgba(29,42,34,0.35)] transition disabled:opacity-45"
+            style={{ background: INK }}
+          >
+            <span>{submitting ? "Wysyłam…" : canOrder ? "Zamawiam" : "Uzupełnij dane"}</span>
+            <span style={{ color: LIME }}>{zl(total)}</span>
+          </button>
+        </div>
       </div>
     </main>
   );
 }
 
-function Header() {
+/* ---------- Komponenty ---------- */
+
+function Lbl({ children }: { children: React.ReactNode }) {
   return (
-    <div className="flex items-center gap-3 bg-[#B7382F] px-4 py-3.5 text-white">
-      <Link href="/menu" className="text-2xl leading-none">←</Link>
-      <b className="text-lg">Twoje zamówienie</b>
+    <div className="mb-2.5 mt-7 px-1 text-[11px] font-extrabold uppercase tracking-[0.14em] text-[#A79E8C]">
+      {children}
     </div>
   );
 }
 
-function Card({ title, children }: { title: string; children: React.ReactNode }) {
+function P({ children, muted, error }: { children: React.ReactNode; muted?: boolean; error?: boolean }) {
   return (
-    <div className="rounded-2xl border border-[#E7D4BC] bg-white p-4">
-      <div className="mb-3 text-xs font-semibold uppercase tracking-wide text-[#9a8a7c]">{title}</div>
+    <p className={`text-[13px] font-semibold ${error ? "text-[#B7382F]" : muted ? "text-[#A79E8C]" : ""}`}>
       {children}
-    </div>
+    </p>
   );
 }
 
@@ -450,74 +521,91 @@ function Segmented({
   options,
   value,
   onChange,
-  color = "green",
 }: {
-  options: { value: string; label: string }[];
+  options: { value: string; label: string; icon?: React.ReactNode }[];
   value: string;
   onChange: (v: string) => void;
-  color?: "green" | "red";
 }) {
-  const on = color === "red" ? "border-[#B7382F] bg-[#F7E3E1] text-[#B7382F]" : "border-[#5C6B3C] bg-[#EDEFE2] text-[#5C6B3C]";
   return (
-    <div className="flex gap-2">
-      {options.map((o) => (
-        <button
-          key={o.value}
-          onClick={() => onChange(o.value)}
-          className={`flex-1 rounded-xl border-2 px-2 py-3 text-sm font-bold ${
-            value === o.value ? on : "border-[#E3D2BA] text-[#8a7a6e]"
-          }`}
-        >
-          {o.label}
-        </button>
-      ))}
+    <div className="flex gap-1 rounded-full bg-white p-1 shadow-[0_2px_12px_rgba(29,42,34,0.05)]">
+      {options.map((o) => {
+        const on = value === o.value;
+        return (
+          <button
+            key={o.value}
+            onClick={() => onChange(o.value)}
+            className="flex flex-1 items-center justify-center gap-2 rounded-full py-3 text-[13.5px] font-bold transition"
+            style={on ? { background: INK, color: "#F5F1E8" } : { color: "#6E6759" }}
+          >
+            {o.icon}
+            {o.label}
+          </button>
+        );
+      })}
     </div>
   );
 }
 
 function Field({
-  label,
+  placeholder,
   value,
   onChange,
-  placeholder,
+  inputMode,
 }: {
-  label: string;
+  placeholder: string;
   value: string;
   onChange: (v: string) => void;
-  placeholder?: string;
+  inputMode?: "tel";
 }) {
   return (
-    <label className="block flex-1">
-      <span className="mb-1 block text-xs text-[#9a8a7c]">{label}</span>
-      <input
-        value={value}
-        placeholder={placeholder}
-        onChange={(e) => onChange(e.target.value)}
-        className="w-full rounded-xl border border-[#E0CDB2] bg-[#FFF8EC] px-3 py-2.5 text-sm outline-none focus:border-[#B7382F]"
-      />
-    </label>
+    <input
+      value={value}
+      inputMode={inputMode}
+      placeholder={placeholder}
+      onChange={(e) => onChange(e.target.value)}
+      className="w-full rounded-2xl bg-white px-4 py-3.5 text-[15px] shadow-[0_2px_12px_rgba(29,42,34,0.05)] outline-none transition placeholder:text-[#B9B09D] focus:ring-2 focus:ring-[#1D2A22]/20"
+    />
   );
 }
 
-function Radio({ label, checked, onClick }: { label: string; checked: boolean; onClick: () => void }) {
+function PayOption({
+  icon,
+  label,
+  checked,
+  onClick,
+}: {
+  icon: React.ReactNode;
+  label: string;
+  checked: boolean;
+  onClick: () => void;
+}) {
   return (
     <button
       onClick={onClick}
-      className={`flex w-full items-center gap-3 rounded-xl border-2 p-3 text-sm font-semibold ${
-        checked ? "border-[#5C6B3C] bg-[#EDEFE2]" : "border-[#E3D2BA]"
-      }`}
+      className="flex w-full items-center gap-3 rounded-3xl bg-white px-4 py-3.5 text-left shadow-[0_2px_12px_rgba(29,42,34,0.05)] transition"
+      style={checked ? { boxShadow: `inset 0 0 0 2px ${INK}` } : undefined}
     >
-      <span className="flex-1 text-left">{label}</span>
-      <span className={`h-4 w-4 rounded-full border-2 ${checked ? "border-[#5C6B3C] bg-[#5C6B3C]" : "border-[#c9b9a9]"}`} />
+      <span className="text-[#6E6759]">{icon}</span>
+      <span className="flex-1 text-[14px] font-bold">{label}</span>
+      <span
+        className="flex h-5 w-5 items-center justify-center rounded-full border-2 transition"
+        style={checked ? { background: INK, borderColor: INK } : { borderColor: "#D8CFBC" }}
+      >
+        {checked && (
+          <svg viewBox="0 0 24 24" className="h-3 w-3">
+            <path d="M5 12.5 L10 17 L19 7" fill="none" stroke={LIME} strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
+        )}
+      </span>
     </button>
   );
 }
 
 function Row({ label, value }: { label: string; value: string }) {
   return (
-    <div className="flex justify-between py-1 text-sm text-[#6a5a4e]">
+    <div className="flex justify-between py-1 text-[13.5px] text-[#6E6759]">
       <span>{label}</span>
-      <span>{value}</span>
+      <span className="font-semibold" style={{ color: INK }}>{value}</span>
     </div>
   );
 }

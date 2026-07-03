@@ -23,6 +23,7 @@ export interface CartLine {
   basePrice: number;
   qty: number;
   addons: CartLineAddon[];
+  image?: string; // zdjęcie produktu (miniatura w koszyku/checkoucie)
   note?: string;
 }
 
@@ -121,6 +122,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
             basePrice: product.price,
             qty,
             addons: addons.map((a) => ({ id: a.id, name: a.name, price: a.price })),
+            image: product.image,
             note,
           },
         }),
