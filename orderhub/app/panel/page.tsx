@@ -5,6 +5,63 @@ import type { Order, OrderStatus } from "@/lib/orders/types";
 import type { CallerInfo } from "@/lib/cti";
 import { zl } from "@/lib/format";
 
+/* Paleta panelu (ciemna odmiana systemu: ink + limonka) */
+const BG = "#161F19";
+const CARD = "#1F2A22";
+const SUB = "#27342A";
+const CREAM = "#F5F1E8";
+const MUTED = "#94A294";
+const LIME = "#D5E36B";
+const ALERT = "#E56A4E";
+
+const stroke = { fill: "none", stroke: "currentColor", strokeWidth: 1.8, strokeLinecap: "round" as const, strokeLinejoin: "round" as const };
+
+const IconBell = ({ className }: { className?: string }) => (
+  <svg viewBox="0 0 24 24" className={className}>
+    <path d="M6 9.5 a6 6 0 0 1 12 0 c0 5 1.8 6 1.8 6 H4.2 c0 0 1.8 -1 1.8 -6" {...stroke} />
+    <path d="M10 19 a2 2 0 0 0 4 0" {...stroke} />
+  </svg>
+);
+const IconPot = ({ className }: { className?: string }) => (
+  <svg viewBox="0 0 24 24" className={className}>
+    <path d="M4.5 11 H19.5 V16 a3.5 3.5 0 0 1 -3.5 3.5 H8 A3.5 3.5 0 0 1 4.5 16 Z" {...stroke} />
+    <path d="M3 11 H21 M9 7.5 q1 -1.5 0 -3 M13.5 7.5 q1 -1.5 0 -3" {...stroke} />
+  </svg>
+);
+const IconCal = ({ className }: { className?: string }) => (
+  <svg viewBox="0 0 24 24" className={className}>
+    <rect x="4" y="5.5" width="16" height="15" rx="2.5" {...stroke} />
+    <path d="M4 10 H20 M8.5 3.5 V7 M15.5 3.5 V7" {...stroke} />
+  </svg>
+);
+const IconPhone = ({ className }: { className?: string }) => (
+  <svg viewBox="0 0 24 24" className={className}>
+    <path d="M5 4.5 H8.5 L10 9 L7.8 10.8 A12 12 0 0 0 13.2 16.2 L15 14 L19.5 15.5 V19 A1.8 1.8 0 0 1 17.5 20.8 A16 16 0 0 1 3.2 6.5 A1.8 1.8 0 0 1 5 4.5 Z" {...stroke} />
+  </svg>
+);
+const IconTruck = ({ className }: { className?: string }) => (
+  <svg viewBox="0 0 24 24" className={className}>
+    <path d="M3 7 H14 V16 H3 Z M14 10 H18.5 L21 13 V16 H14" {...stroke} />
+    <circle cx="7" cy="17.8" r="1.7" {...stroke} /><circle cx="17" cy="17.8" r="1.7" {...stroke} />
+  </svg>
+);
+const IconBag = ({ className }: { className?: string }) => (
+  <svg viewBox="0 0 24 24" className={className}>
+    <path d="M5.5 8.5 H18.5 L17.5 20 a1.8 1.8 0 0 1 -1.8 1.6 H8.3 A1.8 1.8 0 0 1 6.5 20 Z" {...stroke} />
+    <path d="M9 11 V7.5 a3 3 0 0 1 6 0 V11" {...stroke} />
+  </svg>
+);
+const IconClock = ({ className }: { className?: string }) => (
+  <svg viewBox="0 0 24 24" className={className}>
+    <circle cx="12" cy="12" r="8.5" {...stroke} /><path d="M12 7.5 V12 L15 14" {...stroke} />
+  </svg>
+);
+const IconBox = ({ className }: { className?: string }) => (
+  <svg viewBox="0 0 24 24" className={className}>
+    <path d="M4 8 L12 4 L20 8 V16 L12 20 L4 16 Z M4 8 L12 12 L20 8 M12 12 V20" {...stroke} />
+  </svg>
+);
+
 function clock(iso?: string): string {
   const d = iso ? new Date(iso) : new Date();
   return `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
@@ -16,7 +73,7 @@ export default function PanelPage() {
   const [caller, setCaller] = useState<CallerInfo | null>(null);
   const [simPhone, setSimPhone] = useState("");
 
-  // Bramka PIN dla obsługi.
+  // Bramka PIN.
   const [authReady, setAuthReady] = useState(false);
   const [needPin, setNeedPin] = useState(false);
   const [pin, setPin] = useState("");
@@ -53,7 +110,7 @@ export default function PanelPage() {
       const data = await res.json();
       setOrders(data.orders ?? []);
     } catch {
-      /* ignore */
+      /* kolejny tick */
     }
   }, []);
 
@@ -90,27 +147,28 @@ export default function PanelPage() {
     setCaller(await res.json());
   };
 
-  const isNew = (o: Order) => o.status === "new";
-  const inProgress = (o: Order) =>
-    ["in_progress", "ready", "on_delivery"].includes(o.status);
-  const scheduled = (o: Order) => o.status === "scheduled";
-
-  const news = orders.filter(isNew);
-  const prog = orders.filter(inProgress);
-  const sched = orders.filter(scheduled);
+  const news = orders.filter((o) => o.status === "new");
+  const prog = orders.filter((o) => ["in_progress", "ready", "on_delivery"].includes(o.status));
+  const sched = orders.filter((o) => o.status === "scheduled");
 
   if (!authReady) {
-    return <main className="grid min-h-screen place-items-center bg-[#1F1714] text-[#B7A691]">Ładowanie…</main>;
+    return (
+      <main className="grid min-h-screen place-items-center text-sm font-semibold" style={{ background: BG, color: MUTED }}>
+        Ładowanie…
+      </main>
+    );
   }
 
   if (needPin) {
     return (
-      <main className="grid min-h-screen place-items-center bg-[#1F1714] px-6 text-[#F3E7D5]">
+      <main className="grid min-h-screen place-items-center px-6" style={{ background: BG, color: CREAM }}>
         <div className="w-full max-w-xs text-center">
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/brand/icon-white.png" alt="Mammarosa" className="mx-auto mb-4 h-14 w-14 object-contain" />
-          <h1 className="mb-1 text-lg font-bold">Panel obsługi</h1>
-          <p className="mb-5 text-sm text-[#B7A691]">Podaj PIN, aby zobaczyć zamówienia.</p>
+          <img src="/brand/icon-white.png" alt="Mammarosa" className="mx-auto mb-5 h-14 w-14 object-contain" />
+          <h1 className="text-lg font-bold tracking-[-0.01em]">Panel obsługi</h1>
+          <p className="mb-6 mt-1 text-sm" style={{ color: MUTED }}>
+            Podaj PIN, aby zobaczyć zamówienia.
+          </p>
           <input
             type="password"
             inputMode="numeric"
@@ -118,12 +176,14 @@ export default function PanelPage() {
             onChange={(e) => setPin(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && submitPin()}
             placeholder="PIN"
-            className="w-full rounded-xl border border-[#3A322B] bg-[#2A2521] px-4 py-3 text-center text-lg tracking-widest outline-none focus:border-[#C08A3E]"
+            className="w-full rounded-2xl px-4 py-3.5 text-center text-lg tracking-[0.4em] outline-none placeholder:tracking-normal"
+            style={{ background: CARD, color: CREAM, border: "1px solid rgba(245,241,232,0.1)" }}
           />
-          {pinError && <p className="mt-2 text-sm text-[#B7382F]">Błędny PIN — spróbuj ponownie.</p>}
+          {pinError && <p className="mt-2 text-sm font-semibold" style={{ color: ALERT }}>Błędny PIN — spróbuj ponownie.</p>}
           <button
             onClick={submitPin}
-            className="mt-4 w-full rounded-xl bg-[#B7382F] px-4 py-3 font-bold text-white"
+            className="mt-4 w-full rounded-full px-4 py-3.5 text-[15px] font-bold"
+            style={{ background: LIME, color: "#1D2A22" }}
           >
             Wejdź
           </button>
@@ -133,95 +193,139 @@ export default function PanelPage() {
   }
 
   return (
-    <main className="min-h-screen bg-[#1F1714] text-[#F3E7D5]">
-      {/* Top */}
-      <div className="flex h-14 items-center justify-between border-b border-[#3A322B] bg-[#2A2521] px-5">
+    <main className="min-h-screen" style={{ background: BG, color: CREAM }}>
+      {/* Pasek górny */}
+      <div
+        className="flex h-16 items-center justify-between px-5"
+        style={{ background: CARD, borderBottom: "1px solid rgba(245,241,232,0.07)" }}
+      >
         <div className="flex items-center gap-3">
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/brand/icon-white.png" alt="Mammarosa" className="h-9 w-9 object-contain" />
-          <div className="font-bold">
-            Mammarosa <span className="text-sm font-normal text-[#B7A691]">· Zamówienia online</span>
+          <img src="/brand/icon-white.png" alt="" className="h-9 w-9 object-contain" />
+          <div>
+            <div className="text-[13px] font-semibold uppercase tracking-[0.18em]">Mammarosa</div>
+            <div className="text-[11px]" style={{ color: MUTED }}>Panel zamówień</div>
           </div>
         </div>
-        <div className="flex items-center gap-3 text-sm">
-          <span className="flex items-center gap-2 rounded-full bg-[#2E2620] px-3 py-1.5">
-            <span className="h-2.5 w-2.5 rounded-full bg-green-500" /> POS online
+        <div className="flex items-center gap-2.5 text-sm">
+          <span
+            className="flex items-center gap-2 rounded-full px-3.5 py-1.5 text-[12.5px] font-semibold"
+            style={{ background: SUB }}
+          >
+            <span className="relative flex h-2 w-2">
+              <span className="absolute inline-flex h-full w-full animate-ping rounded-full opacity-60" style={{ background: LIME }} />
+              <span className="relative inline-flex h-2 w-2 rounded-full" style={{ background: LIME }} />
+            </span>
+            POS online
           </span>
-          <span className="rounded-full bg-[#2E2620] px-3 py-1.5">📦 {orders.length}</span>
-          <span className="font-mono text-base font-semibold tabular-nums">{now}</span>
+          <span className="flex items-center gap-2 rounded-full px-3.5 py-1.5 text-[12.5px] font-semibold" style={{ background: SUB }}>
+            <IconBox className="h-4 w-4"/> {orders.length}
+          </span>
+          <span className="rounded-full px-3.5 py-1.5 font-mono text-[15px] font-bold tabular-nums" style={{ background: SUB }}>
+            {now}
+          </span>
         </div>
       </div>
 
       {/* CTI */}
-      <div className="px-4 pt-3">
+      <div className="px-4 pt-3.5">
         {caller ? (
-          <div className="flex items-center gap-3 rounded-xl border border-[#1f7a3d] bg-gradient-to-r from-[#13351f] to-[#1F1714] px-4 py-3">
-            <div className="flex h-9 w-9 items-center justify-center rounded-full bg-[#1f7a3d] text-lg">📞</div>
-            <div className="text-sm">
+          <div
+            className="flex items-center gap-3.5 rounded-2xl px-4 py-3"
+            style={{ background: SUB, border: `1.5px solid ${LIME}55` }}
+          >
+            <div className="flex h-10 w-10 flex-none items-center justify-center rounded-full" style={{ background: LIME, color: "#1D2A22" }}>
+              <IconPhone className="h-5 w-5" />
+            </div>
+            <div className="min-w-0 text-sm">
               <b>Połączenie · {caller.phone}</b>
-              <div className="text-[#9fb0a4]">
+              <div className="truncate" style={{ color: MUTED }}>
                 {caller.known
                   ? `${caller.name} · ${caller.orderCount} zamówień${caller.lastItems?.length ? ` · ostatnio: ${caller.lastItems.join(", ")}` : ""}`
                   : "nieznany numer — nowy klient"}
               </div>
             </div>
-            <button onClick={() => setCaller(null)} className="ml-auto text-sm text-[#9fb0a4]">
-               zamknij ✕
+            <button onClick={() => setCaller(null)} className="ml-auto flex-none text-sm font-semibold" style={{ color: MUTED }}>
+              zamknij ✕
             </button>
           </div>
         ) : (
-          <div className="flex items-center gap-2 rounded-xl border border-[#3A322B] bg-[#211A17] px-4 py-2.5 text-sm">
-            <span className="text-[#B7A691]">CTI (demo):</span>
+          <div className="flex flex-wrap items-center gap-2.5 rounded-2xl px-4 py-2.5 text-sm" style={{ background: CARD }}>
+            <span className="flex items-center gap-2 font-semibold" style={{ color: MUTED }}>
+              <IconPhone className="h-4 w-4" /> CTI (demo):
+            </span>
             <input
               value={simPhone}
               onChange={(e) => setSimPhone(e.target.value)}
               placeholder="numer telefonu"
-              className="w-40 rounded-lg border border-[#3A322B] bg-[#2A2521] px-3 py-1.5 text-sm outline-none"
+              className="w-40 rounded-full px-3.5 py-1.5 text-sm outline-none"
+              style={{ background: SUB, color: CREAM }}
             />
             <button
               onClick={simulateCall}
-              className="rounded-lg bg-[#1f7a3d] px-3 py-1.5 text-sm font-semibold text-white"
+              className="rounded-full px-4 py-1.5 text-[13px] font-bold"
+              style={{ background: LIME, color: "#1D2A22" }}
             >
-              📞 Symuluj połączenie
+              Symuluj połączenie
             </button>
-            <span className="text-xs text-[#8A7A6B]">
-              (docelowo: webhook centralki / apka na Androidzie)
+            <span className="text-[11px]" style={{ color: "#5E6B5E" }}>
+              docelowo: webhook centralki / aplikacja na Androidzie
             </span>
           </div>
         )}
       </div>
 
-      {/* Board */}
-      <div className="grid grid-cols-1 gap-3 p-4 md:grid-cols-3">
-        <Column title="🔔 Nowe — ustaw czas" accent="#E0C089" count={news.length}>
+      {/* Kolumny */}
+      <div className="grid grid-cols-1 gap-3.5 p-4 md:grid-cols-3">
+        <Column icon={<IconBell className="h-4 w-4" />} title="Nowe — ustaw czas" count={news.length} accent>
           {news.map((o) => (
-            <Card key={o.id} order={o} highlight>
-              <EtaButtons order={o} onSet={setEta} />
-            </Card>
+            <OrderCard key={o.id} order={o} highlight>
+              <div className="mt-3 flex items-center gap-1.5">
+                <span className="text-[11px] font-semibold" style={{ color: MUTED }}>Gotowe za:</span>
+                {(o.mode === "pickup" ? [15, 20, 30, 45] : [30, 45, 60, 75]).map((m) => (
+                  <button
+                    key={m}
+                    onClick={() => setEta(o.id, m)}
+                    className="flex-1 rounded-full py-2.5 text-[14px] font-bold transition hover:opacity-90"
+                    style={{ background: "rgba(245,241,232,0.08)", border: "1px solid rgba(245,241,232,0.14)", color: CREAM }}
+                    onMouseEnter={(e) => { e.currentTarget.style.background = LIME; e.currentTarget.style.color = "#1D2A22"; }}
+                    onMouseLeave={(e) => { e.currentTarget.style.background = "rgba(245,241,232,0.08)"; e.currentTarget.style.color = CREAM; }}
+                  >
+                    {m}&#39;
+                  </button>
+                ))}
+              </div>
+            </OrderCard>
           ))}
           {news.length === 0 && <Empty />}
         </Column>
 
-        <Column title="👨‍🍳 W realizacji" count={prog.length}>
+        <Column icon={<IconPot className="h-4 w-4" />} title="W realizacji" count={prog.length}>
           {prog.map((o) => (
-            <Card key={o.id} order={o}>
-              <div className="mt-2 rounded-lg border border-[#4A6030] bg-[#10261a] px-3 py-2">
-                <div className="text-lg font-extrabold text-[#7ee3a3]">⏱ {o.etaAt ? clock(o.etaAt) : o.scheduledTime}</div>
+            <OrderCard key={o.id} order={o}>
+              <div
+                className="mt-3 flex items-center gap-2.5 rounded-xl px-3.5 py-2.5"
+                style={{ background: "rgba(213,227,107,0.09)", border: "1px solid rgba(213,227,107,0.25)" }}
+              >
+                <IconClock className="h-4.5 w-4.5" />
+                <span className="text-[17px] font-extrabold tabular-nums" style={{ color: LIME }}>
+                  {o.etaAt ? clock(o.etaAt) : o.scheduledTime}
+                </span>
               </div>
               <StatusButtons order={o} onAdvance={advance} />
-            </Card>
+            </OrderCard>
           ))}
           {prog.length === 0 && <Empty />}
         </Column>
 
-        <Column title="🗓 Na godzinę" count={sched.length}>
+        <Column icon={<IconCal className="h-4 w-4" />} title="Na godzinę" count={sched.length}>
           {sched.map((o) => (
-            <Card key={o.id} order={o}>
-              <div className="mt-2 text-sm text-[#B7A691]">
-                Zaplanowane na <b className="text-[#E0C089]">{o.scheduledTime}</b>
+            <OrderCard key={o.id} order={o}>
+              <div className="mt-3 text-[13px]" style={{ color: MUTED }}>
+                Zaplanowane na <b style={{ color: LIME }}>{o.scheduledTime}</b>
               </div>
               <StatusButtons order={o} onAdvance={advance} />
-            </Card>
+            </OrderCard>
           ))}
           {sched.length === 0 && <Empty />}
         </Column>
@@ -230,25 +334,30 @@ export default function PanelPage() {
   );
 }
 
+/* ---------- Komponenty ---------- */
+
 function Column({
+  icon,
   title,
   count,
   accent,
   children,
 }: {
+  icon: React.ReactNode;
   title: string;
   count: number;
-  accent?: string;
+  accent?: boolean;
   children: React.ReactNode;
 }) {
   return (
-    <div className="flex flex-col rounded-2xl border border-[#3A322B] bg-[#211A17] p-3">
+    <div className="flex flex-col rounded-3xl p-3.5" style={{ background: CARD }}>
       <h2
-        className="mb-3 flex items-center gap-2 text-xs font-semibold uppercase tracking-wide"
-        style={{ color: accent ?? "#B7A691" }}
+        className="mb-3 flex items-center gap-2 px-1 text-[11px] font-extrabold uppercase tracking-[0.14em]"
+        style={{ color: accent ? LIME : MUTED }}
       >
+        {icon}
         {title}
-        <span className="rounded-full bg-[#3A322B] px-2 text-[#E7D8C4]">{count}</span>
+        <span className="rounded-full px-2 py-0.5 text-[11px]" style={{ background: SUB, color: CREAM }}>{count}</span>
       </h2>
       <div className="flex flex-col gap-3">{children}</div>
     </div>
@@ -256,10 +365,31 @@ function Column({
 }
 
 function Empty() {
-  return <div className="rounded-xl border border-dashed border-[#3A322B] py-6 text-center text-sm text-[#8A7A6B]">—</div>;
+  return (
+    <div
+      className="rounded-2xl py-7 text-center text-sm"
+      style={{ border: "1.5px dashed rgba(245,241,232,0.12)", color: "#5E6B5E" }}
+    >
+      brak zamówień
+    </div>
+  );
 }
 
-function Card({
+function Badge({ children, tone }: { children: React.ReactNode; tone: "alert" | "info" | "lime" }) {
+  const style =
+    tone === "alert"
+      ? { background: "rgba(229,106,78,0.16)", color: "#F0937C", border: "1px solid rgba(229,106,78,0.35)" }
+      : tone === "lime"
+        ? { background: "rgba(213,227,107,0.12)", color: LIME, border: "1px solid rgba(213,227,107,0.3)" }
+        : { background: "rgba(245,241,232,0.07)", color: CREAM, border: "1px solid rgba(245,241,232,0.14)" };
+  return (
+    <span className="flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[10.5px] font-extrabold uppercase tracking-wide" style={style}>
+      {children}
+    </span>
+  );
+}
+
+function OrderCard({
   order,
   highlight,
   children,
@@ -270,64 +400,51 @@ function Card({
 }) {
   return (
     <div
-      className={`rounded-xl border bg-[#2A2521] p-3 ${
-        highlight ? "border-[#C08A3E] shadow-[0_0_0_2px_rgba(233,161,59,0.22)]" : "border-[#3A322B]"
-      }`}
+      className="rounded-2xl p-3.5"
+      style={{
+        background: SUB,
+        border: highlight ? `1.5px solid ${LIME}66` : "1px solid rgba(245,241,232,0.07)",
+        boxShadow: highlight ? `0 0 0 3px ${LIME}1f` : undefined,
+      }}
     >
-      <div className="mb-1.5 flex items-center justify-between">
-        <div className="text-base font-extrabold">#{order.number}</div>
-        <div className="flex gap-1.5 text-[11px] font-bold">
-          {order.timeMode === "asap" && order.status === "new" && (
-            <span className="rounded-md bg-[#3a1414] px-2 py-0.5 text-[#ff9a9a]">ASAP</span>
-          )}
-          <span className="rounded-md bg-[#13294a] px-2 py-0.5 text-[#7fb6ff]">
-            {order.mode === "pickup" ? "🏠 Odbiór" : "🚚 Dostawa"}
-          </span>
-          <span className="rounded-md bg-[#3a2a12] px-2 py-0.5 text-[#ffc46b]">NA WYNOS</span>
+      <div className="mb-2 flex items-center justify-between gap-2">
+        <div className="text-[16px] font-extrabold tabular-nums">#{order.number}</div>
+        <div className="flex flex-wrap justify-end gap-1.5">
+          {order.timeMode === "asap" && order.status === "new" && <Badge tone="alert">ASAP</Badge>}
+          <Badge tone="info">
+            {order.mode === "pickup" ? <IconBag className="h-3 w-3" /> : <IconTruck className="h-3 w-3" />}
+            {order.mode === "pickup" ? "Odbiór" : "Dostawa"}
+          </Badge>
+          <Badge tone="lime">na wynos</Badge>
         </div>
       </div>
-      <div className="text-sm">
-        <b>{order.customer.name}</b>
+      <div className="text-[14px] font-bold">{order.customer.name}</div>
+      <div className="mb-2.5 text-[12px]" style={{ color: MUTED }}>
+        {order.customer.phone}
+        {order.mode === "delivery" && order.customer.street
+          ? ` · ${order.customer.street}, ${order.customer.city ?? ""}`
+          : " · odbiór osobisty"}
       </div>
-      <div className="mb-2 text-xs text-[#B7A691]">
-        📞 {order.customer.phone}
-        {order.mode === "delivery" && order.customer.street ? ` · ${order.customer.street}, ${order.customer.city ?? ""}` : " · odbiór osobisty"}
-      </div>
-      <div className="border-t border-dashed border-[#3A322B] pt-2 text-xs leading-relaxed text-[#E0D2BE]">
+      <div
+        className="space-y-0.5 pt-2.5 text-[12.5px] leading-relaxed"
+        style={{ borderTop: "1px dashed rgba(245,241,232,0.12)", color: "#C9D0C4" }}
+      >
         {order.items.map((it, i) => (
           <div key={i}>
-            <span className="font-bold text-[#E0C089]">{it.qty}×</span> {it.name}
+            <span className="font-extrabold" style={{ color: LIME }}>{it.qty}×</span> {it.name}
             {it.addons.length > 0 && (
-              <span className="text-[#B7A691]"> ({it.addons.map((a) => a.name).join(", ")})</span>
+              <span style={{ color: MUTED }}> · {it.addons.map((a) => a.name).join(", ")}</span>
             )}
           </div>
         ))}
       </div>
-      <div className="mt-2 flex items-center justify-between">
-        <div className="font-extrabold">{zl(order.total)}</div>
-        <div className="text-xs text-[#B7A691]">
-          {order.payment === "cash" ? "💵 gotówka" : order.payment === "card" ? "💳 karta" : "🌐 online"}
+      <div className="mt-2.5 flex items-center justify-between">
+        <div className="text-[15px] font-extrabold">{zl(order.total)}</div>
+        <div className="text-[12px] font-semibold" style={{ color: MUTED }}>
+          {order.payment === "cash" ? "gotówka" : order.payment === "card" ? "karta" : "online"}
         </div>
       </div>
       {children}
-    </div>
-  );
-}
-
-function EtaButtons({ order, onSet }: { order: Order; onSet: (id: string, m: number) => void }) {
-  const opts = order.mode === "pickup" ? [15, 20, 30, 45] : [30, 45, 60, 75];
-  return (
-    <div className="mt-3 flex items-center gap-1.5">
-      <span className="text-[11px] text-[#B7A691]">Gotowe za:</span>
-      {opts.map((m) => (
-        <button
-          key={m}
-          onClick={() => onSet(order.id, m)}
-          className="flex-1 rounded-lg border border-[#4A4038] bg-[#2E2620] py-2 text-sm font-bold hover:border-[#B7382F] hover:bg-[#B7382F]"
-        >
-          {m}&#39;
-        </button>
-      ))}
     </div>
   );
 }
@@ -338,26 +455,26 @@ function StatusButtons({ order, onAdvance }: { order: Order; onAdvance: (id: str
     next.push(
       order.mode === "pickup"
         ? { label: "Gotowe do odbioru", status: "ready" }
-        : { label: "Gotowe / wydaj kierowcy", status: "ready" }
+        : { label: "Gotowe — wydaj kierowcy", status: "ready" }
     );
   }
   if (order.status === "ready") {
     next.push(
       order.mode === "pickup"
         ? { label: "Odebrane ✓", status: "completed" }
-        : { label: "W drodze 🛵", status: "on_delivery" }
+        : { label: "W drodze", status: "on_delivery" }
     );
   }
   if (order.status === "on_delivery") next.push({ label: "Dostarczone ✓", status: "completed" });
-
   if (next.length === 0) return null;
   return (
-    <div className="mt-2 flex gap-1.5">
+    <div className="mt-2.5 flex gap-2">
       {next.map((n) => (
         <button
           key={n.status}
           onClick={() => onAdvance(order.id, n.status)}
-          className="flex-1 rounded-lg border border-[#4A6030] bg-[#10261a] py-2 text-xs font-bold text-[#7ee3a3] hover:bg-[#15321f]"
+          className="flex-1 rounded-full py-2.5 text-[12.5px] font-bold transition hover:opacity-90"
+          style={{ background: "rgba(213,227,107,0.12)", border: "1px solid rgba(213,227,107,0.3)", color: LIME }}
         >
           {n.label}
         </button>
