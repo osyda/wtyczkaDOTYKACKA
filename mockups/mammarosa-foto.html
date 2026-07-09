@@ -204,6 +204,44 @@
   .done-wrap .sub { color:var(--muted); font-size:14px; margin-top:6px; }
   .done-num { display:inline-block; margin-top:14px; background:#fff; border-radius:999px;
               padding:8px 18px; font-size:13px; font-weight:800; box-shadow:0 2px 12px rgba(29,42,34,.05); }
+
+  /* Karuzela pizz (wg wideo) */
+  .ccats { display:flex; gap:8px; overflow-x:auto; padding-top:20px; scrollbar-width:none; }
+  .ccats::-webkit-scrollbar { display:none; }
+  .ccat { white-space:nowrap; border:none; border-radius:999px; padding:9px 18px; font-size:13px;
+          font-weight:700; background:#fff; color:#6E6759; cursor:pointer; box-shadow:0 2px 10px rgba(29,42,34,.05); }
+  .ccat.on { background:var(--lime); color:var(--ink); }
+  .stage { position:relative; margin:4px -20px 0; }
+  .deco { position:absolute; opacity:.5; pointer-events:none; }
+  .caro { display:flex; overflow-x:auto; scroll-snap-type:x mandatory; padding:22px calc(50% - 128px) 10px;
+          scrollbar-width:none; }
+  .caro::-webkit-scrollbar { display:none; }
+  .slide { flex:0 0 256px; scroll-snap-align:center; display:flex; align-items:center; justify-content:center; cursor:pointer; }
+  .disc { width:238px; height:238px; transition:transform .2s ease-out, opacity .2s ease-out;
+          filter:drop-shadow(0 24px 26px rgba(29,42,34,.32)); }
+  .disc img, .disc svg { width:100%; height:100%; object-fit:contain; display:block; }
+  .heroinfo { text-align:center; padding-top:10px; }
+  .heroinfo .hn { font-size:23px; font-weight:800; letter-spacing:-.02em; }
+  .heroinfo .hd { font-size:12.5px; color:var(--muted); margin-top:3px; min-height:16px;
+                  white-space:nowrap; overflow:hidden; text-overflow:ellipsis; padding:0 24px; }
+  .heroinfo .hs { color:#C9B44A; font-size:13px; letter-spacing:4px; margin-top:6px; }
+  .heroinfo .hp { font-size:26px; font-weight:800; margin-top:6px; }
+  .heroinfo .pick { margin-top:14px; background:var(--ink); color:var(--cream); border:none;
+                    border-radius:999px; padding:14px 44px; font-size:15px; font-weight:700; cursor:pointer;
+                    box-shadow:0 12px 26px rgba(29,42,34,.28); }
+  .heroinfo .pick:active { transform:scale(.97); }
+  .dots { display:flex; justify-content:center; gap:5px; margin-top:14px; }
+  .dots span { width:6px; height:6px; border-radius:50%; background:#D8CFBC; transition:all .2s; }
+  .dots span.on { width:18px; border-radius:99px; background:var(--ink); }
+
+  /* Składniki spadające na pizzę */
+  .heroWrap { position:relative; max-width:280px; margin:0 auto; }
+  .heroWrap img, .heroWrap svg { width:100%; display:block; }
+  .topLayer { position:absolute; inset:0; pointer-events:none; }
+  .tp { position:absolute; width:13%; animation:tpdrop .38s cubic-bezier(.2,.8,.3,1.25) both; }
+  .tp svg { width:100%; height:100%; filter:drop-shadow(0 3px 3px rgba(0,0,0,.28)); }
+  @keyframes tpdrop { from { transform:translateY(-30px) scale(1.5); opacity:0; }
+                      to { transform:translateY(0) scale(1); opacity:1; } }
 </style>
 </head>
 <body>
@@ -223,21 +261,26 @@
     </div>
   </div>
 
-  <h1>Na co masz dziś<br>ochotę?</h1>
+  <div class="ccats" id="cats"></div>
 
-  <label class="search">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
-      <circle cx="11" cy="11" r="6.5"/><path d="M16 16 L21 21"/>
-    </svg>
-    <input id="q" placeholder="Szukaj w menu…" oninput="render()">
-  </label>
+  <div class="stage">
+    <svg class="deco" style="top:8px;left:26px;width:22px" viewBox="0 0 24 24"><ellipse cx="9" cy="12" rx="8" ry="4.5" fill="#6B8A52" transform="rotate(-25 9 12)"/><ellipse cx="16" cy="10" rx="7" ry="4" fill="#5C7A45" transform="rotate(20 16 10)"/></svg>
+    <svg class="deco" style="top:30px;right:34px;width:15px" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" fill="#A63428"/><circle cx="9" cy="10" r="2" fill="#D8907F"/></svg>
+    <svg class="deco" style="bottom:26px;left:44px;width:12px" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8" fill="#2A2521"/><circle cx="12" cy="12" r="3" fill="#F5F1E8"/></svg>
+    <svg class="deco" style="bottom:12px;right:52px;width:18px" viewBox="0 0 24 24"><ellipse cx="12" cy="12" rx="9" ry="5" fill="#6B8A52" transform="rotate(35 12 12)"/></svg>
+    <div class="caro" id="caro"></div>
+  </div>
 
-  <div class="cats" id="cats"></div>
+  <div class="heroinfo">
+    <div class="hn" id="heroName"></div>
+    <div class="hd" id="heroDesc"></div>
+    <div class="hs">★ ★ ★ ★ ★</div>
+    <div class="hp" id="heroPrice"></div>
+    <button class="pick" onclick="heroPick()">Wybierz</button>
+    <div class="dots" id="dots"></div>
+  </div>
 
-  <div class="sec"><h2 id="secTitle">Popularne teraz</h2><span id="secCount"></span></div>
-  <div class="grid" id="grid"></div>
-  <div class="empty hide" id="empty">Nic nie znaleziono — spróbuj inaczej.</div>
-  <div class="note">Zdjęcia pizz: Mammarosa · ceny robocze — do potwierdzenia.</div>
+  <div class="note">Przesuń pizzę palcem ↔ · zdjęcia: Mammarosa · ceny robocze.</div>
 </div>
 
 <div id="viewCheckout" class="hide">
@@ -629,7 +672,7 @@ var MENU = [
   {id:'s2', cat:'desery', n:'Panna cotta', d:'Z sosem malinowym', p:15, art:'panna'},
 ];
 
-var active='all';
+var active='pizza';
 var cart={};       /* id -> {n,p,qty} */
 var sheet=null;    /* {item, qty, addons:{}} */
 
@@ -646,44 +689,72 @@ function renderCats(){
   var h='';
   for(var i=0;i<CATS.length;i++){
     var c=CATS[i];
-    h+='<button class="cat '+(c.id===active?'on':'')+'" onclick="setCat(\''+c.id+'\')">'+icon(c.icon)+'<span>'+c.name+'</span></button>';
+    if(c.id==='all') continue;
+    h+='<button class="ccat '+(c.id===active?'on':'')+'" onclick="setCat(\''+c.id+'\')">'+c.name+'</button>';
   }
   document.getElementById('cats').innerHTML=h;
 }
-function setCat(id){active=id;document.getElementById('q').value='';render();}
+function setCat(id){ active=id; render(); }
 
+var caroList=[]; var caroIdx=0;
 function render(){
   renderCats();
-  var q=document.getElementById('q').value.trim().toLowerCase();
-  var list=[];
-  for(var i=0;i<MENU.length;i++){
-    var m=MENU[i];
-    if(q){ if(m.n.toLowerCase().indexOf(q)>=0) list.push(m); }
-    else if(active==='all'||m.cat===active) list.push(m);
-  }
-  document.getElementById('secTitle').textContent = q?'Wyniki wyszukiwania':(active==='all'?'Popularne teraz':CATS.filter(function(c){return c.id===active;})[0].name);
-  document.getElementById('secCount').textContent = list.length+' pozycji';
+  caroList = MENU.filter(function(m){ return m.cat===active; });
   var h='';
-  for(var j=0;j<list.length;j++){
-    var m2=list[j];
-    var qty=inCartQty(m2.id);
-    h+='<div class="card" onclick="openProd(\''+m2.id+'\')">'
-      +'<span class="incart '+(qty>0?'show':'')+'">W koszyku ×'+qty+'</span>'
-      +'<div class="ph">'+ART[m2.art]+'</div>'
-      +'<div class="body"><div class="nm">'+m2.n+'</div><div class="ds">'+(m2.d||'&nbsp;')+'</div>'
-      +'<div class="row"><span class="pr">'+zl(m2.p)+'</span><span class="view">Wybierz</span></div>'
-      +'</div></div>';
+  for(var j=0;j<caroList.length;j++){
+    h+='<div class="slide" data-i="'+j+'" onclick="slideTap('+j+')"><div class="disc">'+ART[caroList[j].art]+'</div></div>';
   }
-  document.getElementById('grid').innerHTML=h;
-  document.getElementById('empty').classList.toggle('hide', list.length>0);
+  var caro=document.getElementById('caro');
+  caro.innerHTML=h;
+  caro.onscroll=caroScroll;
+  caroIdx=0;
+  caro.scrollLeft=0;
+  setTimeout(function(){ caroScroll(); }, 60);
   syncNav(false);
 }
+var caroRaf=null;
+function caroScroll(){
+  if(caroRaf) return;
+  caroRaf=requestAnimationFrame(function(){
+    caroRaf=null;
+    var caro=document.getElementById('caro');
+    var center=caro.scrollLeft + caro.clientWidth/2;
+    var slides=caro.children; var best=0; var bestD=1e9;
+    for(var i=0;i<slides.length;i++){
+      var s=slides[i];
+      var c=s.offsetLeft + s.offsetWidth/2;
+      var d=Math.abs(c-center);
+      var k=Math.min(1, d/280);
+      var disc=s.firstChild;
+      disc.style.transform='scale('+(1-0.3*k)+')';
+      disc.style.opacity=String(1-0.55*k);
+      if(d<bestD){bestD=d;best=i;}
+    }
+    if(best!==caroIdx || !document.getElementById('heroName').textContent){ caroIdx=best; updateHero(); }
+  });
+}
+function updateHero(){
+  var m=caroList[caroIdx]; if(!m) return;
+  document.getElementById('heroName').textContent=m.n;
+  document.getElementById('heroDesc').textContent=m.d||'';
+  document.getElementById('heroPrice').textContent=zl(m.p);
+  var dh='';
+  for(var i=0;i<caroList.length;i++) dh+='<span class="'+(i===caroIdx?'on':'')+'"></span>';
+  document.getElementById('dots').innerHTML=dh;
+}
+function slideTap(i){
+  if(i===caroIdx){ heroPick(); return; }
+  var caro=document.getElementById('caro');
+  var s=caro.children[i];
+  caro.scrollTo({left: s.offsetLeft + s.offsetWidth/2 - caro.clientWidth/2, behavior:'smooth'});
+}
+function heroPick(){ var m=caroList[caroIdx]; if(m) openProd(m.id); }
 
 /* ---- Karta produktu (świadome dodawanie) ---- */
 function openProd(id){
   var item=MENU.filter(function(m){return m.id===id;})[0];
   sheet={item:item, qty:1, addons:{}};
-  document.getElementById('prodArt').innerHTML=ART[item.art];
+  document.getElementById('prodArt').innerHTML='<div class="heroWrap">'+ART[item.art]+'<div class="topLayer" id="topLayer"></div></div>';
   document.getElementById('prodName').textContent=item.n;
   document.getElementById('prodDesc').textContent=item.d||'';
   renderAddons(); syncSheet();
@@ -703,7 +774,38 @@ function renderAddons(){
   }
   w.innerHTML=h;
 }
-function toggleAddon(id){ sheet.addons[id]=!sheet.addons[id]; renderAddons(); syncSheet(); }
+function toggleAddon(id){ sheet.addons[id]=!sheet.addons[id]; renderAddons(); syncSheet(); renderTopLayer(); }
+/* Sprite'y dodatków (spadają na pizzę) */
+function spr(body){ return '<svg viewBox="0 0 24 24">'+body+'</svg>'; }
+var SPRITES = {
+  a1: spr('<path d="M4 14 Q8 8 12 12 Q16 16 20 11" stroke="#F2CB6B" stroke-width="3" fill="none" stroke-linecap="round"/><path d="M6 17 Q10 12 14 15 Q17 17 20 15" stroke="#E8B84D" stroke-width="2.6" fill="none" stroke-linecap="round"/>'),
+  a2: spr('<path d="M4 13 Q4 5 12 5 Q20 5 20 13 Z" fill="#EDE3D3" stroke="#CBB89B" stroke-width="1.2"/><rect x="9.5" y="13" width="5" height="6" rx="2" fill="#DCCBB0"/>'),
+  a3: spr('<path d="M4 8 Q12 3 20 8 Q21 13 18 18 Q12 21 6 17 Q3 12 4 8 Z" fill="#DE8E7E" stroke="#C97A6B" stroke-width="1.2"/><path d="M6 10 Q12 6 18 10" stroke="#F6C9BC" stroke-width="1.6" fill="none"/>'),
+  a4: spr('<circle cx="12" cy="12" r="9" fill="#A63428" stroke="#8C2A20" stroke-width="1.6"/><circle cx="9" cy="10" r="1.6" fill="#ECAFA0"/><circle cx="14" cy="14" r="1.4" fill="#ECAFA0"/><circle cx="14" cy="8" r="1.1" fill="#ECAFA0"/>'),
+  a5: spr('<circle cx="12" cy="12" r="8.5" fill="#2A2521"/><circle cx="12" cy="12" r="3" fill="#F5F1E8"/><ellipse cx="9" cy="9" rx="2" ry="1.2" fill="#4A423A"/>'),
+};
+var SCATTER = {
+  a1: [[24,30,-15],[55,22,20],[66,55,0],[30,62,25],[46,42,-30]],
+  a2: [[28,26,-20],[60,30,15],[38,58,40],[64,60,-10]],
+  a3: [[32,34,-12],[58,26,22],[44,60,8],[26,52,-30]],
+  a4: [[30,28,0],[58,34,0],[38,54,0],[62,58,0],[46,40,0]],
+  a5: [[26,36,0],[56,24,0],[66,50,0],[36,60,0],[48,44,0]],
+};
+function renderTopLayer(){
+  var layer=document.getElementById('topLayer');
+  if(!layer||!sheet) return;
+  var h=''; var delay=0;
+  for(var aid in sheet.addons){
+    if(!sheet.addons[aid] || !SPRITES[aid]) continue;
+    var pts=SCATTER[aid];
+    for(var i=0;i<pts.length;i++){
+      h+='<span class="tp" style="left:'+pts[i][0]+'%;top:'+pts[i][1]+'%;animation-delay:'+(delay*40)+'ms;transform:rotate('+pts[i][2]+'deg)">'+SPRITES[aid]+'</span>';
+      delay++;
+    }
+  }
+  layer.innerHTML=h;
+}
+
 function chSheetQty(d){ sheet.qty=Math.max(1,sheet.qty+d); syncSheet(); }
 function sheetUnit(){
   var u=sheet.item.p;
