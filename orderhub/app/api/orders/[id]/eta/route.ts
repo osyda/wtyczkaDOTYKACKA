@@ -10,9 +10,11 @@ export async function POST(req: Request, ctx: { params: Promise<{ id: string }> 
   if (!order) return NextResponse.json({ error: "Nie znaleziono." }, { status: 404 });
 
   let minutes = 0;
+  let by: string | undefined;
   try {
-    const body = (await req.json()) as { minutes?: number };
+    const body = (await req.json()) as { minutes?: number; by?: string };
     minutes = Number(body.minutes);
+    by = body.by?.trim() || undefined;
   } catch {
     /* ignore */
   }
@@ -20,6 +22,7 @@ export async function POST(req: Request, ctx: { params: Promise<{ id: string }> 
     return NextResponse.json({ error: "Nieprawidłowy czas." }, { status: 400 });
   }
 
-  const updated = await orderStore.update(id, setEta(order, minutes));
+  const patch = setEta(order, minutes);
+  const updated = await orderStore.update(id, by ? { ...patch, staff: by } : patch);
   return NextResponse.json({ order: updated });
 }
