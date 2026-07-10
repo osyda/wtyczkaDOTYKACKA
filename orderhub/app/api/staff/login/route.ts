@@ -23,7 +23,7 @@ export async function POST(req: Request) {
     sameSite: "lax",
     secure: process.env.NODE_ENV === "production",
     path: "/",
-    maxAge: 60 * 60 * 12, // 12 godzin
+    maxAge: 60 * 60 * 24 * 90, // 90 dni — PIN wpisuje się raz na urządzenie, nie co zmianę
   });
   return res;
 }
