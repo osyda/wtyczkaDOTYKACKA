@@ -5,14 +5,15 @@ import type { Order, OrderStatus } from "@/lib/orders/types";
 import type { CallerInfo } from "@/lib/cti";
 import { zl } from "@/lib/format";
 
-/* Paleta panelu (ciemna odmiana: ink + limonka) */
-const BG = "#161F19";
-const CARD = "#1F2A22";
-const SUB = "#27342A";
-const CREAM = "#F5F1E8";
-const MUTED = "#94A294";
-const LIME = "#D5E36B";
-const ALERT = "#E56A4E";
+/* Paleta panelu (jasna, spójna z CARTĄ: kość słoniowa + atrament + oliwka) */
+const BG = "#F7F3EB";       // tło strony
+const CARD = "#FFFEFA";     // karty/kolumny (papier)
+const SUB = "#F1EBDD";      // wewnętrzne kafle
+const CREAM = "#1B1710";    // główny kolor tekstu (atrament)
+const MUTED = "#7A7060";
+const LIME = "#D5E36B";     // aktywne przyciski (z atramentowym tekstem)
+const OLIVE = "#5B6B2E";    // czytelna "limonka" na jasnym tle (teksty/akcenty)
+const ALERT = "#B7382F";
 
 const stroke = { fill: "none", stroke: "currentColor", strokeWidth: 1.8, strokeLinecap: "round" as const, strokeLinejoin: "round" as const };
 
@@ -393,7 +394,7 @@ export default function PanelPage() {
       <main className="grid min-h-screen place-items-center px-6" style={{ background: BG, color: CREAM }}>
         <div className="w-full max-w-xs text-center">
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/brand/icon-white.png" alt="Mammarosa" className="mx-auto mb-5 h-14 w-14 object-contain" />
+          <img src="/brand/icon-espresso.png" alt="Mammarosa" className="mx-auto mb-5 h-14 w-14 object-contain" />
           <h1 className="text-lg font-bold tracking-[-0.01em]">Panel obsługi</h1>
           <p className="mb-6 mt-1 text-sm" style={{ color: MUTED }}>
             Wpisz swój kod z Dotykački lub wspólny PIN obsługi.
@@ -406,7 +407,7 @@ export default function PanelPage() {
             onKeyDown={(e) => e.key === "Enter" && submitPin()}
             placeholder="PIN"
             className="w-full rounded-2xl px-4 py-3.5 text-center text-lg tracking-[0.4em] outline-none placeholder:tracking-normal"
-            style={{ background: CARD, color: CREAM, border: "1px solid rgba(245,241,232,0.1)" }}
+            style={{ background: CARD, color: CREAM, border: "1px solid rgba(27,23,16,0.14)" }}
           />
           {pinError && <p className="mt-2 text-sm font-semibold" style={{ color: ALERT }}>Błędny PIN — spróbuj ponownie.</p>}
           <button
@@ -426,11 +427,11 @@ export default function PanelPage() {
       {/* Pasek górny */}
       <div
         className="sticky top-0 z-40 flex h-16 items-center justify-between gap-2 px-4"
-        style={{ background: CARD, borderBottom: "1px solid rgba(245,241,232,0.07)" }}
+        style={{ background: CARD, borderBottom: "1px solid rgba(27,23,16,0.06)" }}
       >
         <div className="flex items-center gap-3">
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/brand/icon-white.png" alt="" className="h-9 w-9 object-contain" />
+          <img src="/brand/icon-espresso.png" alt="" className="h-9 w-9 object-contain" />
           <div>
             <div className="text-[13px] font-semibold uppercase tracking-[0.18em]">Mammarosa</div>
             <div className="text-[11px]" style={{ color: MUTED }}>
@@ -458,7 +459,7 @@ export default function PanelPage() {
           </TopBtn>
           <span
             className="hidden items-center gap-2 rounded-full px-3.5 py-1.5 text-[12px] font-bold md:flex"
-            style={{ background: SUB, color: pos?.mode === "live" && pos.ok ? LIME : pos && !pos.ok ? ALERT : MUTED }}
+            style={{ background: SUB, color: pos?.mode === "live" && pos.ok ? OLIVE : pos && !pos.ok ? ALERT : MUTED }}
           >
             <span className="inline-flex h-2 w-2 rounded-full" style={{ background: "currentColor" }} />
             {pos ? (pos.mode === "mock" ? "POS: demo" : pos.ok ? "POS: połączono" : "POS: błąd") : "POS: …"}
@@ -546,16 +547,16 @@ export default function PanelPage() {
                     className="mt-3 flex items-center gap-2.5 rounded-xl px-3.5 py-2.5"
                     style={
                       due
-                        ? { background: "rgba(229,106,78,0.12)", border: "1px solid rgba(229,106,78,0.4)" }
-                        : { background: "rgba(213,227,107,0.09)", border: "1px solid rgba(213,227,107,0.25)" }
+                        ? { background: "rgba(183,56,47,0.07)", border: "1px solid rgba(183,56,47,0.45)" }
+                        : { background: "rgba(140,165,59,0.10)", border: "1px solid rgba(140,165,59,0.35)" }
                     }
                   >
                     <IconClock className="h-4.5 w-4.5" />
                     <span className="text-[15px] font-bold">
-                      na <b className="text-[17px] font-extrabold tabular-nums" style={{ color: due ? "#F0937C" : LIME }}>{o.scheduledTime}</b>
+                      na <b className="text-[17px] font-extrabold tabular-nums" style={{ color: due ? ALERT : OLIVE }}>{o.scheduledTime}</b>
                     </span>
                     {due && (
-                      <span className="ml-auto text-[12px] font-extrabold" style={{ color: "#F0937C" }}>
+                      <span className="ml-auto text-[12px] font-extrabold" style={{ color: ALERT }}>
                         {left !== null && left < 0 ? "PO CZASIE!" : `CZAS ZACZĄĆ — za ${left} min`}
                       </span>
                     )}
@@ -613,10 +614,10 @@ function Column({
   children: React.ReactNode;
 }) {
   return (
-    <div className="flex flex-col rounded-3xl p-3.5" style={{ background: CARD }}>
+    <div className="flex flex-col rounded-3xl p-3.5" style={{ background: CARD, border: "1px solid #EAE2D2", boxShadow: "0 2px 14px rgba(27,23,16,0.05)" }}>
       <h2
         className="mb-3 flex items-center gap-2 px-1 text-[11px] font-extrabold uppercase tracking-[0.14em]"
-        style={{ color: accent ? LIME : MUTED }}
+        style={{ color: accent ? OLIVE : MUTED }}
       >
         {icon}
         {title}
@@ -631,7 +632,7 @@ function Empty() {
   return (
     <div
       className="rounded-2xl py-7 text-center text-sm"
-      style={{ border: "1.5px dashed rgba(245,241,232,0.12)", color: "#5E6B5E" }}
+      style={{ border: "1.5px dashed rgba(27,23,16,0.13)", color: "#A99D87" }}
     >
       brak zamówień
     </div>
@@ -641,10 +642,10 @@ function Empty() {
 function Badge({ children, tone }: { children: React.ReactNode; tone: "alert" | "info" | "lime" }) {
   const style =
     tone === "alert"
-      ? { background: "rgba(229,106,78,0.16)", color: "#F0937C", border: "1px solid rgba(229,106,78,0.35)" }
+      ? { background: "rgba(183,56,47,0.09)", color: ALERT, border: "1px solid rgba(183,56,47,0.35)" }
       : tone === "lime"
-        ? { background: "rgba(213,227,107,0.12)", color: LIME, border: "1px solid rgba(213,227,107,0.3)" }
-        : { background: "rgba(245,241,232,0.07)", color: CREAM, border: "1px solid rgba(245,241,232,0.14)" };
+        ? { background: "rgba(140,165,59,0.12)", color: LIME, border: "1px solid rgba(140,165,59,0.45)" }
+        : { background: "rgba(27,23,16,0.06)", color: CREAM, border: "1px solid rgba(27,23,16,0.16)" };
   return (
     <span className="flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[10.5px] font-extrabold uppercase tracking-wide" style={style}>
       {children}
@@ -676,9 +677,9 @@ function EtaPicker({ order, onPick }: { order: Order; onPick: (m: number) => voi
           key={m}
           onClick={() => onPick(m)}
           className="flex-1 rounded-full py-2.5 text-[14px] font-bold transition hover:opacity-90"
-          style={{ background: "rgba(245,241,232,0.08)", border: "1px solid rgba(245,241,232,0.14)", color: CREAM }}
+          style={{ background: "rgba(27,23,16,0.05)", border: "1px solid rgba(27,23,16,0.16)", color: CREAM }}
           onMouseEnter={(e) => { e.currentTarget.style.background = LIME; e.currentTarget.style.color = "#1D2A22"; }}
-          onMouseLeave={(e) => { e.currentTarget.style.background = "rgba(245,241,232,0.08)"; e.currentTarget.style.color = CREAM; }}
+          onMouseLeave={(e) => { e.currentTarget.style.background = "rgba(27,23,16,0.05)"; e.currentTarget.style.color = CREAM; }}
         >
           {m}&#39;
         </button>
@@ -703,10 +704,10 @@ function EtaLine({ order, onEta }: { order: Order; onEta: (m: number) => void })
   return (
     <div
       className="mt-3 flex items-center gap-2.5 rounded-xl px-3.5 py-2.5"
-      style={{ background: "rgba(213,227,107,0.09)", border: "1px solid rgba(213,227,107,0.25)" }}
+      style={{ background: "rgba(140,165,59,0.10)", border: "1px solid rgba(140,165,59,0.35)" }}
     >
       <IconClock className="h-4.5 w-4.5" />
-      <span className="text-[17px] font-extrabold tabular-nums" style={{ color: LIME }}>
+      <span className="text-[17px] font-extrabold tabular-nums" style={{ color: OLIVE }}>
         {order.etaAt ? clock(order.etaAt) : order.scheduledTime}
       </span>
       {order.timeMode === "asap" && (
@@ -748,8 +749,8 @@ function OrderCard({
       className="rounded-2xl p-3.5"
       style={{
         background: SUB,
-        border: highlight ? `1.5px solid ${LIME}66` : "1px solid rgba(245,241,232,0.07)",
-        boxShadow: highlight ? `0 0 0 3px ${LIME}1f` : undefined,
+        border: highlight ? "1.5px solid #A9B94F" : "1px solid rgba(27,23,16,0.08)",
+        boxShadow: highlight ? "0 0 0 3px rgba(169,185,79,0.22)" : undefined,
       }}
     >
       <div className="mb-2 flex items-center justify-between gap-2">
@@ -783,7 +784,7 @@ function OrderCard({
       {order.customer.note && (
         <div
           className="mb-1.5 mt-1 rounded-lg px-2.5 py-1.5 text-[12px] font-semibold"
-          style={{ background: "rgba(229,106,78,0.12)", color: "#F0B29F", border: "1px solid rgba(229,106,78,0.25)" }}
+          style={{ background: "rgba(183,56,47,0.07)", color: "#8E3B2F", border: "1px solid rgba(183,56,47,0.3)" }}
         >
           Uwagi: {order.customer.note}
         </div>
@@ -791,11 +792,11 @@ function OrderCard({
 
       <div
         className="space-y-0.5 pt-2.5 text-[12.5px] leading-relaxed"
-        style={{ borderTop: "1px dashed rgba(245,241,232,0.12)", color: "#C9D0C4" }}
+        style={{ borderTop: "1px dashed rgba(27,23,16,0.13)", color: "#4A443B" }}
       >
         {order.items.map((it, i) => (
           <div key={i}>
-            <span className="font-extrabold" style={{ color: LIME }}>{it.qty}×</span> {it.name}
+            <span className="font-extrabold" style={{ color: OLIVE }}>{it.qty}×</span> {it.name}
             {it.addons.length > 0 && (
               <span style={{ color: MUTED }}> · {it.addons.map((a) => a.name).join(", ")}</span>
             )}
@@ -823,7 +824,7 @@ function OrderCard({
             <IconUndo className="h-3.5 w-3.5" /> cofnij
           </button>
         )}
-        <button onClick={() => setCancelOpen((v) => !v)} className="underline underline-offset-2" style={{ color: "#C77" }}>
+        <button onClick={() => setCancelOpen((v) => !v)} className="underline underline-offset-2" style={{ color: ALERT }}>
           anuluj zamówienie
         </button>
         <button onClick={() => printOrder(order)} className="flex items-center gap-1 underline underline-offset-2">
@@ -832,15 +833,15 @@ function OrderCard({
         {order.staff && <span className="ml-auto">obsługuje: {order.staff}</span>}
       </div>
       {cancelOpen && (
-        <div className="mt-2 rounded-xl p-2.5" style={{ background: "rgba(229,106,78,0.1)", border: "1px solid rgba(229,106,78,0.3)" }}>
-          <div className="mb-1.5 text-[11.5px] font-bold" style={{ color: "#F0937C" }}>Powód anulowania:</div>
+        <div className="mt-2 rounded-xl p-2.5" style={{ background: "rgba(183,56,47,0.06)", border: "1px solid rgba(183,56,47,0.35)" }}>
+          <div className="mb-1.5 text-[11.5px] font-bold" style={{ color: ALERT }}>Powód anulowania:</div>
           <div className="flex flex-wrap gap-1.5">
             {CANCEL_REASONS.map((r) => (
               <button
                 key={r}
                 onClick={() => { onAdvance(order.id, "canceled", r); setCancelOpen(false); }}
                 className="rounded-full px-3 py-1.5 text-[12px] font-bold"
-                style={{ background: "rgba(229,106,78,0.2)", color: "#F0B29F", border: "1px solid rgba(229,106,78,0.4)" }}
+                style={{ background: "rgba(183,56,47,0.12)", color: "#8E3B2F", border: "1px solid rgba(183,56,47,0.45)" }}
               >
                 {r}
               </button>
@@ -881,7 +882,7 @@ function StatusButtons({ order, onAdvance }: { order: Order; onAdvance: (id: str
           key={n.status}
           onClick={() => onAdvance(order.id, n.status)}
           className="flex-1 rounded-full py-2.5 text-[12.5px] font-bold transition hover:opacity-90"
-          style={{ background: "rgba(213,227,107,0.12)", border: "1px solid rgba(213,227,107,0.3)", color: LIME }}
+          style={{ background: "rgba(140,165,59,0.12)", border: "1px solid rgba(140,165,59,0.45)", color: OLIVE }}
         >
           {n.label}
         </button>
@@ -894,7 +895,7 @@ function StatusButtons({ order, onAdvance }: { order: Order; onAdvance: (id: str
 
 function Tile({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-2xl p-4" style={{ background: CARD }}>
+    <div className="rounded-2xl p-4" style={{ background: CARD, border: "1px solid #EAE2D2" }}>
       <div className="text-[11px] font-extrabold uppercase tracking-[0.14em]" style={{ color: MUTED }}>{label}</div>
       <div className="mt-1 text-[24px] font-extrabold tabular-nums">{value}</div>
     </div>
@@ -937,7 +938,7 @@ function HistoryView({ orders: all }: { orders: Order[] }) {
           value={day}
           onChange={(e) => e.target.value && setDay(e.target.value)}
           className="rounded-full px-4 py-1.5 text-[13px] font-bold outline-none"
-          style={{ background: CARD, color: CREAM, border: "1px solid rgba(245,241,232,0.12)" }}
+          style={{ background: CARD, color: CREAM, border: "1px solid rgba(27,23,16,0.13)" }}
         />
       </div>
       <div className="grid grid-cols-2 gap-3 md:grid-cols-5">
@@ -948,7 +949,7 @@ function HistoryView({ orders: all }: { orders: Order[] }) {
         <Tile label="Anulowane" value={String(canceled.length)} />
       </div>
 
-      <div className="mt-4 rounded-3xl p-3.5" style={{ background: CARD }}>
+      <div className="mt-4 rounded-3xl p-3.5" style={{ background: CARD, border: "1px solid #EAE2D2" }}>
         <h2 className="mb-3 px-1 text-[11px] font-extrabold uppercase tracking-[0.14em]" style={{ color: MUTED }}>
           Zamówienia — {day === today ? "dziś" : day} (najnowsze u góry)
         </h2>
@@ -969,11 +970,11 @@ function HistoryView({ orders: all }: { orders: Order[] }) {
               </span>
               <span className="ml-auto font-extrabold">{zl(o.total)}</span>
               {o.status === "canceled" ? (
-                <span className="rounded-full px-2.5 py-0.5 text-[11px] font-bold" style={{ background: "rgba(229,106,78,0.18)", color: "#F0937C" }}>
+                <span className="rounded-full px-2.5 py-0.5 text-[11px] font-bold" style={{ background: "rgba(183,56,47,0.12)", color: ALERT }}>
                   anulowane{o.cancelReason ? ` — ${o.cancelReason}` : ""}
                 </span>
               ) : (
-                <span className="rounded-full px-2.5 py-0.5 text-[11px] font-bold" style={{ background: "rgba(213,227,107,0.14)", color: LIME }}>
+                <span className="rounded-full px-2.5 py-0.5 text-[11px] font-bold" style={{ background: "rgba(140,165,59,0.16)", color: OLIVE }}>
                   zrealizowane{o.staff ? ` — ${o.staff}` : ""}
                 </span>
               )}
