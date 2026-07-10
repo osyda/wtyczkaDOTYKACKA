@@ -79,6 +79,11 @@ const IconExpand = ({ className }: { className?: string }) => (
     <path d="M9 4 H4 V9 M15 4 H20 V9 M9 20 H4 V15 M15 20 H20 V15" {...stroke} />
   </svg>
 );
+const IconPrint = ({ className }: { className?: string }) => (
+  <svg viewBox="0 0 24 24" className={className}>
+    <path d="M7 8 V4 H17 V8 M7 16 H5 A1.5 1.5 0 0 1 3.5 14.5 V9.5 A1.5 1.5 0 0 1 5 8 H19 A1.5 1.5 0 0 1 20.5 9.5 V14.5 A1.5 1.5 0 0 1 19 16 H17 M7 13 H17 V20 H7 Z" {...stroke} />
+  </svg>
+);
 const IconUndo = ({ className }: { className?: string }) => (
   <svg viewBox="0 0 24 24" className={className}>
     <path d="M8.5 5.5 L4 10 L8.5 14.5 M4 10 H14 A6 6 0 0 1 14 22 H10" {...stroke} />
@@ -135,6 +140,78 @@ function playDing() {
 
 const CANCEL_REASONS = ["Klient odwołał", "Brak składników", "Błędne zamówienie", "Inny powód"];
 
+/** Minuty do godziny "HH:MM" (dzisiaj). Ujemne = już po czasie. */
+function minutesToScheduled(time?: string): number | null {
+  if (!time) return null;
+  const [h, m] = time.split(":").map(Number);
+  if (!Number.isFinite(h) || !Number.isFinite(m)) return null;
+  const d = new Date();
+  d.setHours(h, m, 0, 0);
+  return Math.round((d.getTime() - Date.now()) / 60000);
+}
+/** Ile minut przed godziną trzeba zacząć przygotowanie. */
+function startLead(order: Order): number {
+  return order.mode === "delivery" ? 40 : 25;
+}
+function dateInputValue(d: Date): string {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+}
+function sameDay(iso: string, dayValue: string): boolean {
+  return dateInputValue(new Date(iso)) === dayValue;
+}
+
+/** Kwit kuchenny — czarno-biały wydruk (szerokość ~72 mm, jak drukarki paragonowe). */
+function printOrder(order: Order) {
+  const esc = (t: string) => t.replace(/&/g, "&amp;").replace(/</g, "&lt;");
+  const items = order.items
+    .map((it) => {
+      const addons = it.addons.length
+        ? `<div class="ad">${it.addons.map((a) => `+ ${esc(a.name)}`).join("<br>")}</div>`
+        : "";
+      return `<div class="it"><b>${it.qty}×</b> ${esc(it.name)}${addons}</div>`;
+    })
+    .join("");
+  const when =
+    order.timeMode === "scheduled"
+      ? `NA GODZINĘ: ${order.scheduledTime}`
+      : order.etaAt
+        ? `GOTOWE NA: ${clock(order.etaAt)}`
+        : "ASAP — czas nieustawiony";
+  const addr =
+    order.mode === "delivery"
+      ? `${esc(order.customer.street ?? "")}, ${esc(order.customer.city ?? "")}`
+      : "ODBIÓR OSOBISTY";
+  const html = `<!doctype html><html><head><meta charset="utf-8"><title>Kwit #${order.number}</title>
+<style>
+  body { font-family: 'Courier New', monospace; color: #000; width: 72mm; margin: 0 auto; padding: 4mm; font-size: 12px; }
+  .c { text-align: center; }
+  h1 { font-size: 15px; letter-spacing: 4px; margin: 0; }
+  .big { font-size: 20px; font-weight: bold; margin: 2mm 0; }
+  hr { border: none; border-top: 1px dashed #000; margin: 2.5mm 0; }
+  .it { margin: 1.2mm 0; font-size: 13px; }
+  .ad { padding-left: 6mm; font-size: 11.5px; }
+  .note { border: 1.5px solid #000; padding: 2mm; margin: 2mm 0; font-weight: bold; }
+  .row { display: flex; justify-content: space-between; }
+</style></head><body>
+  <div class="c"><h1>MAMMAROSA</h1><div>kwit kuchenny</div>
+  <div class="big">#${order.number} · ${order.mode === "delivery" ? "DOSTAWA" : "ODBIÓR"}</div>
+  <div><b>${when}</b></div><div>przyjęte ${clock(order.createdAt)}</div></div>
+  <hr>${items}<hr>
+  ${order.customer.note ? `<div class="note">UWAGI: ${esc(order.customer.note)}</div>` : ""}
+  <div>${esc(order.customer.name)} · tel. ${esc(order.customer.phone)}</div>
+  <div>${addr}</div>
+  <hr>
+  <div class="row"><b>RAZEM</b><b>${zl(order.total)}</b></div>
+  <div class="row"><span>płatność</span><span>${order.payment === "cash" ? "GOTÓWKA" : order.payment === "card" ? "KARTA" : "OPŁACONE ONLINE"}</span></div>
+</body></html>`;
+  const w = window.open("", "_blank", "width=420,height=640");
+  if (!w) return;
+  w.document.write(html);
+  w.document.close();
+  w.focus();
+  setTimeout(() => { w.print(); w.close(); }, 250);
+}
+
 /* ============================================================ */
 
 export default function PanelPage() {
@@ -146,6 +223,8 @@ export default function PanelPage() {
   const [soundOn, setSoundOn] = useState(false);
   const [staffName, setStaffName] = useState<string>("");
   const knownIds = useRef<Set<string> | null>(null);
+  const remindedIds = useRef<Set<string>>(new Set());
+  const [pos, setPos] = useState<{ mode: string; ok: boolean } | null>(null);
   const baseTitle = useRef("Mammarosa — panel");
 
   // Bramka PIN.
@@ -222,6 +301,30 @@ export default function PanelPage() {
     return () => clearInterval(t);
   }, [refresh]);
 
+  // Status POS (Dotykačka) — co minutę.
+  useEffect(() => {
+    const check = () =>
+      fetch("/api/dotykacka/health")
+        .then((r) => r.json())
+        .then((d) => setPos({ mode: d.mode, ok: Boolean(d.ok) }))
+        .catch(() => setPos(null));
+    check();
+    const t = setInterval(check, 60000);
+    return () => clearInterval(t);
+  }, []);
+
+  // Przypomnienie o "na godzinę": dzwonek, gdy pora zaczynać przygotowanie.
+  useEffect(() => {
+    for (const o of orders) {
+      if (o.status !== "scheduled") continue;
+      const left = minutesToScheduled(o.scheduledTime);
+      if (left !== null && left <= startLead(o) && !remindedIds.current.has(o.id)) {
+        remindedIds.current.add(o.id);
+        if (localStorage.getItem("mr_sound") === "1") playDing();
+      }
+    }
+  }, [orders]);
+
   // Tytuł karty: liczba nowych (miga, żeby przyciągnąć wzrok z innej zakładki).
   const newsCount = orders.filter((o) => o.status === "new").length;
   useEffect(() => {
@@ -275,9 +378,7 @@ export default function PanelPage() {
   const sched = orders
     .filter((o) => o.status === "scheduled")
     .sort((a, b) => (a.scheduledTime ?? "").localeCompare(b.scheduledTime ?? ""));
-  const doneToday = orders
-    .filter((o) => ["completed", "canceled"].includes(o.status) && isToday(o.createdAt))
-    .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+
 
   if (!authReady) {
     return (
@@ -355,6 +456,13 @@ export default function PanelPage() {
           <TopBtn onClick={toggleFullscreen} title="Pełny ekran">
             <IconExpand className="h-4 w-4" />
           </TopBtn>
+          <span
+            className="hidden items-center gap-2 rounded-full px-3.5 py-1.5 text-[12px] font-bold md:flex"
+            style={{ background: SUB, color: pos?.mode === "live" && pos.ok ? LIME : pos && !pos.ok ? ALERT : MUTED }}
+          >
+            <span className="inline-flex h-2 w-2 rounded-full" style={{ background: "currentColor" }} />
+            {pos ? (pos.mode === "mock" ? "POS: demo" : pos.ok ? "POS: połączono" : "POS: błąd") : "POS: …"}
+          </span>
           <span className="hidden rounded-full px-3.5 py-1.5 font-mono text-[15px] font-bold tabular-nums sm:inline" style={{ background: SUB }}>
             {now}
           </span>
@@ -429,25 +537,38 @@ export default function PanelPage() {
           </Column>
 
           <Column icon={<IconCal className="h-4 w-4" />} title="Na godzinę" count={sched.length}>
-            {sched.map((o) => (
-              <OrderCard key={o.id} order={o} onAdvance={advance}>
-                <div
-                  className="mt-3 flex items-center gap-2.5 rounded-xl px-3.5 py-2.5"
-                  style={{ background: "rgba(213,227,107,0.09)", border: "1px solid rgba(213,227,107,0.25)" }}
-                >
-                  <IconClock className="h-4.5 w-4.5" />
-                  <span className="text-[15px] font-bold">
-                    na <b className="text-[17px] font-extrabold tabular-nums" style={{ color: LIME }}>{o.scheduledTime}</b>
-                  </span>
-                </div>
-                <StatusButtons order={o} onAdvance={advance} />
-              </OrderCard>
-            ))}
+            {sched.map((o) => {
+              const left = minutesToScheduled(o.scheduledTime);
+              const due = left !== null && left <= startLead(o);
+              return (
+                <OrderCard key={o.id} order={o} highlight={due} onAdvance={advance}>
+                  <div
+                    className="mt-3 flex items-center gap-2.5 rounded-xl px-3.5 py-2.5"
+                    style={
+                      due
+                        ? { background: "rgba(229,106,78,0.12)", border: "1px solid rgba(229,106,78,0.4)" }
+                        : { background: "rgba(213,227,107,0.09)", border: "1px solid rgba(213,227,107,0.25)" }
+                    }
+                  >
+                    <IconClock className="h-4.5 w-4.5" />
+                    <span className="text-[15px] font-bold">
+                      na <b className="text-[17px] font-extrabold tabular-nums" style={{ color: due ? "#F0937C" : LIME }}>{o.scheduledTime}</b>
+                    </span>
+                    {due && (
+                      <span className="ml-auto text-[12px] font-extrabold" style={{ color: "#F0937C" }}>
+                        {left !== null && left < 0 ? "PO CZASIE!" : `CZAS ZACZĄĆ — za ${left} min`}
+                      </span>
+                    )}
+                  </div>
+                  <StatusButtons order={o} onAdvance={advance} />
+                </OrderCard>
+              );
+            })}
             {sched.length === 0 && <Empty />}
           </Column>
         </div>
       ) : (
-        <HistoryView orders={doneToday} />
+        <HistoryView orders={orders} />
       )}
     </main>
   );
@@ -705,6 +826,9 @@ function OrderCard({
         <button onClick={() => setCancelOpen((v) => !v)} className="underline underline-offset-2" style={{ color: "#C77" }}>
           anuluj zamówienie
         </button>
+        <button onClick={() => printOrder(order)} className="flex items-center gap-1 underline underline-offset-2">
+          <IconPrint className="h-3.5 w-3.5" /> drukuj kwit
+        </button>
         {order.staff && <span className="ml-auto">obsługuje: {order.staff}</span>}
       </div>
       {cancelOpen && (
@@ -777,7 +901,13 @@ function Tile({ label, value }: { label: string; value: string }) {
   );
 }
 
-function HistoryView({ orders }: { orders: Order[] }) {
+function HistoryView({ orders: all }: { orders: Order[] }) {
+  const [day, setDay] = useState(() => dateInputValue(new Date()));
+  const today = dateInputValue(new Date());
+  const yesterday = dateInputValue(new Date(Date.now() - 86400000));
+  const orders = all
+    .filter((o) => ["completed", "canceled"].includes(o.status) && sameDay(o.createdAt, day))
+    .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
   const done = orders.filter((o) => o.status === "completed");
   const canceled = orders.filter((o) => o.status === "canceled");
   const revenue = done.reduce((s, o) => s + o.total, 0);
@@ -788,6 +918,28 @@ function HistoryView({ orders }: { orders: Order[] }) {
 
   return (
     <div className="p-4">
+      <div className="mb-3 flex flex-wrap items-center gap-2">
+        {[
+          { v: today, l: "Dziś" },
+          { v: yesterday, l: "Wczoraj" },
+        ].map((d) => (
+          <button
+            key={d.v}
+            onClick={() => setDay(d.v)}
+            className="rounded-full px-4 py-2 text-[12.5px] font-bold"
+            style={day === d.v ? { background: LIME, color: "#1D2A22" } : { background: CARD, color: CREAM }}
+          >
+            {d.l}
+          </button>
+        ))}
+        <input
+          type="date"
+          value={day}
+          onChange={(e) => e.target.value && setDay(e.target.value)}
+          className="rounded-full px-4 py-1.5 text-[13px] font-bold outline-none"
+          style={{ background: CARD, color: CREAM, border: "1px solid rgba(245,241,232,0.12)" }}
+        />
+      </div>
       <div className="grid grid-cols-2 gap-3 md:grid-cols-5">
         <Tile label="Zrealizowane" value={String(done.length)} />
         <Tile label="Utarg online" value={zl(revenue)} />
@@ -798,7 +950,7 @@ function HistoryView({ orders }: { orders: Order[] }) {
 
       <div className="mt-4 rounded-3xl p-3.5" style={{ background: CARD }}>
         <h2 className="mb-3 px-1 text-[11px] font-extrabold uppercase tracking-[0.14em]" style={{ color: MUTED }}>
-          Zamówienia z dziś (najnowsze u góry)
+          Zamówienia — {day === today ? "dziś" : day} (najnowsze u góry)
         </h2>
         {orders.length === 0 && <Empty />}
         <div className="flex flex-col gap-2">
