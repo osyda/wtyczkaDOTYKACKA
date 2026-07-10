@@ -12,63 +12,139 @@ import {
   type DeliveryQuote,
   type FulfillmentMode,
 } from "@/lib/delivery";
-import { DishArt, dishKindFor } from "@/components/DishArt";
+import { C } from "@/lib/carta";
 
 type TimeMode = "asap" | "scheduled";
 type Payment = "cash" | "card";
 type Quote = DeliveryQuote & { needsManual?: boolean };
 
-const INK = "#1D2A22";
-const LIME = "#D5E36B";
+/* ---------- Ikony (cienka kreska, jak w podglądzie CARTA) ---------- */
+const stroke = { fill: "none", stroke: "currentColor", strokeWidth: 1.6, strokeLinecap: "round" as const, strokeLinejoin: "round" as const };
 
-/* ---------- Ikony kreskowe ---------- */
-const stroke = { fill: "none", stroke: "currentColor", strokeWidth: 1.8, strokeLinecap: "round" as const, strokeLinejoin: "round" as const };
-
-const IconBack = ({ className }: { className?: string }) => (
-  <svg viewBox="0 0 24 24" className={className}><path d="M20 12 H4 M10 6 L4 12 L10 18" {...stroke} /></svg>
-);
-const IconPin = ({ className }: { className?: string }) => (
-  <svg viewBox="0 0 24 24" className={className}>
-    <path d="M12 21 C12 21 5 14.6 5 9.8 A7 7 0 0 1 19 9.8 C19 14.6 12 21 12 21 Z" {...stroke} />
-    <circle cx="12" cy="9.8" r="2.6" {...stroke} />
-  </svg>
-);
-const IconCash = ({ className }: { className?: string }) => (
-  <svg viewBox="0 0 24 24" className={className}>
-    <rect x="3" y="6.5" width="18" height="11" rx="2.5" {...stroke} />
-    <circle cx="12" cy="12" r="2.6" {...stroke} />
-    <path d="M6.5 9.8 v0.01 M17.5 14.2 v0.01" {...stroke} />
-  </svg>
-);
-const IconCard = ({ className }: { className?: string }) => (
-  <svg viewBox="0 0 24 24" className={className}>
-    <rect x="3" y="5.5" width="18" height="13" rx="2.5" {...stroke} />
-    <path d="M3 10 H21 M6.5 14.5 H11" {...stroke} />
-  </svg>
-);
-const IconClock = ({ className }: { className?: string }) => (
-  <svg viewBox="0 0 24 24" className={className}>
-    <circle cx="12" cy="12" r="8.5" {...stroke} /><path d="M12 7.5 V12 L15 14" {...stroke} />
-  </svg>
-);
-const IconBolt = ({ className }: { className?: string }) => (
-  <svg viewBox="0 0 24 24" className={className}><path d="M13 3 L5 13.5 H11 L10 21 L19 9.5 H13 Z" {...stroke} /></svg>
-);
-const IconTruck = ({ className }: { className?: string }) => (
-  <svg viewBox="0 0 24 24" className={className}>
-    <path d="M3 7 H14 V16 H3 Z M14 10 H18.5 L21 13 V16 H14" {...stroke} />
+const IconTruck = () => (
+  <svg viewBox="0 0 24 24" className="h-5 w-5">
+    <path d="M3 7 h11 v9 H3 Z M14 10 h4.5 L21 13 v3 h-2.5" {...stroke} />
     <circle cx="7" cy="17.8" r="1.7" {...stroke} /><circle cx="17" cy="17.8" r="1.7" {...stroke} />
   </svg>
 );
-const IconBag = ({ className }: { className?: string }) => (
-  <svg viewBox="0 0 24 24" className={className}>
-    <path d="M5.5 8.5 H18.5 L17.5 20 a1.8 1.8 0 0 1 -1.8 1.6 H8.3 A1.8 1.8 0 0 1 6.5 20 Z" {...stroke} />
-    <path d="M9 11 V7.5 a3 3 0 0 1 6 0 V11" {...stroke} />
+const IconBag = () => (
+  <svg viewBox="0 0 24 24" className="h-5 w-5">
+    <path d="M6 8.5 h12 l-1 11 a1.8 1.8 0 0 1 -1.8 1.6 H8.8 A1.8 1.8 0 0 1 7 19.5 Z" {...stroke} />
+    <path d="M9.3 11 V8 a2.7 2.7 0 0 1 5.4 0 v3" {...stroke} />
   </svg>
 );
-const IconArrow = ({ className }: { className?: string }) => (
-  <svg viewBox="0 0 24 24" className={className}><path d="M4 12 H20 M14 6 L20 12 L14 18" {...stroke} /></svg>
+const IconBolt = () => (
+  <svg viewBox="0 0 24 24" className="h-5 w-5"><path d="M13 3 L6 13.5 h5 L10.5 21 L18 10 h-5 Z" {...stroke} /></svg>
 );
+const IconClock = () => (
+  <svg viewBox="0 0 24 24" className="h-5 w-5"><circle cx="12" cy="12" r="8" {...stroke} /><path d="M12 7.5 V12 l3.2 2" {...stroke} /></svg>
+);
+const IconCash = () => (
+  <svg viewBox="0 0 24 24" className="h-5 w-5">
+    <rect x="3" y="7" width="18" height="10" rx="1.5" {...stroke} />
+    <circle cx="12" cy="12" r="2.4" {...stroke} /><path d="M6.2 10.5 v3 M17.8 10.5 v3" {...stroke} />
+  </svg>
+);
+const IconCard = () => (
+  <svg viewBox="0 0 24 24" className="h-5 w-5">
+    <rect x="3" y="6" width="18" height="12" rx="1.5" {...stroke} /><path d="M3 10 h18 M6.5 14.5 h4" {...stroke} />
+  </svg>
+);
+const IconPhone = () => (
+  <svg viewBox="0 0 24 24" className="h-5 w-5">
+    <rect x="7.5" y="3" width="9" height="18" rx="2" {...stroke} /><path d="M11 17.8 h2" {...stroke} />
+    <path d="M18.5 8 a4.5 4.5 0 0 1 0 8" {...stroke} opacity=".6" />
+  </svg>
+);
+
+/* ---------- Klocki CARTA ---------- */
+
+function Sec({ children }: { children: React.ReactNode }) {
+  return (
+    <div className="mt-9 mb-1 flex items-center gap-4">
+      <span className="h-px flex-1" style={{ background: C.hairline }} />
+      <span className="text-[10.5px] uppercase tracking-[0.32em]" style={{ textIndent: "0.32em" }}>{children}</span>
+      <span className="h-px flex-1" style={{ background: C.hairline }} />
+    </div>
+  );
+}
+
+function Opt({
+  on,
+  onClick,
+  icon,
+  label,
+  sub,
+}: {
+  on: boolean;
+  onClick: () => void;
+  icon: React.ReactNode;
+  label: string;
+  sub?: string;
+}) {
+  return (
+    <button
+      onClick={onClick}
+      className="flex w-full cursor-pointer items-center gap-[15px] border-b py-3 text-left"
+      style={{ borderColor: C.hairlineSoft }}
+    >
+      <span
+        className="flex h-[38px] w-[38px] flex-none items-center justify-center border transition-colors duration-300"
+        style={{
+          borderColor: on ? C.ink : C.leader,
+          background: on ? C.ink : "transparent",
+          color: on ? C.ivory : C.muted,
+        }}
+      >
+        {icon}
+      </span>
+      <span className="flex-1 text-[13.5px]">{label}</span>
+      {sub && <span className="text-[10.5px]" style={{ color: C.muted }}>{sub}</span>}
+    </button>
+  );
+}
+
+function Field({
+  label,
+  value,
+  onChange,
+  inputMode,
+  type,
+}: {
+  label: string;
+  value: string;
+  onChange: (v: string) => void;
+  inputMode?: "tel";
+  type?: string;
+}) {
+  return (
+    <div className="mt-4 flex-1">
+      <label className="block text-[9px] uppercase tracking-[0.28em]" style={{ color: C.muted, textIndent: "0.28em" }}>
+        {label}
+      </label>
+      <input
+        value={value}
+        type={type}
+        inputMode={inputMode}
+        onChange={(e) => onChange(e.target.value)}
+        className="font-carta w-full rounded-none border-0 border-b bg-transparent pb-[7px] pt-[9px] text-[15px] outline-none"
+        style={{ borderColor: C.leader, color: C.ink }}
+        onFocus={(e) => (e.target.style.borderColor = C.ink)}
+        onBlur={(e) => (e.target.style.borderColor = C.leader)}
+      />
+    </div>
+  );
+}
+
+function SumLine({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="flex items-baseline py-1.5">
+      <span className="whitespace-nowrap text-[12px]" style={{ color: C.muted }}>{label}</span>
+      <span className="mx-2.5 flex-1 -translate-y-[3px] border-b border-dotted" style={{ borderColor: C.leader }} />
+      <span className="font-carta whitespace-nowrap text-[14px]">{value}</span>
+    </div>
+  );
+}
 
 /* ---------- Strona ---------- */
 
@@ -249,363 +325,213 @@ export default function CheckoutPage() {
   /* ---- Pusty koszyk ---- */
   if (lines.length === 0) {
     return (
-      <main className="grid min-h-screen place-items-center bg-[#F5F1E8] px-6" style={{ color: INK }}>
+      <main className="grid min-h-screen place-items-center px-6" style={{ background: C.ivory, color: C.ink }}>
         <div className="text-center">
-          <div
-            className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-white shadow-sm"
-            style={{ color: "#A79E8C" }}
-          >
-            <IconBag className="h-7 w-7" />
-          </div>
-          <h1 className="text-xl font-bold tracking-[-0.01em]">Koszyk jest pusty</h1>
-          <p className="mt-1 text-sm text-[#A79E8C]">Wybierz coś pysznego z menu.</p>
+          <div className="font-carta text-[34px] italic">Zamówienie jest puste</div>
+          <p className="mt-2 text-[12px]" style={{ color: C.muted }}>Wybierz coś pysznego z naszej karty.</p>
           <Link
             href="/menu"
-            className="mt-6 inline-flex items-center gap-2 rounded-full px-7 py-3.5 text-sm font-bold text-[#F5F1E8]"
-            style={{ background: INK }}
+            className="mt-8 inline-block border-b pb-1 text-[10px] uppercase tracking-[0.24em]"
+            style={{ color: C.accent, borderColor: C.accent, textIndent: "0.24em" }}
           >
-            Zobacz menu <IconArrow className="h-4 w-4" />
+            ← Wróć do menu
           </Link>
         </div>
       </main>
     );
   }
 
+  const deliveryLabel =
+    mode === "pickup"
+      ? "Odbiór osobisty"
+      : quote.inCity
+        ? "Dostawa — Kościerzyna"
+        : `Dostawa${quote.km ? ` (${quote.km} km)` : ""}`;
+
   return (
-    <main className="min-h-screen bg-[#F5F1E8] pb-36" style={{ color: INK }}>
-      <div className="mx-auto max-w-md px-5">
-        {/* Nagłówek */}
-        <div className="flex items-center gap-3 pt-6">
-          <Link
-            href="/menu"
-            aria-label="Wróć do menu"
-            className="flex h-11 w-11 items-center justify-center rounded-full bg-white shadow-sm"
-          >
-            <IconBack className="h-5 w-5" />
-          </Link>
-          <h1 className="text-[22px] font-bold tracking-[-0.02em]">Twoje zamówienie</h1>
-        </div>
+    <main className="min-h-screen pb-24" style={{ background: C.ivory, color: C.ink }}>
+      <div className="mx-auto max-w-[430px] px-[26px] min-[700px]:max-w-[760px] min-[700px]:px-11 min-[1000px]:max-w-[1060px]">
+        <Link
+          href="/menu"
+          className="mt-[26px] inline-block text-[10px] uppercase tracking-[0.24em]"
+          style={{ color: C.muted, textIndent: "0.24em" }}
+        >
+          ← Menu
+        </Link>
+        <h1 className="font-carta mt-2 text-[38px] italic min-[1000px]:text-[46px]">Kasa</h1>
 
-        {/* Pozycje */}
-        <section className="mt-5 space-y-2.5">
-          {lines.map((l) => (
-            <div key={l.lineId} className="flex items-center gap-3 rounded-3xl bg-white p-3 shadow-[0_2px_12px_rgba(29,42,34,0.05)]">
-              <div className="h-16 w-16 flex-none">
-                {l.image ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img src={l.image} alt="" className="h-full w-full object-contain drop-shadow-[0_6px_8px_rgba(29,42,34,0.25)]" />
-                ) : (
-                  <DishArt kind={dishKindFor(l.name)} className="h-full w-full" />
-                )}
-              </div>
-              <div className="min-w-0 flex-1">
-                <div className="truncate text-[14.5px] font-bold tracking-[-0.01em]">{l.name}</div>
-                {l.addons.length > 0 && (
-                  <div className="truncate text-[11.5px] text-[#A79E8C]">
-                    {l.addons.map((a) => `+ ${a.name}`).join(", ")}
-                  </div>
-                )}
-                <div className="mt-1 text-[13.5px] font-extrabold">{zl(lineTotal(l))}</div>
-              </div>
-              <div className="flex flex-none items-center gap-0.5 rounded-full bg-[#F5F1E8] p-1">
-                <button
-                  onClick={() => (l.qty === 1 ? remove(l.lineId) : setQty(l.lineId, l.qty - 1))}
-                  className="flex h-8 w-8 items-center justify-center rounded-full text-base font-extrabold transition hover:bg-white"
-                >
-                  −
-                </button>
-                <span className="w-6 text-center text-[14px] font-extrabold">{l.qty}</span>
-                <button
-                  onClick={() => setQty(l.lineId, l.qty + 1)}
-                  className="flex h-8 w-8 items-center justify-center rounded-full text-base font-extrabold transition hover:bg-white"
-                >
-                  +
-                </button>
-              </div>
+        <div className="min-[1000px]:grid min-[1000px]:grid-cols-[1fr_380px] min-[1000px]:items-start min-[1000px]:gap-[72px]">
+          {/* ------- lewa kolumna ------- */}
+          <div>
+            <Sec>ODBIÓR</Sec>
+            <Opt
+              on={mode === "delivery"}
+              onClick={() => setMode("delivery")}
+              icon={<IconTruck />}
+              label="Dostawa"
+              sub="Kościerzyna i okolice"
+            />
+            <Opt
+              on={mode === "pickup"}
+              onClick={() => setMode("pickup")}
+              icon={<IconBag />}
+              label="Odbiór osobisty"
+              sub="bez opłat"
+            />
+
+            <Sec>CZAS</Sec>
+            <Opt on={timeMode === "asap"} onClick={() => setTimeMode("asap")} icon={<IconBolt />} label="Najszybciej jak się da" />
+            <Opt on={timeMode === "scheduled"} onClick={() => setTimeMode("scheduled")} icon={<IconClock />} label="Na konkretną godzinę" />
+            {timeMode === "scheduled" && (
+              <Field label="GODZINA" type="time" value={scheduledTime} onChange={setScheduledTime} />
+            )}
+
+            <Sec>TWOJE DANE</Sec>
+            <div className="flex gap-[22px]">
+              <Field label="IMIĘ I NAZWISKO" value={form.name} onChange={(v) => setForm({ ...form, name: v })} />
+              <Field label="TELEFON" inputMode="tel" value={form.phone} onChange={(v) => setForm({ ...form, phone: v })} />
             </div>
-          ))}
-        </section>
-
-        {/* Sposób odbioru */}
-        <Lbl>Sposób odbioru</Lbl>
-        <Segmented
-          value={mode}
-          onChange={(v) => setMode(v as FulfillmentMode)}
-          options={[
-            { value: "delivery", label: "Dostawa", icon: <IconTruck className="h-4.5 w-4.5" /> },
-            { value: "pickup", label: "Odbiór osobisty", icon: <IconBag className="h-4.5 w-4.5" /> },
-          ]}
-        />
-
-        {mode === "delivery" && (
-          <div className="mt-2.5 space-y-2.5">
-            <button
-              type="button"
-              onClick={locateMe}
-              className="flex w-full items-center justify-center gap-2 rounded-full bg-white py-3.5 text-sm font-bold shadow-[0_2px_12px_rgba(29,42,34,0.05)] transition hover:shadow-md"
-            >
-              <IconPin className="h-4.5 w-4.5" />
-              {coords ? "Lokalizacja ustawiona — przelicz ponownie" : "Policz dostawę z mojej lokalizacji"}
-            </button>
-            {geoStatus === "locating" && <P muted>Ustalam Twoją lokalizację…</P>}
-            {geoStatus === "error" && <P error>Nie udało się pobrać lokalizacji — podaj adres poniżej.</P>}
-
-            <div className="rounded-3xl bg-white p-4 shadow-[0_2px_12px_rgba(29,42,34,0.05)]">
-              {quoting ? (
-                <P muted>Liczę odległość…</P>
-              ) : quote.outOfRange ? (
-                <P error>{quote.label}. Wybierz odbiór osobisty.</P>
-              ) : (coords || !quote.needsManual) && (coords || form.street.trim().length >= 3) ? (
-                <div className="flex items-center justify-between">
-                  <span className="flex items-center gap-2 text-[13.5px] font-semibold">
-                    <IconPin className="h-4 w-4 text-[#A79E8C]" />
-                    {quote.inCity ? "Kościerzyna — stawka stała" : `${quote.km} km ${coords ? "od Ciebie" : "od Kościerzyny"}`}
-                  </span>
-                  <span className="text-[15px] font-extrabold">{zl(deliveryFee)}</span>
+            {mode === "delivery" && (
+              <>
+                <Field label="ULICA I NUMER" value={form.street} onChange={(v) => setForm({ ...form, street: v })} />
+                <div className="flex gap-[22px]">
+                  <Field label="MIEJSCOWOŚĆ" value={form.city} onChange={(v) => setForm({ ...form, city: v })} />
+                  <div className="w-28 flex-none">
+                    <Field label="KOD" value={form.zip} onChange={(v) => setForm({ ...form, zip: v })} />
+                  </div>
                 </div>
-              ) : quote.needsManual ? (
-                <P muted>Podaj odległość (km), aby policzyć dostawę:</P>
-              ) : (
-                <P muted>Użyj lokalizacji lub wpisz adres — dostawa policzy się sama.</P>
-              )}
-
-              {coords && (
                 <button
                   type="button"
-                  onClick={() => setCoords(null)}
-                  className="mt-1.5 text-xs font-bold text-[#A79E8C] underline underline-offset-2"
+                  onClick={locateMe}
+                  className="mt-[18px] inline-block cursor-pointer border-b pb-0.5 text-[10px] uppercase tracking-[0.2em]"
+                  style={{ color: C.accent, borderColor: C.accent, textIndent: "0.2em" }}
                 >
-                  wpisz adres zamiast lokalizacji
+                  {geoStatus === "locating"
+                    ? "Ustalanie pozycji…"
+                    : coords
+                      ? "Lokalizacja ustawiona — przelicz ponownie"
+                      : "Użyj mojej lokalizacji (GPS)"}
                 </button>
-              )}
+                {geoStatus === "error" && (
+                  <p className="mt-2 text-[11.5px]" style={{ color: C.accent }}>
+                    Nie udało się pobrać lokalizacji — podaj adres powyżej.
+                  </p>
+                )}
+                <div className="mt-3.5 text-[11.5px]" style={{ color: C.muted }}>
+                  {quoting ? (
+                    "Liczę odległość…"
+                  ) : quote.outOfRange ? (
+                    <span style={{ color: C.accent }}>{quote.label}. Wybierz odbiór osobisty.</span>
+                  ) : (coords || !quote.needsManual) && (coords || form.street.trim().length >= 3 || isKoscierzyna(form.city)) ? (
+                    <>
+                      {quote.inCity ? "Strefa: Kościerzyna — dostawa " : `Trasa ${quote.km} km — dostawa `}
+                      <b className="font-carta text-[14px] font-normal" style={{ color: C.ink }}>{zl(deliveryFee)}</b>
+                      {quote.inCity ? " (stawka miejska)" : ""}
+                      {coords && quote.estimated && !quote.outOfRange ? " · szacunek z lokalizacji" : ""}
+                    </>
+                  ) : quote.needsManual ? (
+                    "Podaj odległość w km, aby policzyć dostawę:"
+                  ) : (
+                    "Użyj lokalizacji lub wpisz adres — dostawa policzy się sama."
+                  )}
+                </div>
+                {quote.needsManual && !coords && (
+                  <div className="w-40">
+                    <Field
+                      label="ODLEGŁOŚĆ (KM)"
+                      value={manualKm === "" ? "" : String(manualKm)}
+                      onChange={(v) => setManualKm(v === "" ? "" : Number(v))}
+                    />
+                  </div>
+                )}
+                {coords && (
+                  <button
+                    type="button"
+                    onClick={() => setCoords(null)}
+                    className="mt-2 cursor-pointer text-[10.5px] underline underline-offset-2"
+                    style={{ color: C.muted }}
+                  >
+                    wpisz adres zamiast lokalizacji
+                  </button>
+                )}
+              </>
+            )}
+            <Field label="UWAGI (DOMOFON, PIĘTRO…)" value={form.note} onChange={(v) => setForm({ ...form, note: v })} />
 
-              {quote.needsManual && !coords && (
-                <input
-                  type="number"
-                  min={1}
-                  max={15}
-                  value={manualKm}
-                  onChange={(e) => setManualKm(e.target.value === "" ? "" : Number(e.target.value))}
-                  placeholder="Odległość w km"
-                  className="mt-2.5 w-full rounded-2xl bg-[#F5F1E8] px-4 py-3 text-[15px] outline-none placeholder:text-[#B9B09D]"
-                />
-              )}
-              {coords && quote.estimated && !quote.outOfRange && (
-                <p className="mt-1.5 text-[11px] text-[#B9B09D]">
-                  Szacunek z lokalizacji — z kluczem map policzymy dokładną trasę.
-                </p>
-              )}
+            <Sec>PŁATNOŚĆ {mode === "delivery" ? "PRZY DOSTAWIE" : "PRZY ODBIORZE"}</Sec>
+            <Opt on={payment === "cash"} onClick={() => setPayment("cash")} icon={<IconCash />} label="Gotówka" />
+            <Opt on={payment === "card"} onClick={() => setPayment("card")} icon={<IconCard />} label="Karta (terminal)" />
+            <div className="flex w-full items-center gap-[15px] border-b py-3 opacity-45" style={{ borderColor: C.hairlineSoft }}>
+              <span
+                className="flex h-[38px] w-[38px] flex-none items-center justify-center border"
+                style={{ borderColor: C.leader, color: C.muted }}
+              >
+                <IconPhone />
+              </span>
+              <span className="flex-1 text-[13.5px]">Płatność online (BLIK / karta)</span>
+              <span className="text-[9px] uppercase tracking-[0.2em]" style={{ color: C.muted }}>wkrótce</span>
             </div>
           </div>
-        )}
 
-        {/* Na kiedy */}
-        <Lbl>Na kiedy?</Lbl>
-        <Segmented
-          value={timeMode}
-          onChange={(v) => setTimeMode(v as TimeMode)}
-          options={[
-            { value: "asap", label: "Najszybciej", icon: <IconBolt className="h-4.5 w-4.5" /> },
-            { value: "scheduled", label: "Na godzinę", icon: <IconClock className="h-4.5 w-4.5" /> },
-          ]}
-        />
-        {timeMode === "asap" ? (
-          <p className="mt-2 px-1 text-xs text-[#A79E8C]">
-            Obsługa potwierdzi czas przygotowania — zobaczysz go po złożeniu zamówienia.
-          </p>
-        ) : (
-          <input
-            type="time"
-            value={scheduledTime}
-            onChange={(e) => setScheduledTime(e.target.value)}
-            className="mt-2.5 w-full rounded-2xl bg-white px-4 py-3.5 text-[15px] font-semibold shadow-[0_2px_12px_rgba(29,42,34,0.05)] outline-none"
-          />
-        )}
-
-        {/* Dane */}
-        <Lbl>Dane kontaktowe</Lbl>
-        <div className="space-y-2.5">
-          <Field placeholder="Imię i nazwisko" value={form.name} onChange={(v) => setForm({ ...form, name: v })} />
-          <Field placeholder="Telefon" inputMode="tel" value={form.phone} onChange={(v) => setForm({ ...form, phone: v })} />
-          {mode === "delivery" && (
-            <>
-              <Field placeholder="Ulica i numer" value={form.street} onChange={(v) => setForm({ ...form, street: v })} />
-              <div className="flex gap-2.5">
-                <Field placeholder="Miasto" value={form.city} onChange={(v) => setForm({ ...form, city: v })} />
-                <div className="w-32 flex-none">
-                  <Field placeholder="Kod" value={form.zip} onChange={(v) => setForm({ ...form, zip: v })} />
-                </div>
-              </div>
-            </>
-          )}
-          <Field placeholder="Uwagi (np. domofon, piętro)" value={form.note} onChange={(v) => setForm({ ...form, note: v })} />
-        </div>
-
-        {/* Płatność */}
-        <Lbl>Płatność {mode === "delivery" ? "przy dostawie" : "przy odbiorze"}</Lbl>
-        <div className="space-y-2.5">
-          <PayOption
-            icon={<IconCash className="h-5 w-5" />}
-            label="Gotówka"
-            checked={payment === "cash"}
-            onClick={() => setPayment("cash")}
-          />
-          <PayOption
-            icon={<IconCard className="h-5 w-5" />}
-            label="Karta (terminal)"
-            checked={payment === "card"}
-            onClick={() => setPayment("card")}
-          />
-          <div className="flex items-center gap-3 rounded-3xl bg-white/60 px-4 py-3.5 text-[#B9B09D]">
-            <span className="flex h-5 w-5 items-center justify-center">
-              <svg viewBox="0 0 24 24" className="h-5 w-5"><circle cx="12" cy="12" r="8.5" {...stroke} /><path d="M3.5 12 H20.5 M12 3.5 C15 7 15 17 12 20.5 C9 17 9 7 12 3.5" {...stroke} /></svg>
-            </span>
-            <span className="flex-1 text-[14px] font-semibold">Płatność online</span>
-            <span className="text-[11px] font-bold uppercase tracking-wider">wkrótce</span>
-          </div>
-        </div>
-
-        {/* Podsumowanie */}
-        <Lbl>Podsumowanie</Lbl>
-        <div className="rounded-3xl bg-white p-4 shadow-[0_2px_12px_rgba(29,42,34,0.05)]">
-          <Row label="Produkty" value={zl(subtotal)} />
-          <Row
-            label={mode === "pickup" ? "Odbiór osobisty" : quote.inCity ? "Dostawa — Kościerzyna" : `Dostawa${quote.km ? ` (${quote.km} km)` : ""}`}
-            value={deliveryFee > 0 ? zl(deliveryFee) : "0,00 zł"}
-          />
-          <div className="mt-2 flex items-center justify-between border-t border-dashed border-[#E7DFCE] pt-3">
-            <span className="text-[16px] font-extrabold">Razem</span>
-            <span className="text-[18px] font-extrabold">{zl(total)}</span>
-          </div>
-        </div>
-      </div>
-
-      {/* CTA */}
-      <div className="fixed inset-x-0 bottom-5 z-40 flex justify-center px-5">
-        <div className="w-full max-w-md">
-          {error && <p className="mb-2 text-center text-sm font-semibold text-[#B7382F]">{error}</p>}
-          <button
-            disabled={!canOrder || submitting}
-            onClick={submitOrder}
-            className="flex w-full items-center justify-between rounded-full py-4 pl-7 pr-7 text-[15px] font-bold text-[#F5F1E8] shadow-[0_16px_36px_rgba(29,42,34,0.35)] transition disabled:opacity-45"
-            style={{ background: INK }}
+          {/* ------- prawa kolumna (podsumowanie) ------- */}
+          <div
+            className="min-[1000px]:sticky min-[1000px]:top-10 min-[1000px]:border min-[1000px]:px-[26px] min-[1000px]:pb-[26px] min-[1000px]:pt-2"
+            style={{ borderColor: C.border, background: undefined }}
           >
-            <span>{submitting ? "Wysyłam…" : canOrder ? "Zamawiam" : "Uzupełnij dane"}</span>
-            <span style={{ color: LIME }}>{zl(total)}</span>
-          </button>
+            <Sec>PODSUMOWANIE</Sec>
+            {lines.map((l) => (
+              <div key={l.lineId} className="flex items-center gap-3 border-b py-3" style={{ borderColor: C.hairlineSoft }}>
+                <div className="min-w-0 flex-1">
+                  <div className="font-carta text-[15px]">{l.name}</div>
+                  {l.addons.length > 0 && (
+                    <div className="mt-0.5 text-[10.5px]" style={{ color: C.muted }}>
+                      {l.addons.map((a) => a.name).join(", ")}
+                    </div>
+                  )}
+                </div>
+                <div className="flex items-center gap-2.5">
+                  <button
+                    onClick={() => (l.qty === 1 ? remove(l.lineId) : setQty(l.lineId, l.qty - 1))}
+                    className="h-6 w-6 cursor-pointer border text-[12px]"
+                    style={{ borderColor: C.ink }}
+                  >
+                    −
+                  </button>
+                  <b className="font-carta text-[14px] font-normal">{l.qty}</b>
+                  <button
+                    onClick={() => setQty(l.lineId, l.qty + 1)}
+                    className="h-6 w-6 cursor-pointer border text-[12px]"
+                    style={{ borderColor: C.ink }}
+                  >
+                    +
+                  </button>
+                </div>
+                <span className="font-carta min-w-[56px] text-right text-[14px]">{zl(lineTotal(l))}</span>
+              </div>
+            ))}
+            <div className="mt-2">
+              <SumLine label={deliveryLabel} value={mode === "delivery" && !quote.available ? "—" : zl(deliveryFee)} />
+              <div className="flex items-baseline pt-2">
+                <span className="text-[10px] uppercase tracking-[0.26em]" style={{ textIndent: "0.26em" }}>RAZEM</span>
+                <span className="mx-3 flex-1 -translate-y-[3px] border-b border-dotted" style={{ borderColor: C.leader }} />
+                <span className="font-carta text-[19px]">{zl(total)}</span>
+              </div>
+            </div>
+            {error && (
+              <p className="mt-3 text-center text-[12px]" style={{ color: C.accent }}>{error}</p>
+            )}
+            <button
+              disabled={!canOrder || submitting}
+              onClick={submitOrder}
+              className="mt-[22px] flex w-full cursor-pointer items-center justify-between px-[22px] py-[18px] text-[11px] uppercase tracking-[0.24em] transition-all active:scale-[0.985] disabled:pointer-events-none disabled:opacity-35"
+              style={{ background: C.ink, color: C.ivory, textIndent: "0.24em" }}
+            >
+              <span>{submitting ? "Wysyłam…" : canOrder ? "Zamawiam" : "Uzupełnij dane"}</span>
+              <b className="font-carta text-[16px] font-normal normal-case tracking-normal">{zl(total)}</b>
+            </button>
+          </div>
         </div>
       </div>
     </main>
-  );
-}
-
-/* ---------- Komponenty ---------- */
-
-function Lbl({ children }: { children: React.ReactNode }) {
-  return (
-    <div className="mb-2.5 mt-7 px-1 text-[11px] font-extrabold uppercase tracking-[0.14em] text-[#A79E8C]">
-      {children}
-    </div>
-  );
-}
-
-function P({ children, muted, error }: { children: React.ReactNode; muted?: boolean; error?: boolean }) {
-  return (
-    <p className={`text-[13px] font-semibold ${error ? "text-[#B7382F]" : muted ? "text-[#A79E8C]" : ""}`}>
-      {children}
-    </p>
-  );
-}
-
-function Segmented({
-  options,
-  value,
-  onChange,
-}: {
-  options: { value: string; label: string; icon?: React.ReactNode }[];
-  value: string;
-  onChange: (v: string) => void;
-}) {
-  return (
-    <div className="flex gap-1 rounded-full bg-white p-1 shadow-[0_2px_12px_rgba(29,42,34,0.05)]">
-      {options.map((o) => {
-        const on = value === o.value;
-        return (
-          <button
-            key={o.value}
-            onClick={() => onChange(o.value)}
-            className="flex flex-1 items-center justify-center gap-2 rounded-full py-3 text-[13.5px] font-bold transition"
-            style={on ? { background: INK, color: "#F5F1E8" } : { color: "#6E6759" }}
-          >
-            {o.icon}
-            {o.label}
-          </button>
-        );
-      })}
-    </div>
-  );
-}
-
-function Field({
-  placeholder,
-  value,
-  onChange,
-  inputMode,
-}: {
-  placeholder: string;
-  value: string;
-  onChange: (v: string) => void;
-  inputMode?: "tel";
-}) {
-  return (
-    <input
-      value={value}
-      inputMode={inputMode}
-      placeholder={placeholder}
-      onChange={(e) => onChange(e.target.value)}
-      className="w-full rounded-2xl bg-white px-4 py-3.5 text-[15px] shadow-[0_2px_12px_rgba(29,42,34,0.05)] outline-none transition placeholder:text-[#B9B09D] focus:ring-2 focus:ring-[#1D2A22]/20"
-    />
-  );
-}
-
-function PayOption({
-  icon,
-  label,
-  checked,
-  onClick,
-}: {
-  icon: React.ReactNode;
-  label: string;
-  checked: boolean;
-  onClick: () => void;
-}) {
-  return (
-    <button
-      onClick={onClick}
-      className="flex w-full items-center gap-3 rounded-3xl bg-white px-4 py-3.5 text-left shadow-[0_2px_12px_rgba(29,42,34,0.05)] transition"
-      style={checked ? { boxShadow: `inset 0 0 0 2px ${INK}` } : undefined}
-    >
-      <span className="text-[#6E6759]">{icon}</span>
-      <span className="flex-1 text-[14px] font-bold">{label}</span>
-      <span
-        className="flex h-5 w-5 items-center justify-center rounded-full border-2 transition"
-        style={checked ? { background: INK, borderColor: INK } : { borderColor: "#D8CFBC" }}
-      >
-        {checked && (
-          <svg viewBox="0 0 24 24" className="h-3 w-3">
-            <path d="M5 12.5 L10 17 L19 7" fill="none" stroke={LIME} strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
-          </svg>
-        )}
-      </span>
-    </button>
-  );
-}
-
-function Row({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="flex justify-between py-1 text-[13.5px] text-[#6E6759]">
-      <span>{label}</span>
-      <span className="font-semibold" style={{ color: INK }}>{value}</span>
-    </div>
   );
 }
