@@ -21,6 +21,16 @@ export function hasCredentials(): boolean {
   return Boolean(dotykackaConfig.refreshToken && dotykackaConfig.cloudId);
 }
 
+/**
+ * Bezpiecznik na czas testów: wysyłka rachunków do POS jest WŁĄCZONA dopiero,
+ * gdy zmienna `DOTYKACKA_SEND_ORDERS` ma wartość `true`.
+ * Dzięki temu można podpiąć klucze (prawdziwe menu, klienci) i testować
+ * pełny przepływ bez pojawiania się zamówień na kasie na sali.
+ */
+export function posSendEnabled(): boolean {
+  return process.env.DOTYKACKA_SEND_ORDERS?.trim().toLowerCase() === "true";
+}
+
 export type DataSource = "live" | "mock";
 
 export function activeDataSource(): DataSource {
