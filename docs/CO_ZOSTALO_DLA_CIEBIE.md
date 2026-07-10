@@ -1,52 +1,48 @@
-# Co zostało do zrobienia RAZEM z Tobą
+# Co zostało do zrobienia po Twojej stronie (stan: 10.07.2026)
 
-Zbudowałem wszystko, co dało się bez Ciebie (Fazy 0–4 działają end-to-end w trybie DEMO).
-Poniżej rzeczy, których nie mogę dokończyć sam — wymagają Twoich danych, sprzętu lub decyzji.
+Aplikacja jest wdrożona na Vercelu (projekt `wtyczka-dotykacka`, adres *.vercel.app).
+Panel obsługi gotowy od A do Z. Poniżej wszystko, czego nie mogę zrobić za Ciebie.
 
-## 1. Klucze API Dotykački  🔑 (odblokowuje realne dane + wysyłkę do POS)
-Potrzebne: `DOTYKACKA_REFRESH_TOKEN`, `DOTYKACKA_CLOUD_ID`, `DOTYKACKA_BRANCH_ID`
-(oraz `CLIENT_ID/SECRET`). **Nie wklejaj ich w czacie** — wpiszemy je w Vercel → Environment
-Variables (albo w `.env.local` u Ciebie). Po tym aplikacja przełączy się z DEMO na żywe menu
-i zacznie realnie tworzyć rachunki w POS.
-> Bez tego cały system działa, ale na danych demonstracyjnych / symulacji POS.
+## Pilne (żeby testy były pełnowartościowe)
 
-## 2. Wdrożenie na Vercel  🚀
-Mam gotowe narzędzia Vercela. Gdy dasz zielone światło, zdeployuję `orderhub/` i dostaniesz
-link do podglądu. Uwaga techniczna: na Vercelu magazyn zamówień (teraz in-memory) trzeba
-podmienić na **Postgres (Neon) lub Vercel KV** — to ~pół godziny pracy, zrobię przy deployu.
+1. **Baza zamówień** — Vercel → projekt → Storage → Create Database → **Upstash (Redis)**
+   → Connect. Bez tego zamówienia potrafią znikać (serverless nie ma pamięci).
+2. **Testowe zamówienie**: telefon → `/menu` → złóż zamówienie; komputer → `/panel` →
+   włącz dzwonek (ikona), ustaw ETA, przeklikaj statusy, wydrukuj kwit, zobacz „Dziś".
 
-## 3. Dostawa  💰 (USTAWIONE) + klucz map do automatu
-Reguła wpisana zgodnie z Twoim poleceniem: **Kościerzyna 5 zł (płaska), poza 2 zł/km do 15 km**
-(powyżej 15 km = poza zasięgiem). Liczy się automatycznie z adresu.
-Żeby odległość liczyła się **w pełni automatycznie** (bez ręcznego podawania km), potrzebny jest
-**darmowy klucz OpenRouteService** (https://openrouteservice.org — rejestracja, plan darmowy):
-wpiszemy go jako `ORS_API_KEY`. Potwierdź też dokładny adres/współrzędne lokalu
-(`RESTAURANT_LAT/LNG`, teraz domyślnie centrum Kościerzyny).
+## Przed testami z prawdziwym menu
 
-## 4. Telefon / CTI  📞 (zależy od typu linii)
-Lookup klienta po numerze już działa. Brakuje realnego źródła zdarzenia „dzwoni numer":
-- **VoIP/SIP** → podłączymy webhook centralki do `/api/cti/lookup`.
-- **Analog/GSM** → potrzebna bramka GSM lub telefon-pośrednik.
-- **Numer na Androidzie** → mała apka-towarzysz (czyta numer, woła nasze API).
-Powiedz, jaka to linia — dobiorę rozwiązanie.
+3. **Klucze Dotykački** (Settings → Environment Variables → potem Redeploy):
+   `DOTYKACKA_REFRESH_TOKEN`, `DOTYKACKA_CLOUD_ID`, `DOTYKACKA_BRANCH_ID`
+   (opcjonalnie CLIENT_ID/SECRET). Wpisuj TYLKO w Vercelu — nigdy na czacie.
+   Po podpięciu: `/status` pokaże „Połączono", menu będzie z POS, a logowanie do panelu
+   zadziała (sprawdzimy!) kodami pracowników. Rachunki NADAL będą symulowane —
+   bezpiecznik `DOTYKACKA_SEND_ORDERS` zostaje wyłączony aż do go-live.
+4. **PIN panelu**: zmienna `STAFF_PIN` (własne 4–6 cyfr) + Redeploy — przed pokazaniem
+   panelu komukolwiek spoza zaufanego grona. Kod wpisuje się raz na urządzenie (90 dni).
+5. **Klucz map**: darmowe konto na openrouteservice.org → `ORS_API_KEY` +
+   dokładne współrzędne lokalu `RESTAURANT_LAT` / `RESTAURANT_LNG`
+   (znajdziesz w Google Maps: PPM na lokal → „Co tu jest?").
 
-## 5. Wariant B — popup nad Dotykačką  🔔 (wybrany przez Ciebie)
-Panel działa jako PWA (powiadomienia + dźwięk dodamy). Żeby powiadomienie „wyskakiwało"
-NAD aplikacją Dotykačka na Androidzie, potrzebna jest **mała natywna apka-towarzysz**
-(uprawnienie „nakładka na ekranie"). To osobny mini-projekt na Androida — zrobimy, gdy
-zaakceptujesz resztę. Ta sama apka obsłuży CTI (pkt 4).
+## Treści
 
-## 6. Płatności online  💳 (Faza 5 — gdy zdecydujesz)
-Gotówka/karta przy odbiorze już są. Online (Przelewy24 / BLIK / Stripe) wymaga Twojego
-konta merchanta i kluczy. Wtedy podłączymy też auto-fiskalizację przez `order/create-issue-pay`.
+6. **Zdjęcia pizz w wyższej rozdzielczości** (obecne 300×300 px są miękkie na dużych
+   ekranach) — najlepiej 1000 px+; wyślij na czacie, podmienię.
+7. **Potwierdzenie menu**: nazwa „Parma" (plik „gyrospoprawione"), skład La Bussola,
+   realne ceny wszystkich pozycji (obecne są robocze).
+8. **Zdjęcia napojów i deserów** (opcjonalnie — teraz są eleganckimi pozycjami tekstowymi).
 
-## 7. Natywne powiadomienia Dotykački (Wariant D)  ✉️ (opcjonalnie)
-Jeśli chcesz alertu natywnie w samej aplikacji Dotykačka — trzeba napisać do
-**integration@dotypos.com** z prośbą o włączenie powiadomień personelu dla naszej aplikacji
-API. Mogę przygotować treść maila; wysłać musisz Ty (z konta właściciela).
+## Sprawy techniczne / bezpieczeństwo
 
----
+9. **Rotacja sekretu**: w starej wtyczce WordPressa jest ujawniony client_secret
+   Dotykački — wygeneruj nowy w panelu Dotykački, podmień w starej wtyczce.
+10. **Telefon stacjonarny (CTI)**: powiedz, jaką masz centralkę/linię — dobierzemy
+    sposób podpięcia identyfikacji dzwoniącego.
 
-### Co JUŻ działa (Fazy 0–4, DEMO):
-sklep → koszyk → checkout → zamówienie → (symulacja) POS → monitor kelnerki →
-ustawianie ETA → strona klienta aktualizowana na żywo → CTI rozpoznające dzwoniącego.
+## Dopiero przy go-live (nie teraz!)
+
+11. Subdomena `zamow.mammarosa.pl`: Vercel → Settings → Domains + rekord CNAME u
+    operatora domeny.
+12. Przekierowanie 301 `mammarosa.pl/zamow-online/` → subdomena (wtyczka Redirection w WP).
+13. `DOTYKACKA_SEND_ORDERS=true` + Redeploy — od tej chwili rachunki lecą na kasę.
+14. (Opcjonalnie) mail do integration@dotypos.com ws. natywnych powiadomień w POS.
