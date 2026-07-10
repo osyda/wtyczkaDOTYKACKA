@@ -1,0 +1,54 @@
+@import "tailwindcss";
+
+:root {
+  /* CARTA — jasna, redakcyjna karta menu */
+  --ct-ivory: #F7F3EB;
+  --ct-paper: #FFFEFA;
+  --ct-ink: #1B1710;
+  --ct-muted: #7A7060;
+  --ct-hairline: #E3DAC6;
+  --ct-accent: #8E3B2F;
+  --serif: 'Didot', 'Bodoni 72', 'Playfair Display', 'Iowan Old Style', Georgia, 'Bitstream Charter', serif;
+}
+
+@theme inline {
+  --color-background: var(--ct-ivory);
+  --color-foreground: var(--ct-ink);
+}
+
+body {
+  background: var(--ct-ivory);
+  color: var(--ct-ink);
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Serif redakcyjny (nagłówki, ceny) */
+.font-carta {
+  font-family: var(--serif);
+  font-weight: 400;
+}
+
+/* Wjazd treści przy załadowaniu */
+@keyframes ct-rise {
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: none; }
+}
+.ct-reveal {
+  opacity: 0;
+  animation: ct-rise 0.7s ease forwards;
+}
+
+/* Składniki spadające na pizzę */
+@keyframes ct-drop {
+  from { opacity: 0; transform: translateY(-34px) scale(1.35); }
+  to { opacity: 1; transform: none; }
+}
+.ct-topping {
+  position: absolute;
+  animation: ct-drop 0.45s cubic-bezier(0.2, 0.75, 0.3, 1.15) both;
+}
+.ct-topping img {
+  width: 100%;
+  display: block;
+  filter: drop-shadow(0 3px 4px rgba(0, 0, 0, 0.28));
+}

@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<title>Mammarosa — podgląd</title>
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent;
+      font-family:-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif; }
+  :root { --ink:#1D2A22; --lime:#D5E36B; --cream:#F5F1E8; --muted:#A79E8C; }
+  html,body { background:#E9E4D8; }
+  body { display:flex; justify-content:center; }
+  .app { width:100%; max-width:430px; min-height:100vh; background:var(--cream); color:var(--ink);
+         position:relative; padding:0 20px 130px; }
+
+  .top { display:flex; align-items:center; justify-content:space-between; padding-top:24px; }
+  .brand { display:flex; align-items:center; gap:10px; }
+  .brand img { width:32px; height:32px; object-fit:contain; opacity:.9; }
+  .brand span { font-size:13px; font-weight:600; letter-spacing:.18em; }
+  .tr { display:flex; align-items:center; gap:8px; }
+  .demo { border:1px solid #E2D9C8; color:var(--muted); font-size:10px; font-weight:700;
+          letter-spacing:.08em; padding:4px 10px; border-radius:999px; }
+  .cartbtn { position:relative; width:44px; height:44px; border-radius:50%; background:var(--ink);
+             border:none; display:flex; align-items:center; justify-content:center; }
+  .cartbtn svg { width:20px; height:20px; }
+  .badge { position:absolute; top:-4px; right:-4px; min-width:20px; height:20px; padding:0 5px;
+           border-radius:999px; background:var(--lime); color:var(--ink); font-size:11px; font-weight:800;
+           display:none; align-items:center; justify-content:center; }
+  .badge.show { display:flex; }
+
+  h1 { padding-top:28px; font-size:30px; font-weight:700; line-height:1.12; letter-spacing:-.02em; }
+
+  .search { margin-top:20px; display:flex; align-items:center; gap:12px; background:#fff;
+            border-radius:16px; padding:14px 16px; box-shadow:0 2px 12px rgba(29,42,34,.05); }
+  .search svg { width:20px; height:20px; color:var(--muted); flex:none; }
+  .search input { border:none; outline:none; background:none; font-size:15px; width:100%; color:var(--ink); }
+  .search input::placeholder { color:#B9B09D; }
+
+  .cats { margin-top:20px; display:grid; grid-template-columns:repeat(4,1fr); gap:10px; }
+  .cat { display:flex; flex-direction:column; align-items:center; gap:6px; background:#fff; border:none;
+         border-radius:16px; padding:12px 4px; color:#6E6759; font-size:11px; font-weight:600; }
+  .cat svg { width:20px; height:20px; }
+  .cat.on { background:var(--ink); color:var(--cream); }
+
+  .sec { display:flex; align-items:baseline; justify-content:space-between; padding:28px 0 12px; }
+  .sec h2 { font-size:17px; font-weight:700; letter-spacing:-.01em; }
+  .sec span { font-size:12px; color:var(--muted); }
+
+  .grid { display:grid; grid-template-columns:1fr 1fr; gap:14px; }
+  .card { background:#fff; border-radius:24px; overflow:hidden; box-shadow:0 2px 14px rgba(29,42,34,.06); }
+  .ph { aspect-ratio:1; padding:18px; background:radial-gradient(120% 120% at 30% 20%, #FBF8F1 0%, #F1EADB 100%); }
+  .ph svg { width:100%; height:100%; }
+  .body { padding:4px 14px 14px; }
+  .nm { font-size:15px; font-weight:700; letter-spacing:-.01em; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .ds { margin-top:2px; font-size:11.5px; color:var(--muted); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; min-height:15px; }
+  .row { margin-top:10px; display:flex; align-items:center; justify-content:space-between; }
+  .pr { font-size:15px; font-weight:800; }
+  .add { width:36px; height:36px; border-radius:50%; background:var(--ink); color:var(--cream);
+         border:none; display:flex; align-items:center; justify-content:center; }
+  .add svg { width:16px; height:16px; }
+  .add:active { transform:scale(.92); }
+
+  .navwrap { position:fixed; left:0; right:0; bottom:20px; display:flex; justify-content:center;
+             padding:0 20px; pointer-events:none; z-index:40; }
+  .nav { pointer-events:auto; background:var(--ink); color:var(--cream); border-radius:999px;
+         box-shadow:0 16px 36px rgba(29,42,34,.35); display:flex; align-items:center; }
+  .nav.idle { gap:24px; padding:14px 28px; }
+  .nav.idle .dot { width:8px; height:8px; border-radius:50%; background:var(--lime); display:inline-block; margin-right:8px; }
+  .nav.idle .mut { color:rgba(255,255,255,.5); display:flex; align-items:center; gap:8px; }
+  .nav.idle .mut svg { width:18px; height:18px; }
+  .nav.full { width:100%; max-width:390px; justify-content:space-between; padding:10px 10px 10px 22px; border:none; }
+  .nav.full .cnt { width:28px; height:28px; border-radius:50%; background:var(--lime); color:var(--ink);
+                   font-size:12px; font-weight:800; display:flex; align-items:center; justify-content:center; }
+  .nav.full .sum { display:flex; align-items:center; gap:12px; font-size:15px; font-weight:700; }
+  .nav.full .go { background:rgba(255,255,255,.1); border:none; color:var(--cream); font-size:14px;
+                  font-weight:700; padding:10px 20px; border-radius:999px; display:flex; align-items:center; gap:8px; }
+  .nav.full .go svg { width:16px; height:16px; }
+  .nav button, .nav a { cursor:pointer; }
+  .hide { display:none !important; }
+  .empty { text-align:center; color:var(--muted); font-size:14px; padding:40px 0; }
+
+  .overlay { position:fixed; inset:0; z-index:50; background:rgba(29,42,34,.45); display:none;
+             align-items:flex-end; justify-content:center; backdrop-filter:blur(2px); }
+  .overlay.show { display:flex; }
+  .sheet { width:100%; max-width:430px; background:var(--cream); border-radius:28px 28px 0 0;
+           padding:22px 22px 26px; max-height:80vh; overflow:auto; }
+  .sheet h2 { font-size:22px; font-weight:700; letter-spacing:-.02em; }
+  .close { float:right; width:40px; height:40px; border-radius:50%; background:#fff; border:none;
+           box-shadow:0 1px 4px rgba(0,0,0,.08); font-size:18px; color:var(--ink); }
+  .line { display:flex; align-items:center; justify-content:space-between; gap:10px; background:#fff;
+          border-radius:16px; padding:12px 14px; margin-top:10px; }
+  .line .nm2 { font-weight:700; font-size:14px; }
+  .line .pr2 { font-size:12px; color:var(--muted); }
+  .qty { display:flex; align-items:center; gap:8px; }
+  .qb { width:32px; height:32px; border-radius:50%; border:none; background:var(--cream); font-weight:800; font-size:16px; color:var(--ink); }
+  .tot { display:flex; justify-content:space-between; font-size:18px; font-weight:800; padding:18px 4px 0; }
+  .order { width:100%; margin-top:14px; background:var(--ink); color:var(--cream); border:none;
+           border-radius:999px; padding:16px 24px; font-size:15px; font-weight:700; display:flex; justify-content:space-between; }
+  .order b { color:var(--lime); }
+  .note { text-align:center; font-size:11px; color:#B9B09D; padding:20px 10px 0; }
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="top">
+    <div class="brand"><img src="data:image/png;base64,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" alt=""><span>MAMMAROSA</span></div>
+    <div class="tr">
+      <span class="demo">PODGLĄD</span>
+      <button class="cartbtn" onclick="openCart()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="#F5F1E8" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M3 4h2l2.4 12.2a1.6 1.6 0 0 0 1.6 1.3h8.6a1.6 1.6 0 0 0 1.6-1.3L21 8H6"/>
+          <circle cx="10" cy="21" r="1.4" fill="#F5F1E8"/><circle cx="17.5" cy="21" r="1.4" fill="#F5F1E8"/>
+        </svg>
+        <span class="badge" id="badge">0</span>
+      </button>
+    </div>
+  </div>
+
+  <h1>Na co masz dziś<br>ochotę?</h1>
+
+  <label class="search">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
+      <circle cx="11" cy="11" r="6.5"/><path d="M16 16 L21 21"/>
+    </svg>
+    <input id="q" placeholder="Szukaj w menu…" oninput="render()">
+  </label>
+
+  <div class="cats" id="cats"></div>
+
+  <div class="sec"><h2 id="secTitle">Popularne teraz</h2><span id="secCount"></span></div>
+  <div class="grid" id="grid"></div>
+  <div class="empty hide" id="empty">Nic nie znaleziono — spróbuj inaczej.</div>
+  <div class="note">Podgląd — ilustracje zastąpią zdjęcia potraw z systemu sprzedażowego.</div>
+</div>
+
+<div class="navwrap">
+  <div class="nav idle" id="navIdle">
+    <span style="font-size:14px;font-weight:600;display:flex;align-items:center"><span class="dot"></span>Menu</span>
+    <span class="mut">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 4h2l2.4 12.2a1.6 1.6 0 0 0 1.6 1.3h8.6a1.6 1.6 0 0 0 1.6-1.3L21 8H6"/></svg>
+      Koszyk pusty
+    </span>
+  </div>
+  <a class="nav full hide" id="navFull" onclick="openCart()">
+    <span class="sum"><span class="cnt" id="navCnt">0</span><span id="navSum">0,00 zł</span></span>
+    <span class="go">Do koszyka
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12 H20 M14 6 L20 12 L14 18"/></svg>
+    </span>
+  </a>
+</div>
+
+<div class="overlay" id="overlay" onclick="if(event.target===this)closeCart()">
+  <div class="sheet">
+    <button class="close" onclick="closeCart()">✕</button>
+    <h2>Twoje zamówienie</h2>
+    <div id="cartLines"></div>
+    <div class="tot"><span>Razem</span><span id="cartTotal">0,00 zł</span></div>
+    <button class="order" onclick="alert('To podgląd — w pełnej wersji zamówienie trafia do systemu na sali.')">
+      <span>Zamawiam</span><b id="orderTotal">0,00 zł</b>
+    </button>
+  </div>
+</div>
+
+<script>
+/* ---------- SVG dania (widok z góry) ---------- */
+function pizzaBase(t){return '<svg viewBox="0 0 200 200">'
+ +'<ellipse cx="100" cy="108" rx="86" ry="14" fill="#000" opacity=".06"/>'
+ +'<circle cx="100" cy="100" r="88" fill="#fff"/><circle cx="100" cy="100" r="88" fill="none" stroke="#E8E0D2" stroke-width="1.5"/>'
+ +'<circle cx="100" cy="100" r="74" fill="#E3B172"/><circle cx="100" cy="100" r="74" fill="none" stroke="#D19E55" stroke-width="3" opacity=".55"/>'
+ +'<circle cx="100" cy="100" r="62" fill="#C6503C"/><circle cx="100" cy="100" r="58" fill="#F3DCA4"/>'
+ +'<circle cx="72" cy="82" r="10" fill="#F3DCA4"/><circle cx="132" cy="120" r="9" fill="#F3DCA4"/>'
+ +'<circle cx="118" cy="66" r="7" fill="#EFD497"/><circle cx="76" cy="128" r="8" fill="#EFD497"/>'
+ + t
+ +'<g stroke="#7A5B2E" stroke-width="1" opacity=".12"><line x1="100" y1="30" x2="100" y2="170"/><line x1="40" y1="65" x2="160" y2="135"/><line x1="40" y1="135" x2="160" y2="65"/></g>'
+ +'<path d="M45 60 A70 70 0 0 1 100 30" stroke="#fff" stroke-width="6" stroke-linecap="round" fill="none" opacity=".25"/></svg>';}
+function basil(x,y,r){return '<g transform="translate('+x+' '+y+') rotate('+(r||0)+')"><ellipse cx="-3" cy="0" rx="6" ry="3.4" fill="#5C7A45"/><ellipse cx="4" cy="-2" rx="6" ry="3.4" fill="#6B8A52" transform="rotate(40)"/></g>';}
+function salami(x,y){return '<circle cx="'+x+'" cy="'+y+'" r="9.5" fill="#A63428" stroke="#8C2A20" stroke-width="1.5"/><circle cx="'+(x-3)+'" cy="'+(y-2)+'" r="1.4" fill="#D8907F"/><circle cx="'+(x+3)+'" cy="'+(y+3)+'" r="1.2" fill="#D8907F"/>';}
+function mush(x,y,r){return '<g transform="translate('+x+' '+y+') rotate('+(r||0)+')"><path d="M-7 2 Q-7 -6 0 -6 Q7 -6 7 2 Z" fill="#EDE3D3" stroke="#CBB89B" stroke-width="1"/><rect x="-2" y="2" width="4" height="5" rx="1.5" fill="#DCCBB0"/></g>';}
+function ham(x,y,r){return '<path transform="translate('+x+' '+y+') rotate('+(r||0)+')" d="M-8 -5 Q0 -9 8 -5 Q9 0 6 6 Q0 9 -6 5 Q-9 0 -8 -5 Z" fill="#DE8E7E" stroke="#C97A6B" stroke-width="1"/>';}
+function pine(x,y,r){return '<path transform="translate('+x+' '+y+') rotate('+(r||0)+')" d="M-7 -6 L7 -6 Q5 0 7 6 L-7 6 Q-5 0 -7 -6 Z" fill="#F2C94C" stroke="#DDB13A" stroke-width="1"/>';}
+function bacon(x,y,r){return '<g transform="translate('+x+' '+y+') rotate('+(r||0)+')"><rect x="-9" y="-4" width="18" height="8" rx="3" fill="#B0604A"/><path d="M-7 0 H7" stroke="#E0A48F" stroke-width="2" stroke-linecap="round"/></g>';}
+function glass(liq,light){return '<svg viewBox="0 0 200 200">'
+ +'<ellipse cx="100" cy="168" rx="46" ry="9" fill="#000" opacity=".06"/>'
+ +'<path d="M68 42 L76 164 Q77 170 84 170 L116 170 Q123 170 124 164 L132 42 Z" fill="#fff" opacity=".9"/>'
+ +'<path d="M72 62 L79 160 Q80 165 86 165 L114 165 Q120 165 121 160 L128 62 Z" fill="'+liq+'"/>'
+ +'<path d="M74 62 L80 120 L120 120 L126 62 Z" fill="'+light+'" opacity=".35"/>'
+ +'<rect x="84" y="74" width="14" height="14" rx="3" fill="#fff" opacity=".5" transform="rotate(12 91 81)"/>'
+ +'<rect x="104" y="96" width="12" height="12" rx="3" fill="#fff" opacity=".45" transform="rotate(-14 110 102)"/>'
+ +'<rect x="106" y="18" width="7" height="70" rx="3.5" fill="#B7382F" transform="rotate(14 109 53)"/>'
+ +'<path d="M68 42 L132 42" stroke="#E3D9C8" stroke-width="2"/></svg>';}
+function tiramisu(){return '<svg viewBox="0 0 200 200"><ellipse cx="100" cy="150" rx="72" ry="12" fill="#000" opacity=".06"/><ellipse cx="100" cy="144" rx="72" ry="12" fill="#fff"/><ellipse cx="100" cy="144" rx="72" ry="12" fill="none" stroke="#E8E0D2" stroke-width="1.5"/><g transform="rotate(-6 100 110)"><rect x="58" y="118" width="84" height="14" rx="3" fill="#8A5A3B"/><rect x="58" y="106" width="84" height="12" rx="2" fill="#F0E3C8"/><rect x="58" y="94" width="84" height="12" rx="2" fill="#8A5A3B"/><rect x="58" y="82" width="84" height="12" rx="2" fill="#F0E3C8"/><rect x="56" y="70" width="88" height="14" rx="4" fill="#5D3A22"/></g>'+basil(143,128,20)+'</svg>';}
+function panna(){return '<svg viewBox="0 0 200 200"><ellipse cx="100" cy="150" rx="72" ry="12" fill="#000" opacity=".06"/><ellipse cx="100" cy="144" rx="72" ry="12" fill="#fff"/><ellipse cx="100" cy="144" rx="72" ry="12" fill="none" stroke="#E8E0D2" stroke-width="1.5"/><path d="M64 138 Q64 96 100 92 Q136 96 136 138 Q118 146 100 146 Q82 146 64 138 Z" fill="#F7EFE2"/><path d="M70 118 Q100 96 130 118 Q126 104 100 100 Q74 104 70 118 Z" fill="#B7382F" opacity=".85"/><circle cx="96" cy="102" r="5" fill="#8E2C24"/><circle cx="110" cy="106" r="4" fill="#8E2C24"/>'+basil(124,98,-15)+'</svg>';}
+
+const ART = {
+  margherita: pizzaBase(basil(86,78,10)+basil(120,96,-30)+basil(92,124,45)+basil(68,102,-10)+'<circle cx="108" cy="84" r="7" fill="#FBF4E4" opacity=".9"/><circle cx="82" cy="110" r="6" fill="#FBF4E4" opacity=".9"/><circle cx="122" cy="118" r="6.5" fill="#FBF4E4" opacity=".9"/>'),
+  capricciosa: pizzaBase(ham(84,82,-15)+ham(122,112,30)+mush(112,78,-20)+mush(76,112,15)+mush(98,132,-5)+basil(100,100,20)),
+  diavola: pizzaBase(salami(84,80)+salami(118,90)+salami(74,112)+salami(104,124)+salami(128,118)+basil(98,100,0)),
+  hawajska: pizzaBase(pine(86,80,-10)+pine(118,94,25)+pine(78,116,40)+pine(110,126,-20)+ham(100,100,10)+ham(126,116,-25)),
+  formaggi: pizzaBase('<circle cx="84" cy="84" r="11" fill="#F7E9C4" opacity=".85"/><circle cx="118" cy="92" r="11" fill="#EBCF8F" opacity=".85"/><circle cx="80" cy="118" r="11" fill="#F2E3B7" opacity=".85"/><circle cx="112" cy="122" r="11" fill="#E5C377" opacity=".85"/><circle cx="97" cy="103" r="2.2" fill="#7FA05A"/><circle cx="107" cy="88" r="1.8" fill="#7FA05A"/>'),
+  wiejska: pizzaBase(bacon(88,82,-12)+bacon(116,104,28)+bacon(84,122,8)+'<circle cx="108" cy="80" r="5" fill="#E9D9BC" stroke="#CBB89B" stroke-width="1"/><circle cx="72" cy="102" r="5" fill="#E9D9BC" stroke="#CBB89B" stroke-width="1"/>'+basil(100,104,30)),
+  cola: glass('#5A3A28','#8B5E3C'),
+  sok: glass('#E8963C','#F5B95C'),
+  woda: glass('#BFD9E4','#E4F1F6'),
+  tiramisu: tiramisu(),
+  panna: panna(),
+};
+
+const CATS = [
+  { id:'all', name:'Wszystko', icon:'grid' },
+  { id:'pizza', name:'Pizza', icon:'pizza' },
+  { id:'napoje', name:'Napoje', icon:'cup' },
+  { id:'desery', name:'Desery', icon:'cake' },
+];
+const ICONS = {
+  grid:'<rect x="4" y="4" width="7" height="7" rx="2"/><rect x="13" y="4" width="7" height="7" rx="2"/><rect x="4" y="13" width="7" height="7" rx="2"/><rect x="13" y="13" width="7" height="7" rx="2"/>',
+  pizza:'<path d="M12 3 L21 19 Q12 23 3 19 Z"/><path d="M5.5 17.5 Q12 20.5 18.5 17.5"/><circle cx="12" cy="12" r="1.2" fill="currentColor" stroke="none"/><circle cx="9" cy="16" r="1.2" fill="currentColor" stroke="none"/>',
+  cup:'<path d="M6 4 L7.5 20 a1.5 1.5 0 0 0 1.5 1.3 h6 a1.5 1.5 0 0 0 1.5 -1.3 L18 4 Z"/><path d="M6.5 9 H17.5"/><path d="M14 4 L16.5 1.5"/>',
+  cake:'<path d="M4 20 V13 a2 2 0 0 1 2-2 h12 a2 2 0 0 1 2 2 v7"/><path d="M4 16 q2 1.6 4 0 t4 0 t4 0 t4 0"/><path d="M12 11 V8"/><path d="M3 20.5 H21"/>',
+};
+function icon(k){return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">'+ICONS[k]+'</svg>';}
+
+const MENU = [
+  {id:'p1', cat:'pizza', n:'Margherita', d:'Sos pomidorowy, mozzarella, bazylia', p:26, art:'margherita'},
+  {id:'p2', cat:'pizza', n:'Capricciosa', d:'Szynka, pieczarki, karczochy', p:34, art:'capricciosa'},
+  {id:'p3', cat:'pizza', n:'Diavola', d:'Salami pikantne, papryczki', p:34, art:'diavola'},
+  {id:'p4', cat:'pizza', n:'Hawajska', d:'Szynka, ananas, mozzarella', p:32, art:'hawajska'},
+  {id:'p5', cat:'pizza', n:'Quattro Formaggi', d:'Cztery sery', p:36, art:'formaggi'},
+  {id:'p6', cat:'pizza', n:'Wiejska', d:'Boczek, cebula, kiełbasa', p:33, art:'wiejska'},
+  {id:'d1', cat:'napoje', n:'Coca-Cola 0,5l', d:'', p:7, art:'cola'},
+  {id:'d2', cat:'napoje', n:'Sok pomarańczowy', d:'', p:6, art:'sok'},
+  {id:'d3', cat:'napoje', n:'Woda 0,5l', d:'', p:5, art:'woda'},
+  {id:'s1', cat:'desery', n:'Tiramisu', d:'Klasyczne', p:16, art:'tiramisu'},
+  {id:'s2', cat:'desery', n:'Panna cotta', d:'Z sosem malinowym', p:15, art:'panna'},
+];
+
+let active='all';
+const cart={};
+function zl(v){return v.toFixed(2).replace('.',',')+' zł';}
+function count(){return Object.values(cart).reduce((s,l)=>s+l.qty,0);}
+function total(){return Object.values(cart).reduce((s,l)=>s+l.p*l.qty,0);}
+
+function renderCats(){
+  document.getElementById('cats').innerHTML = CATS.map(c=>
+    '<button class="cat '+(c.id===active?'on':'')+'" onclick="setCat(\''+c.id+'\')">'+icon(c.icon)+'<span>'+c.name+'</span></button>').join('');
+}
+function setCat(id){active=id;document.getElementById('q').value='';render();}
+
+function render(){
+  renderCats();
+  const q=document.getElementById('q').value.trim().toLowerCase();
+  let list=MENU;
+  if(q) list=MENU.filter(m=>m.n.toLowerCase().includes(q));
+  else if(active!=='all') list=MENU.filter(m=>m.cat===active);
+  document.getElementById('secTitle').textContent = q?'Wyniki wyszukiwania':(active==='all'?'Popularne teraz':CATS.find(c=>c.id===active).name);
+  document.getElementById('secCount').textContent = list.length+' pozycji';
+  document.getElementById('grid').innerHTML = list.map(m=>
+    '<div class="card"><div class="ph">'+ART[m.art]+'</div><div class="body">'
+    +'<div class="nm">'+m.n+'</div><div class="ds">'+(m.d||'&nbsp;')+'</div>'
+    +'<div class="row"><span class="pr">'+zl(m.p)+'</span>'
+    +'<button class="add" onclick="addItem(\''+m.id+'\')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M12 5 V19 M5 12 H19"/></svg></button>'
+    +'</div></div></div>').join('');
+  document.getElementById('empty').classList.toggle('hide', list.length>0);
+  syncNav();
+}
+
+function addItem(id){
+  const m=MENU.find(x=>x.id===id);
+  if(!cart[id]) cart[id]={n:m.n,p:m.p,qty:0};
+  cart[id].qty++; syncNav();
+}
+function chQty(id,d){ if(!cart[id])return; cart[id].qty+=d; if(cart[id].qty<=0)delete cart[id]; syncNav(); renderCart(); }
+
+function syncNav(){
+  const c=count();
+  const b=document.getElementById('badge'); b.textContent=c; b.classList.toggle('show',c>0);
+  document.getElementById('navIdle').classList.toggle('hide',c>0);
+  document.getElementById('navFull').classList.toggle('hide',c===0);
+  document.getElementById('navCnt').textContent=c;
+  document.getElementById('navSum').textContent=zl(total());
+}
+function openCart(){ renderCart(); document.getElementById('overlay').classList.add('show'); }
+function closeCart(){ document.getElementById('overlay').classList.remove('show'); }
+function renderCart(){
+  const lines=Object.entries(cart);
+  const w=document.getElementById('cartLines');
+  w.innerHTML = lines.length ? lines.map(([id,l])=>
+    '<div class="line"><div><div class="nm2">'+l.n+'</div><div class="pr2">'+zl(l.p)+'</div></div>'
+    +'<div class="qty"><button class="qb" onclick="chQty(\''+id+'\',-1)">−</button><b>'+l.qty+'</b><button class="qb" onclick="chQty(\''+id+'\',1)">+</button></div></div>').join('')
+    : '<div class="empty">Koszyk jest pusty</div>';
+  document.getElementById('cartTotal').textContent=zl(total());
+  document.getElementById('orderTotal').textContent=zl(total());
+}
+
+render();
+</script>
+</body>
+</html>

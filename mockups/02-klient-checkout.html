@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+<meta charset="utf-8">
+<title>Mamma Rosa — Checkout (klient)</title>
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; font-family:-apple-system,"Segoe UI",Roboto,Arial,sans-serif; }
+  body { width:414px; height:896px; background:#fff8f0; color:#2a211c; overflow:hidden; position:relative; }
+  .bar { background:#b21f1f; color:#fff; padding:15px 18px; display:flex; align-items:center; gap:12px; }
+  .bar .back { font-size:20px; }
+  .bar b { font-size:17px; }
+  .wrap { padding:16px 16px 110px; overflow:auto; height:calc(896px - 54px); }
+  .card { background:#fff; border:1px solid #f0e3d6; border-radius:15px; padding:15px; margin-bottom:14px; }
+  .card h3 { font-size:13px; text-transform:uppercase; letter-spacing:.5px; color:#9a8a7c; margin-bottom:12px; }
+
+  .seg { display:flex; gap:8px; }
+  .seg div { flex:1; text-align:center; padding:12px 0; border-radius:11px; font-weight:700; font-size:14px; border:2px solid #eaddcf; color:#8a7a6e; }
+  .seg .on { border-color:#15803d; background:#eaf6ee; color:#15803d; }
+
+  .time { display:flex; gap:8px; margin-top:4px; }
+  .time div { flex:1; text-align:center; padding:13px 0; border-radius:11px; font-weight:700; font-size:14px; border:2px solid #eaddcf; }
+  .time .on { border-color:#b21f1f; background:#fcecec; color:#b21f1f; }
+  .time small { display:block; font-weight:500; font-size:11px; color:#9a8a7c; margin-top:2px; }
+  .time .on small { color:#b21f1f; }
+
+  .field { margin-bottom:11px; }
+  .field label { font-size:12px; color:#9a8a7c; display:block; margin-bottom:4px; }
+  .field .inp { background:#faf3ec; border:1px solid #ece0d2; border-radius:10px; padding:11px 13px; font-size:14px; color:#2a211c; }
+  .row2 { display:flex; gap:10px; }
+  .row2 .field { flex:1; }
+
+  .lines { font-size:13.5px; }
+  .ln { display:flex; justify-content:space-between; padding:7px 0; border-bottom:1px dashed #f0e3d6; }
+  .ln .q { color:#9a8a7c; }
+  .sum { display:flex; justify-content:space-between; padding:7px 0; font-size:13.5px; color:#6a5a4e; }
+  .tot { display:flex; justify-content:space-between; padding-top:10px; font-size:18px; font-weight:800; }
+
+  .pay div { display:flex; align-items:center; gap:10px; padding:12px; border:2px solid #eaddcf; border-radius:11px; margin-bottom:9px; font-size:14px; font-weight:600; }
+  .pay .on { border-color:#15803d; background:#eaf6ee; }
+  .pay .rb { width:18px; height:18px; border-radius:50%; border:2px solid #c9b9a9; margin-left:auto; }
+  .pay .on .rb { border-color:#15803d; background:#15803d; box-shadow:inset 0 0 0 3px #fff; }
+
+  .cta { position:absolute; left:14px; right:14px; bottom:16px; background:#15803d; color:#fff; border:none; border-radius:15px; padding:16px; font-size:16px; font-weight:800; box-shadow:0 10px 24px rgba(21,128,61,.35); display:flex; justify-content:space-between; align-items:center; }
+</style>
+</head>
+<body>
+  <div class="bar"><span class="back">←</span><b>Twoje zamówienie</b></div>
+  <div class="wrap">
+
+    <div class="card">
+      <h3>Sposób odbioru</h3>
+      <div class="seg"><div class="on">🚚 Dostawa</div><div>🏠 Odbiór osobisty</div></div>
+    </div>
+
+    <div class="card">
+      <h3>Na kiedy?</h3>
+      <div class="time">
+        <div class="on">⚡ Najszybciej<small>kelner ustali czas</small></div>
+        <div>🕒 Na godzinę<small>wybierz porę</small></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h3>Dane do dostawy</h3>
+      <div class="row2">
+        <div class="field"><label>Imię i nazwisko</label><div class="inp">Jan Kowalski</div></div>
+        <div class="field"><label>Telefon</label><div class="inp">500 134 092</div></div>
+      </div>
+      <div class="field"><label>Ulica i numer</label><div class="inp">ul. Świętojańska 12</div></div>
+      <div class="row2">
+        <div class="field"><label>Miasto</label><div class="inp">Kościerzyna</div></div>
+        <div class="field"><label>Kod</label><div class="inp">83-400</div></div>
+      </div>
+      <div class="field"><label>Uwagi (np. domofon)</label><div class="inp" style="color:#b0a294">Domofon 12, II piętro</div></div>
+    </div>
+
+    <div class="card">
+      <h3>Podsumowanie</h3>
+      <div class="lines">
+        <div class="ln"><span><span class="q">1× </span>Capricciosa <small style="color:#9a8a7c">+ ser, + pieczarki</small></span><span>40,00</span></div>
+        <div class="ln"><span><span class="q">1× </span>Margherita</span><span>26,00</span></div>
+        <div class="ln"><span><span class="q">2× </span>Coca-Cola 0,5l</span><span>14,00</span></div>
+      </div>
+      <div class="sum"><span>Wartość produktów</span><span>80,00 zł</span></div>
+      <div class="sum"><span>Dostawa — Kościerzyna</span><span>4,00 zł</span></div>
+      <div class="tot"><span>Razem</span><span>84,00 zł</span></div>
+    </div>
+
+    <div class="card">
+      <h3>Płatność</h3>
+      <div class="pay">
+        <div class="on">💵 Gotówka u kierowcy <span class="rb"></span></div>
+        <div>💳 Karta u kierowcy (terminal) <span class="rb"></span></div>
+        <div style="opacity:.5">🌐 Online — wkrótce <span class="rb"></span></div>
+      </div>
+    </div>
+  </div>
+
+  <button class="cta"><span>Zamawiam</span><span>84,00 zł →</span></button>
+</body>
+</html>

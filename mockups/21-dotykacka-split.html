@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+<meta charset="utf-8">
+<title>Wariant A — podział ekranu</title>
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; font-family:-apple-system,"Segoe UI",Roboto,Arial,sans-serif; }
+  body { width:1280px; height:800px; background:#000; overflow:hidden; }
+  .label { position:absolute; top:14px; left:18px; z-index:20; background:#e9a13b; color:#1a1408; font-weight:800; font-size:13px; padding:6px 13px; border-radius:8px; }
+  .label small{font-weight:600;}
+  .statusbar { height:26px; background:#0a0a0a; color:#cfd3da; font-size:12px; display:flex; align-items:center; justify-content:space-between; padding:0 14px; }
+  .stage { display:flex; height:calc(800px - 26px); }
+
+  /* ---- DOTYKACKA (left ~60%) ---- */
+  .doty { width:60%; background:#1b1d22; display:flex; flex-direction:column; border-right:3px solid #000; }
+  .doty-top { height:46px; background:#c0392b; color:#fff; display:flex; align-items:center; gap:10px; padding:0 14px; }
+  .doty-top .dot{width:14px;height:14px;border-radius:50%;background:#fff;}
+  .doty-top b{font-size:16px;letter-spacing:.3px;} .doty-top .u{margin-left:auto;font-size:12px;opacity:.9;}
+  .doty-cats{display:flex;gap:8px;padding:10px 12px;background:#23262c;overflow:hidden;}
+  .doty-cats div{font-size:12px;font-weight:600;color:#aeb4be;background:#2e323a;padding:6px 12px;border-radius:7px;white-space:nowrap;}
+  .doty-cats .on{background:#c0392b;color:#fff;}
+  .doty-body{flex:1;display:flex;min-height:0;}
+  .grid{flex:1;display:grid;grid-template-columns:repeat(3,1fr);gap:8px;padding:12px;align-content:start;}
+  .tile{border-radius:10px;padding:10px;height:74px;display:flex;flex-direction:column;justify-content:space-between;color:#fff;font-weight:700;font-size:13px;}
+  .tile small{font-weight:600;opacity:.9;font-size:11px;}
+  .bill{width:215px;background:#23262c;border-left:1px solid #31353d;display:flex;flex-direction:column;}
+  .bill h4{color:#cfd3da;font-size:12px;padding:11px 12px;border-bottom:1px solid #31353d;text-transform:uppercase;letter-spacing:.5px;}
+  .bl{display:flex;justify-content:space-between;font-size:12.5px;color:#d6dae1;padding:8px 12px;border-bottom:1px dashed #31353d;}
+  .bl span:first-child .q{color:#e9a13b;font-weight:700;}
+  .bill .tot{margin-top:auto;padding:12px;color:#fff;font-weight:800;font-size:16px;display:flex;justify-content:space-between;border-top:1px solid #31353d;}
+  .bill .pay{display:flex;gap:8px;padding:0 12px 12px;}
+  .bill .pay div{flex:1;text-align:center;background:#2e7d32;color:#fff;font-weight:700;font-size:12px;padding:9px 0;border-radius:8px;}
+  .bill .pay .alt{background:#37404a;}
+
+  /* ---- NASZ PANEL (right ~40%) ---- */
+  .ours { width:40%; background:#0f1115; display:flex; flex-direction:column; }
+  .ours-top{height:46px;background:#171a21;border-bottom:1px solid #262b36;display:flex;align-items:center;gap:9px;padding:0 14px;color:#e7e9ee;}
+  .ours-top .lg{width:24px;height:24px;border-radius:6px;background:linear-gradient(135deg,#e23b3b,#a01919);display:flex;align-items:center;justify-content:center;font-size:14px;}
+  .ours-top b{font-size:14px;} .ours-top .badge{margin-left:auto;background:#e9a13b;color:#1a1408;font-weight:800;font-size:11px;padding:2px 8px;border-radius:999px;}
+  .ours-body{flex:1;overflow:hidden;padding:12px;display:flex;flex-direction:column;gap:11px;}
+  .ohdr{font-size:11px;text-transform:uppercase;letter-spacing:.7px;color:#ffd27a;}
+  .ocard{background:#1a1f28;border:1px solid #2a313e;border-radius:12px;padding:12px;}
+  .ocard.hl{border-color:#e9a13b;box-shadow:0 0 0 2px rgba(233,161,59,.22);}
+  .or1{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;}
+  .onum{font-weight:800;font-size:15px;color:#fff;}
+  .bdg{display:flex;gap:5px;} .bdg .b{font-size:10px;font-weight:700;padding:2px 7px;border-radius:6px;}
+  .b.deliv{background:#13294a;color:#7fb6ff;} .b.away{background:#3a2a12;color:#ffc46b;} .b.pick{background:#15321f;color:#7ee3a3;}
+  .ocust{font-size:12.5px;color:#dfe4ec;margin-bottom:7px;}.ocust b{color:#fff;}
+  .oitems{font-size:11.5px;color:#aab2c0;border-top:1px dashed #2c333f;padding-top:7px;line-height:1.5;}
+  .oeta{display:flex;gap:6px;margin-top:10px;align-items:center;}
+  .oeta .l{font-size:10.5px;color:#9aa3b4;}
+  .tb{flex:1;text-align:center;background:#222a36;border:1px solid #38424f;color:#e7e9ee;padding:8px 0;border-radius:8px;font-weight:700;font-size:13px;}
+  .tb.go{background:#e23b3b;border-color:#e23b3b;color:#fff;}
+  .hint{position:absolute;bottom:14px;left:50%;transform:translateX(-50%);z-index:20;background:#111;border:1px solid #2a313e;color:#cdd4e0;font-size:12.5px;padding:8px 16px;border-radius:999px;}
+  .hint b{color:#e9a13b;}
+  .divhandle{position:absolute;top:50%;left:60%;transform:translate(-50%,-50%);z-index:15;width:5px;height:60px;background:#444;border-radius:3px;}
+</style>
+</head>
+<body>
+  <div class="label">WARIANT A &nbsp;·&nbsp; PODZIAŁ EKRANU <small>(Android split-screen — najprościej, działa od razu)</small></div>
+  <div class="statusbar"><span>14:42</span><span>Komputer sprzedażowy (Android) &nbsp; 📶 🔋 87%</span></div>
+  <div class="stage">
+
+    <!-- DOTYKACKA -->
+    <div class="doty">
+      <div class="doty-top"><span class="dot"></span><b>Dotykačka</b><span class="u">Kelner: Ania · Kasa 1</span></div>
+      <div class="doty-cats"><div class="on">Pizza</div><div>Pasta</div><div>Napoje</div><div>Desery</div><div>Dodatki</div></div>
+      <div class="doty-body">
+        <div class="grid">
+          <div class="tile" style="background:#c0392b">Margherita<small>26,00</small></div>
+          <div class="tile" style="background:#d35400">Capricciosa<small>34,00</small></div>
+          <div class="tile" style="background:#8e44ad">Diavola<small>34,00</small></div>
+          <div class="tile" style="background:#2980b9">Hawajska<small>32,00</small></div>
+          <div class="tile" style="background:#16a085">Quattro F.<small>36,00</small></div>
+          <div class="tile" style="background:#27ae60">Wiejska<small>33,00</small></div>
+          <div class="tile" style="background:#f39c12">Coca-Cola<small>7,00</small></div>
+          <div class="tile" style="background:#7f8c8d">Sok<small>6,00</small></div>
+          <div class="tile" style="background:#c0392b">Tiramisu<small>16,00</small></div>
+        </div>
+        <div class="bill">
+          <h4>Rachunek · stół 4</h4>
+          <div class="bl"><span><span class="q">1× </span>Capricciosa</span><span>34,00</span></div>
+          <div class="bl"><span><span class="q">2× </span>Coca-Cola</span><span>14,00</span></div>
+          <div class="pay" style="margin-top:auto"><div>Zapłać</div><div class="alt">Park.</div></div>
+          <div class="tot"><span>Razem</span><span>48,00</span></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- NASZ PANEL -->
+    <div class="ours">
+      <div class="ours-top"><span class="lg">🍕</span><b>Zamówienia online</b><span class="badge">2 nowe</span></div>
+      <div class="ours-body">
+        <div class="ohdr">🔔 Nowe — ustaw czas</div>
+        <div class="ocard hl">
+          <div class="or1"><span class="onum">#1043</span><span class="bdg"><span class="b deliv">🚚</span><span class="b away">NA WYNOS</span></span></div>
+          <div class="ocust"><b>Jan Kowalski</b> · 500 134 092</div>
+          <div class="oitems">1× Capricciosa · 1× Margherita · 2× Coca-Cola · Dowóz</div>
+          <div class="oeta"><span class="l">za:</span><span class="tb">30'</span><span class="tb go">45'</span><span class="tb">60'</span></div>
+        </div>
+        <div class="ocard">
+          <div class="or1"><span class="onum">#1044</span><span class="bdg"><span class="b pick">🏠</span><span class="b away">NA WYNOS</span></span></div>
+          <div class="ocust"><b>Marek Zieliński</b> · odbiór</div>
+          <div class="oitems">2× Diavola · 1× Tiramisu</div>
+          <div class="oeta"><span class="l">za:</span><span class="tb">15'</span><span class="tb">20'</span><span class="tb">30'</span></div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+  <div class="divhandle"></div>
+  <div class="hint">Dwie aplikacje obok siebie · <b>Dotykačka</b> po lewej, <b>nasz panel zamówień</b> po prawej · przesuwasz suwak jak chcesz</div>
+</body>
+</html>
