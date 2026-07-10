@@ -160,15 +160,14 @@ Jasna, redakcyjna „karta menu”. Tokeny w `orderhub/lib/carta.ts` i `app/glob
 
 ## 9. NAJBLIŻSZY PLAN (ustalony z właścicielem 10.07.2026)
 
-**PRIORYTET 1 — panel obsługi „od A do Z"** (dopiero potem strona klienta i subdomena!).
-Pomysły do omówienia/realizacji (właściciel będzie dawał feedback iteracyjnie):
-- dźwięk/wyraźne powiadomienie o nowym zamówieniu + odświeżanie na żywo,
-- pełne szczegóły zamówienia (dodatki, uwagi, adres z linkiem do map, telefon klikalny),
-- obsługa „na godzinę" (kolejka zaplanowanych, przypomnienia),
-- edycja/cofanie ETA i statusów, anulowanie zamówienia z powodem,
-- historia dnia / poprzednich dni + proste podsumowania (utarg online),
-- CTI na żywo, druk paragonu kuchennego?, tryb pełnoekranowy na tablet,
-- logowanie kodem pracownika → podpis kto obsłużył (imię z Dotykački).
+**PRIORYTET 1 — panel obsługi „od A do Z" — ZROBIONE 10.07.2026** (commity 94dbc89, d021d88):
+dźwięk nowych zamówień (Web Audio, przełącznik, migający tytuł karty), pełne szczegóły
+(klikalny telefon, adres→Google Maps, uwagi w ramce, licznik „czeka X min"), kolejka
+„na godzinę" z alertem „CZAS ZACZĄĆ/PO CZASIE" (40 min dostawa / 25 odbiór) i dźwiękiem,
+zmiana ETA w trakcie, cofanie statusów, anulowanie z powodem, historia z wyborem dnia
+(kafle: zrealizowane/utarg/gotówka-karta/średnia/anulowane), wskaźnik POS w pasku,
+druk kwitu kuchennego (72 mm, window.print), pełny ekran, podpis obsługi (order.staff).
+Czeka na feedback właściciela z realnego użycia.
 **PRIORYTET 2 — strona klienta:** szlif + wyższe zdjęcia + prawdziwe ceny.
 **PRIORYTET 3 — go-live:** klucze, `DOTYKACKA_SEND_ORDERS=true`, subdomena + przekierowanie.
 
