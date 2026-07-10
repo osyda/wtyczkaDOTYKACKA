@@ -1,11 +1,11 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import type { Order, OrderStatus } from "@/lib/orders/types";
 import type { CallerInfo } from "@/lib/cti";
 import { zl } from "@/lib/format";
 
-/* Paleta panelu (ciemna odmiana systemu: ink + limonka) */
+/* Paleta panelu (ciemna odmiana: ink + limonka) */
 const BG = "#161F19";
 const CARD = "#1F2A22";
 const SUB = "#27342A";
@@ -20,6 +20,12 @@ const IconBell = ({ className }: { className?: string }) => (
   <svg viewBox="0 0 24 24" className={className}>
     <path d="M6 9.5 a6 6 0 0 1 12 0 c0 5 1.8 6 1.8 6 H4.2 c0 0 1.8 -1 1.8 -6" {...stroke} />
     <path d="M10 19 a2 2 0 0 0 4 0" {...stroke} />
+  </svg>
+);
+const IconBellOff = ({ className }: { className?: string }) => (
+  <svg viewBox="0 0 24 24" className={className}>
+    <path d="M6 9.5 a6 6 0 0 1 12 0 c0 5 1.8 6 1.8 6 H4.2 c0 0 1.8 -1 1.8 -6" {...stroke} />
+    <path d="M10 19 a2 2 0 0 0 4 0 M4 4 L20 20" {...stroke} />
   </svg>
 );
 const IconPot = ({ className }: { className?: string }) => (
@@ -56,9 +62,26 @@ const IconClock = ({ className }: { className?: string }) => (
     <circle cx="12" cy="12" r="8.5" {...stroke} /><path d="M12 7.5 V12 L15 14" {...stroke} />
   </svg>
 );
-const IconBox = ({ className }: { className?: string }) => (
+const IconPin = ({ className }: { className?: string }) => (
   <svg viewBox="0 0 24 24" className={className}>
-    <path d="M4 8 L12 4 L20 8 V16 L12 20 L4 16 Z M4 8 L12 12 L20 8 M12 12 V20" {...stroke} />
+    <path d="M12 21 C12 21 5 14.6 5 9.8 A7 7 0 0 1 19 9.8 C19 14.6 12 21 12 21 Z" {...stroke} />
+    <circle cx="12" cy="9.8" r="2.6" {...stroke} />
+  </svg>
+);
+const IconHistory = ({ className }: { className?: string }) => (
+  <svg viewBox="0 0 24 24" className={className}>
+    <path d="M4 12 a8 8 0 1 1 2.3 5.7 M4 12 L4 7 M4 12 L8.5 11" {...stroke} />
+    <path d="M12 8 V12 L14.8 13.8" {...stroke} />
+  </svg>
+);
+const IconExpand = ({ className }: { className?: string }) => (
+  <svg viewBox="0 0 24 24" className={className}>
+    <path d="M9 4 H4 V9 M15 4 H20 V9 M9 20 H4 V15 M15 20 H20 V15" {...stroke} />
+  </svg>
+);
+const IconUndo = ({ className }: { className?: string }) => (
+  <svg viewBox="0 0 24 24" className={className}>
+    <path d="M8.5 5.5 L4 10 L8.5 14.5 M4 10 H14 A6 6 0 0 1 14 22 H10" {...stroke} />
   </svg>
 );
 
@@ -66,12 +89,64 @@ function clock(iso?: string): string {
   const d = iso ? new Date(iso) : new Date();
   return `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
 }
+function minutesSince(iso: string): number {
+  return Math.max(0, Math.floor((Date.now() - new Date(iso).getTime()) / 60000));
+}
+function isToday(iso: string): boolean {
+  const d = new Date(iso);
+  const n = new Date();
+  return d.getFullYear() === n.getFullYear() && d.getMonth() === n.getMonth() && d.getDate() === n.getDate();
+}
+
+/* ---------- Dźwięk nowego zamówienia (Web Audio — bez plików) ---------- */
+let audioCtx: AudioContext | null = null;
+function ensureAudio(): AudioContext | null {
+  if (typeof window === "undefined") return null;
+  if (!audioCtx) {
+    const AC = window.AudioContext ?? (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
+    if (!AC) return null;
+    audioCtx = new AC();
+  }
+  if (audioCtx.state === "suspended") void audioCtx.resume();
+  return audioCtx;
+}
+function playDing() {
+  const ctx = ensureAudio();
+  if (!ctx) return;
+  const seq = [
+    { f: 880, t: 0, d: 0.18 },
+    { f: 1174.7, t: 0.2, d: 0.28 },
+    { f: 880, t: 0.62, d: 0.18 },
+    { f: 1174.7, t: 0.82, d: 0.34 },
+  ];
+  for (const n of seq) {
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.type = "sine";
+    osc.frequency.value = n.f;
+    gain.gain.setValueAtTime(0.0001, ctx.currentTime + n.t);
+    gain.gain.exponentialRampToValueAtTime(0.32, ctx.currentTime + n.t + 0.02);
+    gain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + n.t + n.d);
+    osc.connect(gain).connect(ctx.destination);
+    osc.start(ctx.currentTime + n.t);
+    osc.stop(ctx.currentTime + n.t + n.d + 0.05);
+  }
+}
+
+const CANCEL_REASONS = ["Klient odwołał", "Brak składników", "Błędne zamówienie", "Inny powód"];
+
+/* ============================================================ */
 
 export default function PanelPage() {
   const [orders, setOrders] = useState<Order[]>([]);
   const [now, setNow] = useState("--:--");
   const [caller, setCaller] = useState<CallerInfo | null>(null);
   const [simPhone, setSimPhone] = useState("");
+  const [view, setView] = useState<"board" | "history">("board");
+  const [soundOn, setSoundOn] = useState(false);
+  const [staffName, setStaffName] = useState<string>("");
+  const knownIds = useRef<Set<string> | null>(null);
+  const baseTitle = useRef("Mammarosa — panel");
 
   // Bramka PIN.
   const [authReady, setAuthReady] = useState(false);
@@ -80,6 +155,8 @@ export default function PanelPage() {
   const [pinError, setPinError] = useState(false);
 
   useEffect(() => {
+    setSoundOn(localStorage.getItem("mr_sound") === "1");
+    setStaffName(localStorage.getItem("mr_staff") ?? "");
     fetch("/api/staff/check")
       .then((r) => r.json())
       .then((d) => {
@@ -97,6 +174,11 @@ export default function PanelPage() {
       body: JSON.stringify({ pin }),
     });
     if (res.ok) {
+      const d = await res.json().catch(() => ({}));
+      if (d?.name) {
+        setStaffName(d.name);
+        localStorage.setItem("mr_staff", d.name);
+      }
       setNeedPin(false);
       setPin("");
     } else {
@@ -104,11 +186,27 @@ export default function PanelPage() {
     }
   };
 
+  const toggleSound = () => {
+    const next = !soundOn;
+    setSoundOn(next);
+    localStorage.setItem("mr_sound", next ? "1" : "0");
+    if (next) playDing(); // gest użytkownika odblokowuje audio + od razu słychać próbkę
+  };
+
   const refresh = useCallback(async () => {
     try {
       const res = await fetch("/api/orders", { cache: "no-store" });
       const data = await res.json();
-      setOrders(data.orders ?? []);
+      const list: Order[] = data.orders ?? [];
+      setOrders(list);
+      // Wykrycie nowych zamówień → dźwięk (pierwsze pobranie tylko zapamiętuje stan).
+      const ids = new Set(list.map((o) => o.id));
+      if (knownIds.current) {
+        let fresh = false;
+        for (const id of ids) if (!knownIds.current.has(id)) fresh = true;
+        if (fresh && localStorage.getItem("mr_sound") === "1") playDing();
+      }
+      knownIds.current = ids;
     } catch {
       /* kolejny tick */
     }
@@ -124,19 +222,39 @@ export default function PanelPage() {
     return () => clearInterval(t);
   }, [refresh]);
 
+  // Tytuł karty: liczba nowych (miga, żeby przyciągnąć wzrok z innej zakładki).
+  const newsCount = orders.filter((o) => o.status === "new").length;
+  useEffect(() => {
+    if (newsCount === 0) {
+      document.title = baseTitle.current;
+      return;
+    }
+    let flip = false;
+    const t = setInterval(() => {
+      flip = !flip;
+      document.title = flip ? `● ${newsCount} NOWE — Mammarosa` : `(${newsCount}) Mammarosa — panel`;
+    }, 1200);
+    return () => {
+      clearInterval(t);
+      document.title = baseTitle.current;
+    };
+  }, [newsCount]);
+
+  const by = staffName || undefined;
+
   const setEta = async (id: string, minutes: number) => {
     await fetch(`/api/orders/${id}/eta`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ minutes }),
+      body: JSON.stringify({ minutes, by }),
     });
     refresh();
   };
-  const advance = async (id: string, status: OrderStatus) => {
+  const advance = async (id: string, status: OrderStatus, reason?: string) => {
     await fetch(`/api/orders/${id}/status`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ status }),
+      body: JSON.stringify({ status, by, reason }),
     });
     refresh();
   };
@@ -147,9 +265,19 @@ export default function PanelPage() {
     setCaller(await res.json());
   };
 
+  const toggleFullscreen = () => {
+    if (document.fullscreenElement) void document.exitFullscreen();
+    else void document.documentElement.requestFullscreen().catch(() => {});
+  };
+
   const news = orders.filter((o) => o.status === "new");
   const prog = orders.filter((o) => ["in_progress", "ready", "on_delivery"].includes(o.status));
-  const sched = orders.filter((o) => o.status === "scheduled");
+  const sched = orders
+    .filter((o) => o.status === "scheduled")
+    .sort((a, b) => (a.scheduledTime ?? "").localeCompare(b.scheduledTime ?? ""));
+  const doneToday = orders
+    .filter((o) => ["completed", "canceled"].includes(o.status) && isToday(o.createdAt))
+    .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
 
   if (!authReady) {
     return (
@@ -193,10 +321,10 @@ export default function PanelPage() {
   }
 
   return (
-    <main className="min-h-screen" style={{ background: BG, color: CREAM }}>
+    <main className="min-h-screen pb-8" style={{ background: BG, color: CREAM }}>
       {/* Pasek górny */}
       <div
-        className="flex h-16 items-center justify-between px-5"
+        className="sticky top-0 z-40 flex h-16 items-center justify-between gap-2 px-4"
         style={{ background: CARD, borderBottom: "1px solid rgba(245,241,232,0.07)" }}
       >
         <div className="flex items-center gap-3">
@@ -204,24 +332,30 @@ export default function PanelPage() {
           <img src="/brand/icon-white.png" alt="" className="h-9 w-9 object-contain" />
           <div>
             <div className="text-[13px] font-semibold uppercase tracking-[0.18em]">Mammarosa</div>
-            <div className="text-[11px]" style={{ color: MUTED }}>Panel zamówień</div>
+            <div className="text-[11px]" style={{ color: MUTED }}>
+              Panel zamówień{staffName ? ` · ${staffName}` : ""}
+            </div>
           </div>
         </div>
-        <div className="flex items-center gap-2.5 text-sm">
-          <span
-            className="flex items-center gap-2 rounded-full px-3.5 py-1.5 text-[12.5px] font-semibold"
-            style={{ background: SUB }}
-          >
-            <span className="relative flex h-2 w-2">
-              <span className="absolute inline-flex h-full w-full animate-ping rounded-full opacity-60" style={{ background: LIME }} />
-              <span className="relative inline-flex h-2 w-2 rounded-full" style={{ background: LIME }} />
-            </span>
-            POS online
-          </span>
-          <span className="flex items-center gap-2 rounded-full px-3.5 py-1.5 text-[12.5px] font-semibold" style={{ background: SUB }}>
-            <IconBox className="h-4 w-4"/> {orders.length}
-          </span>
-          <span className="rounded-full px-3.5 py-1.5 font-mono text-[15px] font-bold tabular-nums" style={{ background: SUB }}>
+        <div className="flex items-center gap-2 text-sm">
+          <TopBtn active={view === "board"} onClick={() => setView("board")}>
+            <IconPot className="h-4 w-4" /> Zamówienia
+            {newsCount > 0 && (
+              <span className="ml-1 rounded-full px-1.5 text-[11px] font-extrabold" style={{ background: ALERT, color: "#fff" }}>
+                {newsCount}
+              </span>
+            )}
+          </TopBtn>
+          <TopBtn active={view === "history"} onClick={() => setView("history")}>
+            <IconHistory className="h-4 w-4" /> Dziś
+          </TopBtn>
+          <TopBtn active={soundOn} onClick={toggleSound} title={soundOn ? "Dźwięk włączony" : "Dźwięk wyłączony"}>
+            {soundOn ? <IconBell className="h-4 w-4" /> : <IconBellOff className="h-4 w-4" />}
+          </TopBtn>
+          <TopBtn onClick={toggleFullscreen} title="Pełny ekran">
+            <IconExpand className="h-4 w-4" />
+          </TopBtn>
+          <span className="hidden rounded-full px-3.5 py-1.5 font-mono text-[15px] font-bold tabular-nums sm:inline" style={{ background: SUB }}>
             {now}
           </span>
         </div>
@@ -268,73 +402,81 @@ export default function PanelPage() {
             >
               Symuluj połączenie
             </button>
-            <span className="text-[11px]" style={{ color: "#5E6B5E" }}>
-              docelowo: webhook centralki / aplikacja na Androidzie
-            </span>
           </div>
         )}
       </div>
 
-      {/* Kolumny */}
-      <div className="grid grid-cols-1 gap-3.5 p-4 md:grid-cols-3">
-        <Column icon={<IconBell className="h-4 w-4" />} title="Nowe — ustaw czas" count={news.length} accent>
-          {news.map((o) => (
-            <OrderCard key={o.id} order={o} highlight>
-              <div className="mt-3 flex items-center gap-1.5">
-                <span className="text-[11px] font-semibold" style={{ color: MUTED }}>Gotowe za:</span>
-                {(o.mode === "pickup" ? [15, 20, 30, 45] : [30, 45, 60, 75]).map((m) => (
-                  <button
-                    key={m}
-                    onClick={() => setEta(o.id, m)}
-                    className="flex-1 rounded-full py-2.5 text-[14px] font-bold transition hover:opacity-90"
-                    style={{ background: "rgba(245,241,232,0.08)", border: "1px solid rgba(245,241,232,0.14)", color: CREAM }}
-                    onMouseEnter={(e) => { e.currentTarget.style.background = LIME; e.currentTarget.style.color = "#1D2A22"; }}
-                    onMouseLeave={(e) => { e.currentTarget.style.background = "rgba(245,241,232,0.08)"; e.currentTarget.style.color = CREAM; }}
-                  >
-                    {m}&#39;
-                  </button>
-                ))}
-              </div>
-            </OrderCard>
-          ))}
-          {news.length === 0 && <Empty />}
-        </Column>
+      {view === "board" ? (
+        <div className="grid grid-cols-1 gap-3.5 p-4 md:grid-cols-3">
+          <Column icon={<IconBell className="h-4 w-4" />} title="Nowe — ustaw czas" count={news.length} accent>
+            {news.map((o) => (
+              <OrderCard key={o.id} order={o} highlight onAdvance={advance}>
+                <WaitBadge order={o} />
+                <EtaPicker order={o} onPick={(m) => setEta(o.id, m)} />
+              </OrderCard>
+            ))}
+            {news.length === 0 && <Empty />}
+          </Column>
 
-        <Column icon={<IconPot className="h-4 w-4" />} title="W realizacji" count={prog.length}>
-          {prog.map((o) => (
-            <OrderCard key={o.id} order={o}>
-              <div
-                className="mt-3 flex items-center gap-2.5 rounded-xl px-3.5 py-2.5"
-                style={{ background: "rgba(213,227,107,0.09)", border: "1px solid rgba(213,227,107,0.25)" }}
-              >
-                <IconClock className="h-4.5 w-4.5" />
-                <span className="text-[17px] font-extrabold tabular-nums" style={{ color: LIME }}>
-                  {o.etaAt ? clock(o.etaAt) : o.scheduledTime}
-                </span>
-              </div>
-              <StatusButtons order={o} onAdvance={advance} />
-            </OrderCard>
-          ))}
-          {prog.length === 0 && <Empty />}
-        </Column>
+          <Column icon={<IconPot className="h-4 w-4" />} title="W realizacji" count={prog.length}>
+            {prog.map((o) => (
+              <OrderCard key={o.id} order={o} onAdvance={advance}>
+                <EtaLine order={o} onEta={(m) => setEta(o.id, m)} />
+                <StatusButtons order={o} onAdvance={advance} />
+              </OrderCard>
+            ))}
+            {prog.length === 0 && <Empty />}
+          </Column>
 
-        <Column icon={<IconCal className="h-4 w-4" />} title="Na godzinę" count={sched.length}>
-          {sched.map((o) => (
-            <OrderCard key={o.id} order={o}>
-              <div className="mt-3 text-[13px]" style={{ color: MUTED }}>
-                Zaplanowane na <b style={{ color: LIME }}>{o.scheduledTime}</b>
-              </div>
-              <StatusButtons order={o} onAdvance={advance} />
-            </OrderCard>
-          ))}
-          {sched.length === 0 && <Empty />}
-        </Column>
-      </div>
+          <Column icon={<IconCal className="h-4 w-4" />} title="Na godzinę" count={sched.length}>
+            {sched.map((o) => (
+              <OrderCard key={o.id} order={o} onAdvance={advance}>
+                <div
+                  className="mt-3 flex items-center gap-2.5 rounded-xl px-3.5 py-2.5"
+                  style={{ background: "rgba(213,227,107,0.09)", border: "1px solid rgba(213,227,107,0.25)" }}
+                >
+                  <IconClock className="h-4.5 w-4.5" />
+                  <span className="text-[15px] font-bold">
+                    na <b className="text-[17px] font-extrabold tabular-nums" style={{ color: LIME }}>{o.scheduledTime}</b>
+                  </span>
+                </div>
+                <StatusButtons order={o} onAdvance={advance} />
+              </OrderCard>
+            ))}
+            {sched.length === 0 && <Empty />}
+          </Column>
+        </div>
+      ) : (
+        <HistoryView orders={doneToday} />
+      )}
     </main>
   );
 }
 
-/* ---------- Komponenty ---------- */
+/* ---------- Klocki ---------- */
+
+function TopBtn({
+  children,
+  onClick,
+  active,
+  title,
+}: {
+  children: React.ReactNode;
+  onClick: () => void;
+  active?: boolean;
+  title?: string;
+}) {
+  return (
+    <button
+      onClick={onClick}
+      title={title}
+      className="flex items-center gap-1.5 rounded-full px-3.5 py-2 text-[12.5px] font-bold transition"
+      style={active ? { background: LIME, color: "#1D2A22" } : { background: SUB, color: CREAM }}
+    >
+      {children}
+    </button>
+  );
+}
 
 function Column({
   icon,
@@ -389,15 +531,97 @@ function Badge({ children, tone }: { children: React.ReactNode; tone: "alert" | 
   );
 }
 
+/** Ile czeka nowe zamówienie (czerwienieje po 5 min). */
+function WaitBadge({ order }: { order: Order }) {
+  const [, force] = useState(0);
+  useEffect(() => {
+    const t = setInterval(() => force((x) => x + 1), 30000);
+    return () => clearInterval(t);
+  }, []);
+  const m = minutesSince(order.createdAt);
+  return (
+    <div className="mt-2 text-[12px] font-bold" style={{ color: m >= 5 ? ALERT : MUTED }}>
+      czeka {m} min {m >= 5 ? "— klient patrzy na zegarek!" : ""}
+    </div>
+  );
+}
+
+function EtaPicker({ order, onPick }: { order: Order; onPick: (m: number) => void }) {
+  return (
+    <div className="mt-3 flex items-center gap-1.5">
+      <span className="text-[11px] font-semibold" style={{ color: MUTED }}>Gotowe za:</span>
+      {(order.mode === "pickup" ? [15, 20, 30, 45] : [30, 45, 60, 75]).map((m) => (
+        <button
+          key={m}
+          onClick={() => onPick(m)}
+          className="flex-1 rounded-full py-2.5 text-[14px] font-bold transition hover:opacity-90"
+          style={{ background: "rgba(245,241,232,0.08)", border: "1px solid rgba(245,241,232,0.14)", color: CREAM }}
+          onMouseEnter={(e) => { e.currentTarget.style.background = LIME; e.currentTarget.style.color = "#1D2A22"; }}
+          onMouseLeave={(e) => { e.currentTarget.style.background = "rgba(245,241,232,0.08)"; e.currentTarget.style.color = CREAM; }}
+        >
+          {m}&#39;
+        </button>
+      ))}
+    </div>
+  );
+}
+
+/** Godzina ETA + możliwość zmiany czasu w trakcie realizacji. */
+function EtaLine({ order, onEta }: { order: Order; onEta: (m: number) => void }) {
+  const [editing, setEditing] = useState(false);
+  if (editing) {
+    return (
+      <div className="mt-3">
+        <EtaPicker order={order} onPick={(m) => { onEta(m); setEditing(false); }} />
+        <button onClick={() => setEditing(false)} className="mt-1.5 text-[11.5px] font-semibold underline" style={{ color: MUTED }}>
+          anuluj zmianę
+        </button>
+      </div>
+    );
+  }
+  return (
+    <div
+      className="mt-3 flex items-center gap-2.5 rounded-xl px-3.5 py-2.5"
+      style={{ background: "rgba(213,227,107,0.09)", border: "1px solid rgba(213,227,107,0.25)" }}
+    >
+      <IconClock className="h-4.5 w-4.5" />
+      <span className="text-[17px] font-extrabold tabular-nums" style={{ color: LIME }}>
+        {order.etaAt ? clock(order.etaAt) : order.scheduledTime}
+      </span>
+      {order.timeMode === "asap" && (
+        <button onClick={() => setEditing(true)} className="ml-auto text-[11.5px] font-bold underline" style={{ color: MUTED }}>
+          zmień czas
+        </button>
+      )}
+    </div>
+  );
+}
+
+const PREV_STATUS: Partial<Record<OrderStatus, OrderStatus>> = {
+  in_progress: "new",
+  ready: "in_progress",
+  on_delivery: "ready",
+  completed: "ready",
+};
+
 function OrderCard({
   order,
   highlight,
+  onAdvance,
   children,
 }: {
   order: Order;
   highlight?: boolean;
+  onAdvance: (id: string, s: OrderStatus, reason?: string) => void;
   children: React.ReactNode;
 }) {
+  const [cancelOpen, setCancelOpen] = useState(false);
+  const mapsUrl =
+    order.mode === "delivery" && order.customer.street
+      ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${order.customer.street}, ${order.customer.city ?? "Kościerzyna"}`)}`
+      : null;
+  const prev = PREV_STATUS[order.status];
+
   return (
     <div
       className="rounded-2xl p-3.5"
@@ -408,23 +632,42 @@ function OrderCard({
       }}
     >
       <div className="mb-2 flex items-center justify-between gap-2">
-        <div className="text-[16px] font-extrabold tabular-nums">#{order.number}</div>
+        <div className="text-[16px] font-extrabold tabular-nums">
+          #{order.number}
+          <span className="ml-2 text-[11px] font-semibold" style={{ color: MUTED }}>{clock(order.createdAt)}</span>
+        </div>
         <div className="flex flex-wrap justify-end gap-1.5">
           {order.timeMode === "asap" && order.status === "new" && <Badge tone="alert">ASAP</Badge>}
           <Badge tone="info">
             {order.mode === "pickup" ? <IconBag className="h-3 w-3" /> : <IconTruck className="h-3 w-3" />}
             {order.mode === "pickup" ? "Odbiór" : "Dostawa"}
           </Badge>
-          <Badge tone="lime">na wynos</Badge>
+          {order.pos.simulated && <Badge tone="info">DEMO</Badge>}
         </div>
       </div>
+
       <div className="text-[14px] font-bold">{order.customer.name}</div>
-      <div className="mb-2.5 text-[12px]" style={{ color: MUTED }}>
-        {order.customer.phone}
-        {order.mode === "delivery" && order.customer.street
-          ? ` · ${order.customer.street}, ${order.customer.city ?? ""}`
-          : " · odbiór osobisty"}
+      <div className="mb-1 flex flex-wrap items-center gap-x-3 gap-y-0.5 text-[12.5px]" style={{ color: MUTED }}>
+        <a href={`tel:${order.customer.phone}`} className="flex items-center gap-1 font-bold underline underline-offset-2" style={{ color: CREAM }}>
+          <IconPhone className="h-3.5 w-3.5" /> {order.customer.phone}
+        </a>
+        {mapsUrl ? (
+          <a href={mapsUrl} target="_blank" rel="noreferrer" className="flex items-center gap-1 underline underline-offset-2">
+            <IconPin className="h-3.5 w-3.5" /> {order.customer.street}, {order.customer.city ?? ""}
+          </a>
+        ) : (
+          <span>odbiór osobisty</span>
+        )}
       </div>
+      {order.customer.note && (
+        <div
+          className="mb-1.5 mt-1 rounded-lg px-2.5 py-1.5 text-[12px] font-semibold"
+          style={{ background: "rgba(229,106,78,0.12)", color: "#F0B29F", border: "1px solid rgba(229,106,78,0.25)" }}
+        >
+          Uwagi: {order.customer.note}
+        </div>
+      )}
+
       <div
         className="space-y-0.5 pt-2.5 text-[12.5px] leading-relaxed"
         style={{ borderTop: "1px dashed rgba(245,241,232,0.12)", color: "#C9D0C4" }}
@@ -439,19 +682,59 @@ function OrderCard({
         ))}
       </div>
       <div className="mt-2.5 flex items-center justify-between">
-        <div className="text-[15px] font-extrabold">{zl(order.total)}</div>
+        <div className="text-[15px] font-extrabold">
+          {zl(order.total)}
+          {order.deliveryFee > 0 && (
+            <span className="ml-1.5 text-[11px] font-semibold" style={{ color: MUTED }}>(z dostawą {zl(order.deliveryFee)})</span>
+          )}
+        </div>
         <div className="text-[12px] font-semibold" style={{ color: MUTED }}>
           {order.payment === "cash" ? "gotówka" : order.payment === "card" ? "karta" : "online"}
         </div>
       </div>
+
       {children}
+
+      {/* Stopka karty: cofnij / anuluj / kto obsłużył */}
+      <div className="mt-2.5 flex items-center gap-3 text-[11.5px] font-semibold" style={{ color: MUTED }}>
+        {prev && (
+          <button onClick={() => onAdvance(order.id, prev)} className="flex items-center gap-1 underline underline-offset-2">
+            <IconUndo className="h-3.5 w-3.5" /> cofnij
+          </button>
+        )}
+        <button onClick={() => setCancelOpen((v) => !v)} className="underline underline-offset-2" style={{ color: "#C77" }}>
+          anuluj zamówienie
+        </button>
+        {order.staff && <span className="ml-auto">obsługuje: {order.staff}</span>}
+      </div>
+      {cancelOpen && (
+        <div className="mt-2 rounded-xl p-2.5" style={{ background: "rgba(229,106,78,0.1)", border: "1px solid rgba(229,106,78,0.3)" }}>
+          <div className="mb-1.5 text-[11.5px] font-bold" style={{ color: "#F0937C" }}>Powód anulowania:</div>
+          <div className="flex flex-wrap gap-1.5">
+            {CANCEL_REASONS.map((r) => (
+              <button
+                key={r}
+                onClick={() => { onAdvance(order.id, "canceled", r); setCancelOpen(false); }}
+                className="rounded-full px-3 py-1.5 text-[12px] font-bold"
+                style={{ background: "rgba(229,106,78,0.2)", color: "#F0B29F", border: "1px solid rgba(229,106,78,0.4)" }}
+              >
+                {r}
+              </button>
+            ))}
+            <button onClick={() => setCancelOpen(false)} className="px-2 text-[12px] font-semibold underline" style={{ color: MUTED }}>
+              wróć
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
 
 function StatusButtons({ order, onAdvance }: { order: Order; onAdvance: (id: string, s: OrderStatus) => void }) {
   const next: { label: string; status: OrderStatus }[] = [];
-  if (order.status === "in_progress" || order.status === "scheduled") {
+  if (order.status === "scheduled") next.push({ label: "Zaczynamy przygotowanie", status: "in_progress" });
+  if (order.status === "in_progress") {
     next.push(
       order.mode === "pickup"
         ? { label: "Gotowe do odbioru", status: "ready" }
@@ -479,6 +762,73 @@ function StatusButtons({ order, onAdvance }: { order: Order; onAdvance: (id: str
           {n.label}
         </button>
       ))}
+    </div>
+  );
+}
+
+/* ---------- Historia dnia ---------- */
+
+function Tile({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="rounded-2xl p-4" style={{ background: CARD }}>
+      <div className="text-[11px] font-extrabold uppercase tracking-[0.14em]" style={{ color: MUTED }}>{label}</div>
+      <div className="mt-1 text-[24px] font-extrabold tabular-nums">{value}</div>
+    </div>
+  );
+}
+
+function HistoryView({ orders }: { orders: Order[] }) {
+  const done = orders.filter((o) => o.status === "completed");
+  const canceled = orders.filter((o) => o.status === "canceled");
+  const revenue = done.reduce((s, o) => s + o.total, 0);
+  const cash = done.filter((o) => o.payment === "cash").reduce((s, o) => s + o.total, 0);
+  const card = done.filter((o) => o.payment === "card").reduce((s, o) => s + o.total, 0);
+  const online = done.filter((o) => o.payment === "online").reduce((s, o) => s + o.total, 0);
+  const avg = done.length ? revenue / done.length : 0;
+
+  return (
+    <div className="p-4">
+      <div className="grid grid-cols-2 gap-3 md:grid-cols-5">
+        <Tile label="Zrealizowane" value={String(done.length)} />
+        <Tile label="Utarg online" value={zl(revenue)} />
+        <Tile label="Gotówka / karta" value={`${zl(cash)} / ${zl(card + online)}`} />
+        <Tile label="Średnie zamówienie" value={done.length ? zl(avg) : "—"} />
+        <Tile label="Anulowane" value={String(canceled.length)} />
+      </div>
+
+      <div className="mt-4 rounded-3xl p-3.5" style={{ background: CARD }}>
+        <h2 className="mb-3 px-1 text-[11px] font-extrabold uppercase tracking-[0.14em]" style={{ color: MUTED }}>
+          Zamówienia z dziś (najnowsze u góry)
+        </h2>
+        {orders.length === 0 && <Empty />}
+        <div className="flex flex-col gap-2">
+          {orders.map((o) => (
+            <div
+              key={o.id}
+              className="flex flex-wrap items-center gap-x-4 gap-y-1 rounded-xl px-3.5 py-2.5 text-[13px]"
+              style={{ background: SUB, opacity: o.status === "canceled" ? 0.65 : 1 }}
+            >
+              <b className="tabular-nums">#{o.number}</b>
+              <span style={{ color: MUTED }}>{clock(o.createdAt)}</span>
+              <span className="font-semibold">{o.customer.name}</span>
+              <span style={{ color: MUTED }}>
+                {o.items.reduce((s, i) => s + i.qty, 0)} poz. · {o.mode === "pickup" ? "odbiór" : "dostawa"} ·{" "}
+                {o.payment === "cash" ? "gotówka" : o.payment === "card" ? "karta" : "online"}
+              </span>
+              <span className="ml-auto font-extrabold">{zl(o.total)}</span>
+              {o.status === "canceled" ? (
+                <span className="rounded-full px-2.5 py-0.5 text-[11px] font-bold" style={{ background: "rgba(229,106,78,0.18)", color: "#F0937C" }}>
+                  anulowane{o.cancelReason ? ` — ${o.cancelReason}` : ""}
+                </span>
+              ) : (
+                <span className="rounded-full px-2.5 py-0.5 text-[11px] font-bold" style={{ background: "rgba(213,227,107,0.14)", color: LIME }}>
+                  zrealizowane{o.staff ? ` — ${o.staff}` : ""}
+                </span>
+              )}
+            </div>
+          ))}
+        </div>
+      </div>
     </div>
   );
 }

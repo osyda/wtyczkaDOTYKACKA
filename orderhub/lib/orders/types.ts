@@ -58,6 +58,11 @@ export interface Order {
   total: number;
   payment: Payment;
 
+  /** Kto obsłużył (imię z logowania kodem Dotykački / "obsługa"). */
+  staff?: string;
+  /** Powód anulowania (gdy status = canceled). */
+  cancelReason?: string;
+
   // Integracja z Dotykačką
   pos: {
     sent: boolean;
