@@ -12,7 +12,7 @@
  * Gdy brak kluczy (tryb DEMO) — SYMULUJEMY sukces, żeby cały przepływ działał lokalnie.
  */
 
-import { dotykackaConfig, hasCredentials } from "./config";
+import { dotykackaConfig, hasCredentials, posSendEnabled } from "./config";
 import { dotyRequest } from "./client";
 import { upsertCustomerByPhone } from "./customers";
 import type { Order, OrderItem } from "@/lib/orders/types";
@@ -57,7 +57,9 @@ function buildNote(order: Order): string {
 
 export async function sendOrderToPos(order: Order): Promise<PosResult> {
   // Tryb DEMO — symulacja (brak kluczy / brak dostępu do API).
-  if (!hasCredentials()) {
+  // BEZPIECZNIK: nawet z kluczami nie wysyłamy do POS, dopóki
+  // DOTYKACKA_SEND_ORDERS=true (żeby testy nie przeszkadzały na sali).
+  if (!hasCredentials() || !posSendEnabled()) {
     return {
       sent: true,
       simulated: true,
