@@ -167,7 +167,7 @@ export default function PanelPage() {
           <img src="/brand/icon-white.png" alt="Mammarosa" className="mx-auto mb-5 h-14 w-14 object-contain" />
           <h1 className="text-lg font-bold tracking-[-0.01em]">Panel obsługi</h1>
           <p className="mb-6 mt-1 text-sm" style={{ color: MUTED }}>
-            Podaj PIN, aby zobaczyć zamówienia.
+            Wpisz swój kod z Dotykački lub wspólny PIN obsługi.
           </p>
           <input
             type="password"

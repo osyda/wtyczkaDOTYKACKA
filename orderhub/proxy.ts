@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
+import { staffProtectionEnabled, staffToken } from "@/lib/staffAuth";
 
 /**
  * Proxy: ochrona staffowych endpointów API PIN-em (STAFF_PIN).
@@ -7,11 +8,11 @@ import type { NextRequest } from "next/server";
  * Publiczne (klient): POST /api/orders, GET /api/orders/[id], /api/delivery/*, /api/geo/*.
  * Chronione (obsługa): GET /api/orders (lista), .../eta, .../status, /api/cti/*.
  */
-export function proxy(req: NextRequest) {
-  const pin = process.env.STAFF_PIN;
-  if (!pin) return NextResponse.next();
+export async function proxy(req: NextRequest) {
+  if (!staffProtectionEnabled()) return NextResponse.next();
 
-  const authed = req.cookies.get("staff_auth")?.value === pin;
+  const token = await staffToken();
+  const authed = Boolean(token) && req.cookies.get("staff_auth")?.value === token;
   const { pathname } = req.nextUrl;
   const method = req.method;
 
