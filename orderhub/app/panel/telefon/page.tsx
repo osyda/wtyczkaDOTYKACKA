@@ -208,8 +208,12 @@ function PhoneOrderInner() {
 
   const deliveryFee = quote.fee;
   const total = subtotal + deliveryFee;
+  // Minimalna wartość zamówienia z dostawą: do 6 km 40 zł, powyżej 60 zł (bez kosztu dowozu).
+  const minOrder = mode === "delivery" ? (quote.minOrder ?? 0) : 0;
+  const belowMin = minOrder > 0 && lines.length > 0 && subtotal < minOrder;
   const phoneValid = form.phone.replace(/\D/g, "").length >= 9;
   const canSave =
+    !belowMin &&
     lines.length > 0 &&
     form.name.trim().length > 1 &&
     phoneValid &&
@@ -316,9 +320,9 @@ function PhoneOrderInner() {
                   {quote.outOfRange
                     ? `${quote.label} — zaproponuj odbiór osobisty.`
                     : quote.inCity
-                      ? `Dostawa: Kościerzyna — ${zl(deliveryFee)}`
+                      ? `Dostawa: Kościerzyna — ${zl(deliveryFee)} · zamówienie min. ${zl(quote.minOrder ?? 0)}`
                       : quote.km
-                        ? `Dostawa: ${quote.km} km — ${zl(deliveryFee)}${quote.remembered ? " (zapamiętana miejscowość)" : ""}`
+                        ? `Dostawa: ${quote.km} km — ${zl(deliveryFee)}${quote.remembered ? " (zapamiętana miejscowość)" : ""} · zamówienie min. ${zl(quote.minOrder ?? 0)}`
                         : quote.needsManual
                           ? "Nowa miejscowość — podaj odległość raz, zapamiętamy ją:"
                           : "Wpisz adres — dostawa policzy się sama."}
@@ -475,6 +479,12 @@ function PhoneOrderInner() {
               </span>
               <span className="text-[19px] font-extrabold">{zl(total)}</span>
             </div>
+            {belowMin && (
+              <p className="mt-2 text-center text-[12.5px] font-semibold" style={{ color: ALERT }}>
+                Minimum przy dostawie pod ten adres: {zl(minOrder)} (bez kosztu dowozu) — brakuje{" "}
+                {zl(minOrder - subtotal)}. Powiedz klientowi albo zaproponuj odbiór osobisty.
+              </p>
+            )}
             {error && <p className="mt-2 text-center text-[12.5px] font-semibold" style={{ color: ALERT }}>{error}</p>}
             <button
               disabled={!canSave || submitting}
@@ -482,7 +492,13 @@ function PhoneOrderInner() {
               className="mt-3 w-full rounded-full py-4 text-[15px] font-bold transition disabled:opacity-40"
               style={{ background: INK, color: BG }}
             >
-              {submitting ? "Zapisuję…" : canSave ? "Zapisz zamówienie" : "Uzupełnij dane i pozycje"}
+              {submitting
+                ? "Zapisuję…"
+                : canSave
+                  ? "Zapisz zamówienie"
+                  : belowMin
+                    ? `Minimum przy dostawie: ${zl(minOrder)}`
+                    : "Uzupełnij dane i pozycje"}
             </button>
           </div>
         </div>

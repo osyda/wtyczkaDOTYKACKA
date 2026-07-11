@@ -86,7 +86,11 @@ przekierowanie 301 z `mammarosa.pl/zamow-online/` (wtyczka Redirection w WP). NI
   i `/status` (lifecycle: new → in_progress → ready/on_delivery → completed; scheduled dla „na godzinę").
   Strona `/dziekujemy/[id]` odpytuje co 3 s i pokazuje godzinę + oś statusów.
 - Dostawa: `lib/delivery.ts` — Kościerzyna płasko 5 zł (rozpoznanie miasta z normalizacją
-  ogonków), poza miastem 2 zł/km do 15 km, dalej „poza zasięgiem". `lib/geo.ts` — ORS
+  ogonków), poza miastem 2 zł/km do 15 km, dalej „poza zasięgiem".
+  MINIMUM zamówienia z dostawą (11.07.2026): do 6 km → 40 zł, powyżej 6 km → 60 zł
+  (liczone od wartości koszyka, bez opłaty za dowóz; odbiór bez minimum).
+  Quote niesie `minOrder`; UI blokuje (kasa + telefon), serwer waliduje online
+  przez `minOrderForFee(deliveryFee)`. `lib/geo.ts` — ORS
   (klucz `ORS_API_KEY`) geokodowanie/trasa/reverse-geocode; fallback haversine ×1,3.
   Współrzędne lokalu: `RESTAURANT_LAT/LNG` (obecnie przybliżone 54.1226/17.9766 — doprecyzować!).
 - Godziny otwarcia: `lib/hours.ts` + `/api/hours`. Źródła: wizytówka Google
