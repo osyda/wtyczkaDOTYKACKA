@@ -1,6 +1,16 @@
 # Plan: kody rabatowe (zgrane z Dotykačką)
 
-Stan: PLAN zatwierdzany przez właściciela. Nic z tego jeszcze nie jest zbudowane.
+Stan: plan ZATWIERDZONY przez właściciela 12.07.2026 („wszystko na tak").
+**Faza R1 ZBUDOWANA** (12.07.2026): `lib/promo.ts` (magazyn Redis/pamięć pod
+`promo:codes`, walidacja+zużycie), `/api/promo/validate` (publiczny) i
+`/api/promo/codes` (za PIN-em), pole kodu w kasie i na ekranie telefonicznym
+(+ rabat ręczny kelnerki z powodem), karta „Rabaty" w panelu (dodawanie,
+włącz/wyłącz, licznik użyć), kafelek „Rabaty" i rabat przy zamówieniu w „Dziś",
+rabat na kwicie kuchennym i w nocie POS. Kody startowe zasiane automatycznie:
+WITAJ10 (−10%, tylko strona, raz na numer, nowi klienci), ULOTKA15 (−15 zł od
+60 zł), ODBIOR10 (−10%, tylko odbiór). Suma zamówienia z rabatem liczona NA
+SERWERZE. Decyzje właściciela: kody działają też telefonicznie (poza onlineOnly),
+rabat ręczny dozwolony. Faza R2 (discount-percent do POS) czeka na klucze.
 
 ## Co umie Dotykačka (z docs/dotypos_api_brain.md — do potwierdzenia testem po kluczach)
 
