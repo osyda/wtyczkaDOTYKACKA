@@ -38,7 +38,7 @@ type Action =
   | { type: "CLEAR" }
   | { type: "HYDRATE"; state: CartState };
 
-const STORAGE_KEY = "mammarosa_cart_v1";
+const DEFAULT_STORAGE_KEY = "mammarosa_cart_v1";
 
 function reducer(state: CartState, action: Action): CartState {
   switch (action.type) {
@@ -84,26 +84,33 @@ function makeLineId(): string {
   return `l${Date.now()}_${lineCounter}`;
 }
 
-export function CartProvider({ children }: { children: ReactNode }) {
+export function CartProvider({
+  children,
+  storageKey = DEFAULT_STORAGE_KEY,
+}: {
+  children: ReactNode;
+  /** Osobny klucz np. dla koszyka zamówień telefonicznych w panelu. */
+  storageKey?: string;
+}) {
   const [state, dispatch] = useReducer(reducer, { lines: [] });
 
   // Hydratacja z localStorage (po stronie klienta).
   useEffect(() => {
     try {
-      const raw = localStorage.getItem(STORAGE_KEY);
+      const raw = localStorage.getItem(storageKey);
       if (raw) dispatch({ type: "HYDRATE", state: JSON.parse(raw) as CartState });
     } catch {
       /* ignore */
     }
-  }, []);
+  }, [storageKey]);
 
   useEffect(() => {
     try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+      localStorage.setItem(storageKey, JSON.stringify(state));
     } catch {
       /* ignore */
     }
-  }, [state]);
+  }, [state, storageKey]);
 
   const value = useMemo<CartContextValue>(() => {
     const itemCount = state.lines.reduce((s, l) => s + l.qty, 0);

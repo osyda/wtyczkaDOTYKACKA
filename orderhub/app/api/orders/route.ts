@@ -1,7 +1,14 @@
 import { NextResponse } from "next/server";
-import { orderStore } from "@/lib/orders/store";
+import { orderStore, setEta } from "@/lib/orders/store";
 import { sendOrderToPos } from "@/lib/dotykacka/pos";
-import type { NewOrderInput } from "@/lib/orders/types";
+import type { NewOrderInput, Order } from "@/lib/orders/types";
+
+type OrderPayload = NewOrderInput & {
+  source?: "online" | "phone";
+  staff?: string;
+  /** Telefoniczne: kelnerka podaje czas od razu podczas rozmowy. */
+  etaMinutes?: number;
+};
 
 export const dynamic = "force-dynamic";
 
@@ -11,9 +18,9 @@ export async function GET() {
 }
 
 export async function POST(req: Request) {
-  let input: NewOrderInput;
+  let input: OrderPayload;
   try {
-    input = (await req.json()) as NewOrderInput;
+    input = (await req.json()) as OrderPayload;
   } catch {
     return NextResponse.json({ error: "Nieprawidłowe dane." }, { status: 400 });
   }
@@ -22,7 +29,18 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Brak pozycji lub telefonu." }, { status: 400 });
   }
 
-  const order = await orderStore.create(input);
+  let order = await orderStore.create(input);
+
+  // Metadane spoza koszyka: źródło, podpis obsługi, czas podany przy telefonie.
+  const extra: Partial<Order> = {};
+  if (input.source) extra.source = input.source;
+  if (input.staff?.trim()) extra.staff = input.staff.trim();
+  if (input.etaMinutes && order.timeMode === "asap" && Number.isFinite(input.etaMinutes)) {
+    Object.assign(extra, setEta(order, Number(input.etaMinutes)));
+  }
+  if (Object.keys(extra).length > 0) {
+    order = (await orderStore.update(order.id, extra)) ?? order;
+  }
 
   // Wyślij do POS (lub symuluj w trybie DEMO).
   const pos = await sendOrderToPos(order);

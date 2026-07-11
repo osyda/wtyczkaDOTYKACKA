@@ -58,6 +58,8 @@ export interface Order {
   total: number;
   payment: Payment;
 
+  /** Skąd przyszło zamówienie: strona klienta czy telefon przyjęty w panelu. */
+  source?: "online" | "phone";
   /** Kto obsłużył (imię z logowania kodem Dotykački / "obsługa"). */
   staff?: string;
   /** Powód anulowania (gdy status = canceled). */
