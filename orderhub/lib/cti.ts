@@ -17,6 +17,10 @@ export interface CallerInfo {
   lastOrderAt?: string;
   lastItems?: string[];
   recentOrderIds: string[];
+  /** Adres z ostatniego zamówienia — do wypełnienia formularza telefonicznego. */
+  street?: string;
+  city?: string;
+  zip?: string;
 }
 
 function normalize(phone: string): string {
@@ -37,6 +41,9 @@ export async function lookupCaller(phoneRaw: string): Promise<CallerInfo> {
     phone: phoneRaw,
     known: true,
     name: last.customer.name,
+    street: last.customer.street,
+    city: last.customer.city,
+    zip: last.customer.zip,
     orderCount: mine.length,
     lastOrderAt: last.createdAt,
     lastItems: last.items.map((i) => `${i.qty}× ${i.name}`),

@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { Order, OrderStatus } from "@/lib/orders/types";
 import type { CallerInfo } from "@/lib/cti";
@@ -451,6 +452,13 @@ export default function PanelPage() {
           <TopBtn active={view === "history"} onClick={() => setView("history")}>
             <IconHistory className="h-4 w-4" /> Dziś
           </TopBtn>
+          <Link
+            href="/panel/telefon"
+            className="flex items-center gap-1.5 rounded-full px-3.5 py-2 text-[12.5px] font-bold"
+            style={{ background: SUB, color: CREAM }}
+          >
+            <IconPhone className="h-4 w-4" /> + Telefon
+          </Link>
           <TopBtn active={soundOn} onClick={toggleSound} title={soundOn ? "Dźwięk włączony" : "Dźwięk wyłączony"}>
             {soundOn ? <IconBell className="h-4 w-4" /> : <IconBellOff className="h-4 w-4" />}
           </TopBtn>
@@ -488,8 +496,15 @@ export default function PanelPage() {
                   : "nieznany numer — nowy klient"}
               </div>
             </div>
-            <button onClick={() => setCaller(null)} className="ml-auto flex-none text-sm font-semibold" style={{ color: MUTED }}>
-              zamknij ✕
+            <Link
+              href={`/panel/telefon?phone=${encodeURIComponent(caller.phone)}${caller.name ? `&name=${encodeURIComponent(caller.name)}` : ""}`}
+              className="ml-auto flex-none rounded-full px-4 py-2 text-[13px] font-bold"
+              style={{ background: LIME, color: "#1D2A22" }}
+            >
+              Przyjmij zamówienie
+            </Link>
+            <button onClick={() => setCaller(null)} className="flex-none text-sm font-semibold" style={{ color: MUTED }}>
+              ✕
             </button>
           </div>
         ) : (
@@ -764,6 +779,7 @@ function OrderCard({
             {order.mode === "pickup" ? <IconBag className="h-3 w-3" /> : <IconTruck className="h-3 w-3" />}
             {order.mode === "pickup" ? "Odbiór" : "Dostawa"}
           </Badge>
+          {order.source === "phone" && <Badge tone="lime"><IconPhone className="h-3 w-3" /> Telefon</Badge>}
           {order.pos.simulated && <Badge tone="info">DEMO</Badge>}
         </div>
       </div>
@@ -967,6 +983,7 @@ function HistoryView({ orders: all }: { orders: Order[] }) {
               <span style={{ color: MUTED }}>
                 {o.items.reduce((s, i) => s + i.qty, 0)} poz. · {o.mode === "pickup" ? "odbiór" : "dostawa"} ·{" "}
                 {o.payment === "cash" ? "gotówka" : o.payment === "card" ? "karta" : "online"}
+                {o.source === "phone" ? " · telefon" : ""}
               </span>
               <span className="ml-auto font-extrabold">{zl(o.total)}</span>
               {o.status === "canceled" ? (
