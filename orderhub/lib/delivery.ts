@@ -2,7 +2,9 @@
  * Reguła dostawy Mammarosa (automatyczne wyliczanie):
  * - Kościerzyna: 5 zł (stała, płaska),
  * - poza Kościerzyną: 2 zł za każdy km, do 15 km od Kościerzyny,
- * - powyżej 15 km: poza zasięgiem dostawy.
+ * - powyżej 15 km: poza zasięgiem dostawy,
+ * - minimalna wartość zamówienia (bez opłaty za dostawę):
+ *   do 6 km → 40 zł, powyżej 6 km → 60 zł. Odbiór: bez minimum.
  *
  * Odległość liczona automatycznie z adresu (geokodowanie + trasa) — patrz lib/geo.ts.
  */
@@ -13,6 +15,9 @@ export const DELIVERY = {
   cityFlat: 5, // zł — Kościerzyna
   perKm: 2, // zł/km — poza Kościerzyną
   maxKm: 15, // km — granica zasięgu
+  minNear: 40, // zł — minimalna wartość zamówienia do 6 km
+  minFar: 60, // zł — minimalna wartość zamówienia powyżej 6 km
+  minFarFromKm: 6, // km — granica między progami minimum
   currency: "zł",
 };
 
@@ -23,7 +28,21 @@ export interface DeliveryQuote {
   inCity: boolean;
   outOfRange?: boolean; // > maxKm
   estimated?: boolean; // true gdy fallback bez geokodera (do potwierdzenia)
+  minOrder?: number; // zł — minimalna wartość zamówienia (bez opłaty za dostawę)
   label: string;
+}
+
+/** Minimalna wartość zamówienia dla danej odległości. */
+export function minOrderForKm(km: number): number {
+  return km > DELIVERY.minFarFromKm ? DELIVERY.minFar : DELIVERY.minNear;
+}
+
+/**
+ * Minimalna wartość zamówienia odtworzona z opłaty za dostawę (2 zł/km ⇒ km = fee/2).
+ * Do walidacji po stronie serwera, gdy znamy tylko naliczoną opłatę.
+ */
+export function minOrderForFee(fee: number): number {
+  return fee > DELIVERY.perKm * DELIVERY.minFarFromKm ? DELIVERY.minFar : DELIVERY.minNear;
 }
 
 /** Czy adres jest w Kościerzynie (po nazwie miasta). */
@@ -42,6 +61,7 @@ export function flatCityQuote(): DeliveryQuote {
     available: true,
     fee: DELIVERY.cityFlat,
     inCity: true,
+    minOrder: DELIVERY.minNear,
     label: `Dostawa — Kościerzyna (${DELIVERY.cityFlat} zł)`,
   };
 }
@@ -70,6 +90,7 @@ export function kmQuote(km: number, estimated = false): DeliveryQuote {
     km: rounded,
     inCity: false,
     estimated,
+    minOrder: minOrderForKm(rounded),
     label: `Dostawa — ${rounded} km × ${DELIVERY.perKm} zł${estimated ? " (szacowane)" : ""}`,
   };
 }

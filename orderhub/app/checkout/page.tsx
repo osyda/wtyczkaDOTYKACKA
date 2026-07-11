@@ -291,9 +291,14 @@ export default function CheckoutPage() {
   const deliveryFee = quote.fee;
   const total = subtotal + deliveryFee;
 
+  // Minimalna wartość zamówienia z dostawą (bez opłaty za dowóz): do 6 km 40 zł, dalej 60 zł.
+  const minOrder = mode === "delivery" ? (quote.minOrder ?? 0) : 0;
+  const belowMin = minOrder > 0 && subtotal < minOrder;
+
   const phoneValid = form.phone.replace(/\D/g, "").length >= 9;
   const canOrder =
     !closedNow &&
+    !belowMin &&
     lines.length > 0 &&
     form.name.trim().length > 1 &&
     phoneValid &&
@@ -449,6 +454,7 @@ export default function CheckoutPage() {
                       <b className="font-carta text-[14px] font-normal" style={{ color: C.ink }}>{zl(deliveryFee)}</b>
                       {quote.inCity ? " (stawka miejska)" : ""}
                       {coords && quote.estimated && !quote.outOfRange ? " · szacunek z lokalizacji" : ""}
+                      {minOrder > 0 ? ` · zamówienie min. ${zl(minOrder)}` : ""}
                     </>
                   ) : quote.needsManual ? (
                     "Podaj odległość w km, aby policzyć dostawę:"
@@ -538,6 +544,12 @@ export default function CheckoutPage() {
                 <span className="font-carta text-[19px]">{zl(total)}</span>
               </div>
             </div>
+            {belowMin && (
+              <p className="mt-3 text-center text-[12px] leading-snug" style={{ color: C.accent }}>
+                Minimalna wartość zamówienia z dostawą pod ten adres to {zl(minOrder)} (bez kosztu
+                dostawy) — brakuje {zl(minOrder - subtotal)}. Dodaj coś jeszcze albo wybierz odbiór osobisty.
+              </p>
+            )}
             {closedNow && hours && (
               <p className="mt-3 text-center text-[12px] leading-snug" style={{ color: C.accent }}>{hours.message}</p>
             )}
@@ -551,7 +563,15 @@ export default function CheckoutPage() {
               style={{ background: C.ink, color: C.ivory, textIndent: "0.24em" }}
             >
               <span>
-                {submitting ? "Wysyłam…" : closedNow ? "Poza godzinami zamówień" : canOrder ? "Zamawiam" : "Uzupełnij dane"}
+                {submitting
+                  ? "Wysyłam…"
+                  : closedNow
+                    ? "Poza godzinami zamówień"
+                    : belowMin
+                      ? `Do minimum brakuje ${zl(minOrder - subtotal)}`
+                      : canOrder
+                        ? "Zamawiam"
+                        : "Uzupełnij dane"}
               </span>
               <b className="font-carta text-[16px] font-normal normal-case tracking-normal">{zl(total)}</b>
             </button>

@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { orderStore, setEta } from "@/lib/orders/store";
 import { sendOrderToPos } from "@/lib/dotykacka/pos";
 import { getOpenState } from "@/lib/hours";
+import { minOrderForFee } from "@/lib/delivery";
 import type { NewOrderInput, Order } from "@/lib/orders/types";
 
 type OrderPayload = NewOrderInput & {
@@ -36,6 +37,16 @@ export async function POST(req: Request) {
     const hours = await getOpenState();
     if (!hours.acceptingOrders) {
       return NextResponse.json({ error: hours.message }, { status: 403 });
+    }
+    // Minimalna wartość zamówienia z dostawą (do 6 km: 40 zł, dalej: 60 zł).
+    if (input.mode === "delivery") {
+      const min = minOrderForFee(input.deliveryFee ?? 0);
+      if ((input.subtotal ?? 0) < min) {
+        return NextResponse.json(
+          { error: `Minimalna wartość zamówienia z dostawą pod ten adres to ${min} zł (bez kosztu dostawy).` },
+          { status: 400 }
+        );
+      }
     }
   }
 
