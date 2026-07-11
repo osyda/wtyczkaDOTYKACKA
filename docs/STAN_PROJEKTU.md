@@ -92,6 +92,8 @@ przekierowanie 301 z `mammarosa.pl/zamow-online/` (wtyczka Redirection w WP). NI
 - Godziny otwarcia: `lib/hours.ts` + `/api/hours`. Źródła: wizytówka Google
   (`GOOGLE_MAPS_API_KEY`, Places Text Search po `GOOGLE_PLACE_QUERY`, cache 6 h w Redis+pamięci)
   → zmienna `OPENING_HOURS` („pn-czw 11:00-21:00; nd zamknięte") → domyślne 11–21.
+  DECYZJA WŁAŚCICIELA (11.07.2026): docelowo klucz Google — instrukcja krok po kroku
+  w CO_ZOSTALO_DLA_CIEBIE.md pkt 6, do wykonania przy najbliższej konfiguracji Vercela.
   Ostatnie zamówienie `LAST_ORDER_MIN` (domyślnie 20) minut przed zamknięciem; strefa
   Europe/Warsaw, obsługa zamknięcia po północy. Egzekwowanie: baner + zablokowana kasa
   w `/menu` i `/checkout` (odpytują `/api/hours` co 60 s) ORAZ serwerowo w POST

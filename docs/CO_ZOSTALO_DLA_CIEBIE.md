@@ -23,15 +23,24 @@ Panel obsługi gotowy od A do Z. Poniżej wszystko, czego nie mogę zrobić za C
 5. **Klucz map**: darmowe konto na openrouteservice.org → `ORS_API_KEY` +
    dokładne współrzędne lokalu `RESTAURANT_LAT` / `RESTAURANT_LNG`
    (znajdziesz w Google Maps: PPM na lokal → „Co tu jest?").
-6. **Godziny otwarcia** (blokada zamówień po zamknięciu; ostatnie zamówienie 20 min
-   przed) — wybierz JEDNO:
-   - `GOOGLE_MAPS_API_KEY` (Google Cloud → włącz „Places API (New)"; wymaga podpięcia
-     karty, ale darmowy pakiet starcza z ogromnym zapasem) — godziny same ciągną się
-     z wizytówki Google i aktualizują po każdej zmianie w profilu firmy, ALBO
-   - `OPENING_HOURS` wpisane ręcznie w Vercelu, np.
-     `pn-czw 11:00-21:00; pt-sb 11:00-22:00; nd 12:00-21:00` (dzień wolny: `wt zamknięte`).
-   Bez obu działa domyślne 11:00–21:00 codziennie. Bufor zmienisz w `LAST_ORDER_MIN`.
-   Weryfikacja: karta „Godziny otwarcia" na `/status`.
+6. **Godziny otwarcia — DECYZJA WŁAŚCICIELA: klucz Google** (godziny mają ciągnąć się
+   same z wizytówki Google; blokada zamówień po zamknięciu, ostatnie zamówienie
+   20 min przed). Do zrobienia przy najbliższym „ogarnianiu Vercela":
+   1. Wejdź na console.cloud.google.com → zaloguj się kontem Google (najlepiej tym,
+      którym zarządzasz wizytówką Mammarosy).
+   2. Utwórz projekt (np. „mammarosa") → w wyszukiwarce na górze wpisz
+      **„Places API (New)"** → Enable (Włącz).
+   3. Google poprosi o podpięcie karty (rozliczenia) — darmowy pakiet starcza
+      z ogromnym zapasem: pytamy o godziny raz na 6 godzin, nie za każde wejście.
+   4. Menu → APIs & Services → **Credentials → Create credentials → API key** → skopiuj.
+      (Zalecane: w ustawieniach klucza ogranicz go do „Places API (New)".)
+   5. Vercel → projekt `wtyczka-dotykacka` → Settings → Environment Variables →
+      dodaj `GOOGLE_MAPS_API_KEY` = skopiowany klucz → **Redeploy**.
+   6. Sprawdź `/status` → karta „Godziny otwarcia" ma pokazać
+      „Źródło godzin: z wizytówki Google (odświeżane co 6 h)" i właściwe godziny tygodnia.
+   Awaryjnie (bez Google) działa `OPENING_HOURS` wpisane ręcznie, np.
+   `pn-czw 11:00-21:00; pt-sb 11:00-22:00; nd 12:00-21:00` (dzień wolny: `wt zamknięte`).
+   Bez obu: domyślne 11:00–21:00 codziennie. Bufor zmienisz w `LAST_ORDER_MIN`.
 
 ## Treści
 
