@@ -4,6 +4,20 @@ Stan: system po stronie aplikacji jest GOTOWY. Do działania na żywo brakuje ty
 jednego: coś musi „powiedzieć" aplikacji, że dzwoni telefon. Ten dokument opisuje
 jak to podłączyć — do wyboru w zależności od tego, jaki telefon jest w lokalu.
 
+## USTALENIE (11.07.2026): linia lokalu = STACJONARNY W ORANGE
+
+Numer 58 686 55 30, abonament z pakietem minut komórkowych. Orange NIE udostępnia
+webhooków/API o połączeniach przychodzących dla stacjonarnych, więc realne drogi:
+- **B (docelowa, rekomendowana)**: przeniesienie numeru do wirtualnej centralki
+  VoIP — numer zostaje, webhook działa; sprawdzić okres wypowiedzenia w Orange.
+- **A′ (na już, bez zmian umowy)**: przekierowanie stacjonarnego na komórkę
+  w lokalu (usługa przekierowań Orange) + MacroDroid na tej komórce (wariant A);
+  minuty komórkowe w abonamencie zwykle pokrywają przekierowania. CLIP dzwoniącego
+  jest przy przekierowaniu zachowywany, więc panel rozpozna klienta.
+- **C**: bramka FXO w lokalu (np. Grandstream HT813) — bez zmian w Orange,
+  odbieranie po staremu; wymaga zakupu i konfiguracji mostka.
+Właściciel ma zdecydować; można łączyć: A′ od zaraz, B docelowo.
+
 ## Jak to działa (obraz całości)
 
 1. Dzwoni telefon w pizzerii.
