@@ -64,6 +64,8 @@ export interface Order {
   staff?: string;
   /** Powód anulowania (gdy status = canceled). */
   cancelReason?: string;
+  /** Kierowca, któremu wydano dostawę (rozliczenie kursów w „Dziś"). */
+  driver?: string;
 
   // Integracja z Dotykačką
   pos: {

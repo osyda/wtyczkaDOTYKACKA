@@ -25,6 +25,9 @@ Po dodaniu/zmianie zmiennych ZAWSZE: Deployments → ⋯ przy najnowszym → **R
 - [ ] `RESTAURANT_LAT` i `RESTAURANT_LNG` = dokładne współrzędne lokalu:
       Google Maps → kliknij PRAWYM przyciskiem dokładnie na lokal → skopiuj
       współrzędne (pierwsza liczba = LAT, druga = LNG).
+- [ ] `DRIVERS` = imiona kierowców po przecinku, np. `Marek, Paweł` —
+      panel będzie pytał „który kierowca bierze kurs?" przy wydawaniu dostawy
+      i policzy kursy/utarg per kierowca w zakładce „Dziś".
 - [ ] NIE ustawiaj `DOTYKACKA_SEND_ORDERS` — zostaje wyłączone aż do go-live!
 - [ ] Redeploy.
 

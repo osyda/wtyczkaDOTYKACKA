@@ -18,6 +18,9 @@ Panel obsługi gotowy od A do Z. Poniżej wszystko, czego nie mogę zrobić za C
    Po podpięciu: `/status` pokaże „Połączono", menu będzie z POS, a logowanie do panelu
    zadziała (sprawdzimy!) kodami pracowników. Rachunki NADAL będą symulowane —
    bezpiecznik `DOTYKACKA_SEND_ORDERS` zostaje wyłączony aż do go-live.
+   Po kluczach przetestujemy też `user-id` w order/create — jeśli Dotykačka
+   zaliczy taki rachunek do utargu wskazanego pracownika, kelnerki przestaną
+   musieć wchodzić na kod kierowcy przy terminalu (szczegóły: STAN_PROJEKTU §4).
 4. **PIN panelu**: zmienna `STAFF_PIN` (własne 4–6 cyfr) + Redeploy — przed pokazaniem
    panelu komukolwiek spoza zaufanego grona. Kod wpisuje się raz na urządzenie (90 dni).
 5. **Klucz map**: darmowe konto na openrouteservice.org → `ORS_API_KEY` +

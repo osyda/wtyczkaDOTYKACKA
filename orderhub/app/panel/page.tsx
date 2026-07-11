@@ -394,14 +394,23 @@ export default function PanelPage() {
     });
     refresh();
   };
-  const advance = async (id: string, status: OrderStatus, reason?: string) => {
+  const advance = async (id: string, status: OrderStatus, reason?: string, driver?: string) => {
     await fetch(`/api/orders/${id}/status`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ status, by, reason }),
+      body: JSON.stringify({ status, by, reason, driver }),
     });
     refresh();
   };
+
+  // Lista kierowców (zmienna DRIVERS w Vercelu) — do przypisywania dostaw.
+  const [drivers, setDrivers] = useState<string[]>([]);
+  useEffect(() => {
+    fetch("/api/staff/drivers")
+      .then((r) => r.json())
+      .then((d) => setDrivers(d.drivers ?? []))
+      .catch(() => {});
+  }, []);
 
   // Test centralki: przechodzi PEŁNĄ drogą webhooka (jak prawdziwe połączenie).
   const simulateCall = async () => {
@@ -589,7 +598,7 @@ export default function PanelPage() {
             {prog.map((o) => (
               <OrderCard key={o.id} order={o} onAdvance={advance}>
                 <EtaLine order={o} onEta={(m) => setEta(o.id, m)} />
-                <StatusButtons order={o} onAdvance={advance} />
+                <StatusButtons order={o} onAdvance={advance} drivers={drivers} />
               </OrderCard>
             ))}
             {prog.length === 0 && <Empty />}
@@ -619,7 +628,7 @@ export default function PanelPage() {
                       </span>
                     )}
                   </div>
-                  <StatusButtons order={o} onAdvance={advance} />
+                  <StatusButtons order={o} onAdvance={advance} drivers={drivers} />
                 </OrderCard>
               );
             })}
@@ -967,7 +976,18 @@ function OrderCard({
   );
 }
 
-function StatusButtons({ order, onAdvance }: { order: Order; onAdvance: (id: string, s: OrderStatus) => void }) {
+function StatusButtons({
+  order,
+  onAdvance,
+  drivers = [],
+}: {
+  order: Order;
+  onAdvance: (id: string, s: OrderStatus, reason?: string, driver?: string) => void;
+  drivers?: string[];
+}) {
+  const [driverOpen, setDriverOpen] = useState(false);
+  const [driverName, setDriverName] = useState("");
+
   const next: { label: string; status: OrderStatus }[] = [];
   if (order.status === "scheduled") next.push({ label: "Zaczynamy przygotowanie", status: "in_progress" });
   if (order.status === "in_progress") {
@@ -986,18 +1006,86 @@ function StatusButtons({ order, onAdvance }: { order: Order; onAdvance: (id: str
   }
   if (order.status === "on_delivery") next.push({ label: "Dostarczone ✓", status: "completed" });
   if (next.length === 0) return null;
+
+  const go = (s: OrderStatus) => {
+    // Wydanie dostawy: najpierw wybór kierowcy (rozliczenie kursów w „Dziś").
+    if (s === "on_delivery" && order.mode === "delivery" && !driverOpen) {
+      setDriverOpen(true);
+      return;
+    }
+    onAdvance(order.id, s);
+  };
+
+  if (driverOpen) {
+    return (
+      <div className="mt-2.5">
+        <div className="mb-1.5 text-[11.5px] font-bold uppercase tracking-[0.1em]" style={{ color: MUTED }}>
+          Który kierowca bierze ten kurs?
+        </div>
+        <div className="flex flex-wrap items-center gap-2">
+          {drivers.map((d) => (
+            <button
+              key={d}
+              onClick={() => onAdvance(order.id, "on_delivery", undefined, d)}
+              className="rounded-full px-4 py-2 text-[12.5px] font-bold"
+              style={{ background: LIME, color: "#1D2A22" }}
+            >
+              {d}
+            </button>
+          ))}
+          <input
+            value={driverName}
+            onChange={(e) => setDriverName(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" && driverName.trim()) onAdvance(order.id, "on_delivery", undefined, driverName.trim());
+            }}
+            placeholder="inne imię…"
+            className="w-28 rounded-full px-3.5 py-2 text-[12.5px] font-semibold outline-none"
+            style={{ background: SUB, color: CREAM, border: "1px solid rgba(27,23,16,0.13)" }}
+          />
+          {driverName.trim() && (
+            <button
+              onClick={() => onAdvance(order.id, "on_delivery", undefined, driverName.trim())}
+              className="rounded-full px-4 py-2 text-[12.5px] font-bold"
+              style={{ background: LIME, color: "#1D2A22" }}
+            >
+              OK
+            </button>
+          )}
+          <button
+            onClick={() => onAdvance(order.id, "on_delivery")}
+            className="px-2 text-[12px] font-semibold underline"
+            style={{ color: MUTED }}
+          >
+            bez przypisania
+          </button>
+          <button onClick={() => setDriverOpen(false)} className="px-1 text-[12px] font-semibold underline" style={{ color: MUTED }}>
+            wróć
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div className="mt-2.5 flex gap-2">
-      {next.map((n) => (
-        <button
-          key={n.status}
-          onClick={() => onAdvance(order.id, n.status)}
-          className="flex-1 rounded-full py-2.5 text-[12.5px] font-bold transition hover:opacity-90"
-          style={{ background: "rgba(140,165,59,0.12)", border: "1px solid rgba(140,165,59,0.45)", color: OLIVE }}
-        >
-          {n.label}
-        </button>
-      ))}
+    <div className="mt-2.5">
+      {order.status === "on_delivery" && order.driver && (
+        <div className="mb-1.5 text-[12px] font-bold" style={{ color: OLIVE }}>
+          Kierowca: {order.driver}
+        </div>
+      )}
+      <div className="flex gap-2">
+        {next.map((n) => (
+          <button
+            key={n.status}
+            onClick={() => go(n.status)}
+            className="flex-1 rounded-full py-2.5 text-[12.5px] font-bold transition hover:opacity-90"
+            style={{ background: "rgba(140,165,59,0.12)", border: "1px solid rgba(140,165,59,0.45)", color: OLIVE }}
+          >
+            {n.label}
+          </button>
+        ))}
+      </div>
     </div>
   );
 }
@@ -1027,6 +1115,15 @@ function HistoryView({ orders: all }: { orders: Order[] }) {
   const card = done.filter((o) => o.payment === "card").reduce((s, o) => s + o.total, 0);
   const online = done.filter((o) => o.payment === "online").reduce((s, o) => s + o.total, 0);
   const avg = done.length ? revenue / done.length : 0;
+
+  // Rozliczenie kierowców: kursy i utarg per kierowca (dostawy zrealizowane).
+  const byDriver = new Map<string, { count: number; sum: number }>();
+  for (const o of done) {
+    if (o.mode !== "delivery") continue;
+    const key = o.driver ?? "bez przypisania";
+    const cur = byDriver.get(key) ?? { count: 0, sum: 0 };
+    byDriver.set(key, { count: cur.count + 1, sum: cur.sum + o.total });
+  }
 
   return (
     <div className="p-4">
@@ -1060,6 +1157,25 @@ function HistoryView({ orders: all }: { orders: Order[] }) {
         <Tile label="Anulowane" value={String(canceled.length)} />
       </div>
 
+      {byDriver.size > 0 && (
+        <div className="mt-4 rounded-3xl p-3.5" style={{ background: CARD, border: "1px solid #EAE2D2" }}>
+          <h2 className="mb-3 px-1 text-[11px] font-extrabold uppercase tracking-[0.14em]" style={{ color: MUTED }}>
+            Kierowcy — kursy i utarg (zamówienia online/telefon)
+          </h2>
+          <div className="flex flex-wrap gap-2">
+            {[...byDriver.entries()]
+              .sort((a, b) => b[1].sum - a[1].sum)
+              .map(([name, v]) => (
+                <div key={name} className="flex items-baseline gap-2.5 rounded-xl px-3.5 py-2.5 text-[13px]" style={{ background: SUB }}>
+                  <b>{name}</b>
+                  <span style={{ color: MUTED }}>{v.count} {v.count === 1 ? "kurs" : v.count < 5 ? "kursy" : "kursów"}</span>
+                  <b className="tabular-nums">{zl(v.sum)}</b>
+                </div>
+              ))}
+          </div>
+        </div>
+      )}
+
       <div className="mt-4 rounded-3xl p-3.5" style={{ background: CARD, border: "1px solid #EAE2D2" }}>
         <h2 className="mb-3 px-1 text-[11px] font-extrabold uppercase tracking-[0.14em]" style={{ color: MUTED }}>
           Zamówienia — {day === today ? "dziś" : day} (najnowsze u góry)
@@ -1079,6 +1195,7 @@ function HistoryView({ orders: all }: { orders: Order[] }) {
                 {o.items.reduce((s, i) => s + i.qty, 0)} poz. · {o.mode === "pickup" ? "odbiór" : "dostawa"} ·{" "}
                 {o.payment === "cash" ? "gotówka" : o.payment === "card" ? "karta" : "online"}
                 {o.source === "phone" ? " · telefon" : ""}
+                {o.driver ? ` · kierowca: ${o.driver}` : ""}
               </span>
               <span className="ml-auto font-extrabold">{zl(o.total)}</span>
               {o.status === "canceled" ? (

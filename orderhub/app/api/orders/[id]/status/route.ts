@@ -19,11 +19,13 @@ export async function POST(req: Request, ctx: { params: Promise<{ id: string }> 
   let status: OrderStatus | undefined;
   let by: string | undefined;
   let reason: string | undefined;
+  let driver: string | undefined;
   try {
-    const body = (await req.json()) as { status?: OrderStatus; by?: string; reason?: string };
+    const body = (await req.json()) as { status?: OrderStatus; by?: string; reason?: string; driver?: string };
     status = body.status;
     by = body.by?.trim() || undefined;
     reason = body.reason?.trim() || undefined;
+    driver = body.driver?.trim() || undefined;
   } catch {
     /* ignore */
   }
@@ -33,6 +35,7 @@ export async function POST(req: Request, ctx: { params: Promise<{ id: string }> 
   const patch: Record<string, unknown> = { status };
   if (by) patch.staff = by;
   if (status === "canceled" && reason) patch.cancelReason = reason;
+  if (status === "on_delivery" && driver) patch.driver = driver;
   const updated = await orderStore.update(id, patch);
   if (!updated) return NextResponse.json({ error: "Nie znaleziono." }, { status: 404 });
   return NextResponse.json({ order: updated });

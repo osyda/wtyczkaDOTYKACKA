@@ -107,6 +107,17 @@ przekierowanie 301 z `mammarosa.pl/zamow-online/` (wtyczka Redirection w WP). NI
   „Telefony" (`/api/cti/calls`, Oddzwoń / Zamów), karta na `/status`.
   Do podłączenia na żywo: MacroDroid na komórce lokalu ALBO webhook u operatora
   VoIP — czeka na ustalenie typu linii właściciela.
+- Obieg z POS i utarg kierowców (USTALENIE 11.07.2026, workflow właściciela):
+  dziś zamówienie wpada do POS, dostawę kelnerka drukuje wchodząc na KOD KIEROWCY
+  (utarg kierowcy), odbiór kasuje ze swojego kodu. Z nowym systemem DZIEŃ PIERWSZY
+  = identycznie: `order/create` tworzy otwarte zamówienie w POS, obsługa drukuje
+  jak zawsze. DODATKOWO panel przy „W drodze" pyta „który kierowca bierze kurs?"
+  (lista z env `DRIVERS` + wolny wpis; `order.driver`) i liczy kursy/utarg per
+  kierowca w zakładce „Dziś" — niezależnie od POS. DO PRZETESTOWANIA po podpięciu
+  kluczy: pole `user-id` w akcji `order/create` (pos-actions) — hipoteza: zamówienie
+  utworzone z user-id kierowcy/kelnerki liczy się do jego utargu bez wchodzenia na
+  kod przy terminalu; jeśli tak, można zautomatyzować przypisanie (kierowca wybrany
+  w panelu → user-id w POS) i wyeliminować przełączanie kodów.
 - Autoryzacja obsługi: `lib/staffAuth.ts` + `proxy.ts` + `/api/staff/*`.
   Bez `STAFF_PIN` → panel otwarty (tryb testowy). Z `STAFF_PIN` → logowanie wspólnym PIN-em
   LUB osobistym kodem pracownika z Dotykački (`lib/dotykacka/employees.ts` — pola-kandydaci
