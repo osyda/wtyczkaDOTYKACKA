@@ -7,6 +7,7 @@ import {
   type DeliveryQuote,
 } from "@/lib/delivery";
 import { estimateDrivingKm, distanceFromRestaurant, hasGeocoder, CITY_RADIUS_KM } from "@/lib/geo";
+import { getPlaceKm, setPlaceKm } from "@/lib/placeKm";
 
 export const dynamic = "force-dynamic";
 
@@ -50,17 +51,27 @@ export async function POST(req: Request) {
     return NextResponse.json(flatCityQuote());
   }
 
-  // Poza miastem → automatyczne liczenie odległości drogowej.
+  // Poza miastem → automatyczne liczenie odległości drogowej (geokoder z kotwicą na lokal).
   const address = [body.street, body.zip, body.city, "Polska"].filter(Boolean).join(", ");
   const km = await estimateDrivingKm(address);
 
   if (km !== null) {
+    // Zapamiętaj miejscowość — będzie działać nawet przy chwilowej awarii map.
+    void setPlaceKm(body.city, km);
     return NextResponse.json(kmQuote(km));
   }
 
-  // Fallback: brak geokodera (np. tryb DEMO bez klucza ORS).
+  // Ręcznie podana odległość → użyj i ZAPAMIĘTAJ dla tej miejscowości.
   if (typeof body.manualKm === "number" && body.manualKm > 0) {
+    await setPlaceKm(body.city, body.manualKm);
     return NextResponse.json(kmQuote(body.manualKm, true));
+  }
+
+  // Samoucząca się tabela: miejscowość podawana wcześniej liczy się sama.
+  const savedKm = await getPlaceKm(body.city);
+  if (savedKm !== null) {
+    const q = kmQuote(savedKm, true);
+    return NextResponse.json({ ...q, remembered: true, label: `${q.label} — zapamiętana odległość` });
   }
 
   const resp: DeliveryQuote & { needsManual: boolean; geocoder: boolean } = {
@@ -68,7 +79,7 @@ export async function POST(req: Request) {
     fee: 0,
     inCity: false,
     estimated: true,
-    label: "Podaj odległość (km) — automatyczne liczenie wymaga klucza map",
+    label: "Nowa miejscowość — podaj odległość w km (zapamiętamy ją)",
     needsManual: true,
     geocoder: hasGeocoder(),
   };

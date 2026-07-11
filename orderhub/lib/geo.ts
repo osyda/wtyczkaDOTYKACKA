@@ -35,6 +35,13 @@ async function geocode(address: string): Promise<LatLng | null> {
   url.searchParams.set("api_key", ORS_KEY);
   url.searchParams.set("text", address);
   url.searchParams.set("boundary.country", "PL");
+  // Kotwica na lokal: preferuj wyniki wokół Kościerzyny i ogranicz do 40 km,
+  // żeby „Stężyca" znaczyła tę kaszubską, a nie inną w Polsce.
+  url.searchParams.set("focus.point.lat", String(ORIGIN.lat));
+  url.searchParams.set("focus.point.lon", String(ORIGIN.lng));
+  url.searchParams.set("boundary.circle.lat", String(ORIGIN.lat));
+  url.searchParams.set("boundary.circle.lon", String(ORIGIN.lng));
+  url.searchParams.set("boundary.circle.radius", "40");
   url.searchParams.set("size", "1");
 
   const res = await fetch(url, { cache: "no-store" });
