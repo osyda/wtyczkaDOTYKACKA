@@ -16,7 +16,12 @@ webhooków/API o połączeniach przychodzących dla stacjonarnych, więc realne 
   jest przy przekierowaniu zachowywany, więc panel rozpozna klienta.
 - **C**: bramka FXO w lokalu (np. Grandstream HT813) — bez zmian w Orange,
   odbieranie po staremu; wymaga zakupu i konfiguracji mostka.
-Właściciel ma zdecydować; można łączyć: A′ od zaraz, B docelowo.
+DECYZJA WŁAŚCICIELA (11.07.2026): **wariant A′** na start (przekierowanie
+stacjonarnego na komórkę + MacroDroid). Wariant B (przenosiny do VoIP) zostaje
+jako opcja docelowa na później. Obawa o opóźnienia wyjaśniona: przekierowanie
+bezwarunkowe dzieje się w centrali Orange (dzwoniący nic nie zauważa, komórka
+dzwoni od razu), a MacroDroid tylko RAPORTUJE numer równolegle do dzwonienia —
+nie stoi na drodze rozmowy, więc niczego nie opóźnia.
 
 ## Jak to działa (obraz całości)
 
