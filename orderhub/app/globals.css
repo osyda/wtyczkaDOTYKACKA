@@ -38,6 +38,62 @@ body {
   animation: ct-rise 0.7s ease forwards;
 }
 
+/* Karta produktu: płynne otwarcie i zamknięcie */
+@keyframes ct-fade {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+@keyframes ct-sheet-up {
+  from { opacity: 0; transform: translateY(48px); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes ct-sheet-in {
+  from { opacity: 0; transform: translateY(14px) scale(0.985); }
+  to { opacity: 1; transform: none; }
+}
+.ct-backdrop {
+  animation: ct-fade 0.28s ease both;
+}
+.ct-sheet {
+  animation: ct-sheet-up 0.38s cubic-bezier(0.22, 0.85, 0.3, 1) both;
+}
+@media (min-width: 700px) {
+  .ct-sheet {
+    animation-name: ct-sheet-in;
+    animation-duration: 0.3s;
+  }
+}
+/* Zamykanie: osobne animacje (zmiana nazwy restartuje odtwarzanie) */
+@keyframes ct-fade-out {
+  from { opacity: 1; }
+  to { opacity: 0; }
+}
+@keyframes ct-sheet-down {
+  from { opacity: 1; transform: none; }
+  to { opacity: 0; transform: translateY(48px); }
+}
+@keyframes ct-sheet-out {
+  from { opacity: 1; transform: none; }
+  to { opacity: 0; transform: translateY(14px) scale(0.985); }
+}
+.ct-modal-closing .ct-backdrop {
+  animation: ct-fade-out 0.22s ease-in both;
+}
+.ct-modal-closing .ct-sheet {
+  animation: ct-sheet-down 0.22s ease-in both;
+}
+@media (min-width: 700px) {
+  .ct-modal-closing .ct-sheet {
+    animation-name: ct-sheet-out;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .ct-backdrop, .ct-sheet,
+  .ct-modal-closing .ct-backdrop, .ct-modal-closing .ct-sheet {
+    animation-duration: 0.01s;
+  }
+}
+
 /* Składniki spadające na pizzę */
 @keyframes ct-drop {
   from { opacity: 0; transform: translateY(-34px) scale(1.35); }

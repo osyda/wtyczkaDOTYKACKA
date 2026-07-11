@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import type { MenuAddon, MenuProduct } from "@/lib/dotykacka/types";
 import { useCart } from "@/lib/cart/CartProvider";
 import { zl } from "@/lib/format";
@@ -20,6 +20,16 @@ export function ProductModal({
   const { addProduct } = useCart();
   const [qty, setQty] = useState(1);
   const [selected, setSelected] = useState<Record<string, boolean>>({});
+  const [closing, setClosing] = useState(false);
+  const closeTimer = useRef(0);
+
+  // Płynne zamknięcie: najpierw animacja wyjścia, potem zdjęcie okna z ekranu.
+  const requestClose = () => {
+    if (closing) return;
+    setClosing(true);
+    closeTimer.current = window.setTimeout(onClose, 230);
+  };
+  useEffect(() => () => window.clearTimeout(closeTimer.current), []);
 
   const addons = product.addons ?? [];
   const chosen = useMemo<MenuAddon[]>(() => addons.filter((a) => selected[a.id]), [addons, selected]);
@@ -52,16 +62,16 @@ export function ProductModal({
 
   return (
     <div
-      className="fixed inset-0 z-[60] flex items-end justify-center min-[700px]:items-center min-[700px]:p-[34px]"
-      style={{ background: "rgba(27,23,16,.36)" }}
-      onClick={(e) => e.target === e.currentTarget && onClose()}
+      className={`fixed inset-0 z-[60] flex items-end justify-center min-[700px]:items-center min-[700px]:p-[34px] ${closing ? "ct-modal-closing" : ""}`}
+      onClick={(e) => e.target === e.currentTarget && requestClose()}
     >
+      <div className="ct-backdrop pointer-events-none absolute inset-0" style={{ background: "rgba(27,23,16,.36)" }} />
       <div
-        className="max-h-[92vh] w-full max-w-[430px] overflow-y-auto border-t p-[26px] min-[700px]:max-h-[88vh] min-[700px]:max-w-[560px] min-[700px]:border"
+        className="ct-sheet relative max-h-[92vh] w-full max-w-[430px] overflow-y-auto border-t p-[26px] min-[700px]:max-h-[88vh] min-[700px]:max-w-[560px] min-[700px]:border"
         style={{ background: C.ivory, borderColor: C.ink, color: C.ink }}
       >
         <button
-          onClick={onClose}
+          onClick={requestClose}
           aria-label="Zamknij"
           className="float-right cursor-pointer px-1.5 py-0.5 text-[20px]"
           style={{ color: C.muted }}
@@ -161,7 +171,7 @@ export function ProductModal({
         <button
           onClick={() => {
             addProduct(product, qty, chosen);
-            onClose();
+            requestClose();
             onAdded?.(product.name, qty);
           }}
           className="mt-[26px] flex w-full cursor-pointer items-center justify-between px-[22px] py-[18px] text-[11px] uppercase tracking-[0.24em] transition-transform active:scale-[0.985]"
