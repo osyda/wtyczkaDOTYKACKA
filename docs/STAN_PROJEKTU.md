@@ -89,6 +89,13 @@ przekierowanie 301 z `mammarosa.pl/zamow-online/` (wtyczka Redirection w WP). NI
   ogonków), poza miastem 2 zł/km do 15 km, dalej „poza zasięgiem". `lib/geo.ts` — ORS
   (klucz `ORS_API_KEY`) geokodowanie/trasa/reverse-geocode; fallback haversine ×1,3.
   Współrzędne lokalu: `RESTAURANT_LAT/LNG` (obecnie przybliżone 54.1226/17.9766 — doprecyzować!).
+- Godziny otwarcia: `lib/hours.ts` + `/api/hours`. Źródła: wizytówka Google
+  (`GOOGLE_MAPS_API_KEY`, Places Text Search po `GOOGLE_PLACE_QUERY`, cache 6 h w Redis+pamięci)
+  → zmienna `OPENING_HOURS` („pn-czw 11:00-21:00; nd zamknięte") → domyślne 11–21.
+  Ostatnie zamówienie `LAST_ORDER_MIN` (domyślnie 20) minut przed zamknięciem; strefa
+  Europe/Warsaw, obsługa zamknięcia po północy. Egzekwowanie: baner + zablokowana kasa
+  w `/menu` i `/checkout` (odpytują `/api/hours` co 60 s) ORAZ serwerowo w POST
+  `/api/orders` (403). Telefoniczne (`source:"phone"`) przechodzą zawsze. Karta na `/status`.
 - CTI (telefon → klient): `lib/cti.ts` + `/api/cti/lookup` + baner w panelu. Szkielet gotowy,
   czeka na ustalenie typu linii telefonicznej właściciela.
 - Autoryzacja obsługi: `lib/staffAuth.ts` + `proxy.ts` + `/api/staff/*`.
@@ -127,6 +134,8 @@ Jasna, redakcyjna „karta menu”. Tokeny w `orderhub/lib/carta.ts` i `app/glob
 | DOTYKACKA_SEND_ORDERS | **bezpiecznik**: `true` = rachunki idą do POS (go-live!) |
 | DOTYKACKA_DELIVERY_CITY/KM_PRODUCT_ID | produkty „dostawa" w POS |
 | ORS_API_KEY, RESTAURANT_LAT/LNG, DELIVERY_CITY_RADIUS_KM | mapy/odległości |
+| GOOGLE_MAPS_API_KEY, GOOGLE_PLACE_QUERY | godziny otwarcia z wizytówki Google |
+| OPENING_HOURS, LAST_ORDER_MIN | godziny ręcznie + bufor ostatniego zamówienia (20 min) |
 
 ## 7. Co jest ZROBIONE (A→Z, chronologicznie)
 

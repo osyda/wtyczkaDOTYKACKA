@@ -10,12 +10,34 @@ import { C, SERIF } from "@/lib/carta";
 
 /* ================= CARTA · menu jak redakcyjna karta ================= */
 
+type HoursState = { open: boolean; acceptingOrders: boolean; message: string; lastOrder: string | null };
+
 export function Shop({ menu }: { menu: Menu }) {
   const isLive = menu.source === "live";
   const [modalProduct, setModalProduct] = useState<MenuProduct | null>(null);
   const [cartOpen, setCartOpen] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
+  const [hours, setHours] = useState<HoursState | null>(null);
   const { lines, itemCount, subtotal, setQty, remove } = useCart();
+
+  // Godziny otwarcia: po zamknięciu (i 20 min przed) blokujemy przejście do kasy.
+  useEffect(() => {
+    let alive = true;
+    const load = () =>
+      fetch("/api/hours")
+        .then((r) => r.json())
+        .then((d: HoursState) => {
+          if (alive) setHours(d);
+        })
+        .catch(() => {});
+    load();
+    const t = window.setInterval(load, 60_000);
+    return () => {
+      alive = false;
+      window.clearInterval(t);
+    };
+  }, []);
+  const closedNow = hours !== null && !hours.acceptingOrders;
 
   const cats = menu.categories;
   const [activeCat, setActiveCat] = useState<string>(cats[0]?.id ?? "");
@@ -89,6 +111,16 @@ export function Shop({ menu }: { menu: Menu }) {
             <span className="h-px flex-1" style={{ background: C.hairline }} />
           </div>
         </header>
+
+        {/* Poza godzinami — menu można oglądać, zamówić nie */}
+        {closedNow && hours && (
+          <div className="ct-reveal mt-7 border px-6 py-5 text-center" style={{ borderColor: C.accent, background: C.paper }}>
+            <div className="text-[9px] uppercase tracking-[0.3em]" style={{ color: C.accent, textIndent: "0.3em" }}>
+              ZAMÓWIENIA WSTRZYMANE
+            </div>
+            <p className="font-carta mt-2.5 text-[15.5px] italic leading-snug">{hours.message}</p>
+          </div>
+        )}
 
         {/* Pasek kategorii — przykleja się u góry */}
         <nav
@@ -320,18 +352,18 @@ export function Shop({ menu }: { menu: Menu }) {
             <Link
               href="/checkout"
               onClick={(e) => {
-                if (lines.length === 0) e.preventDefault();
+                if (lines.length === 0 || closedNow) e.preventDefault();
               }}
               className="mt-[26px] flex w-full items-center justify-between px-[22px] py-[18px] text-[11px] uppercase tracking-[0.24em] transition-transform active:scale-[0.985]"
               style={{
                 background: C.ink,
                 color: C.ivory,
                 textIndent: "0.24em",
-                opacity: lines.length === 0 ? 0.35 : 1,
-                pointerEvents: lines.length === 0 ? "none" : undefined,
+                opacity: lines.length === 0 || closedNow ? 0.35 : 1,
+                pointerEvents: lines.length === 0 || closedNow ? "none" : undefined,
               }}
             >
-              <span>Przejdź do kasy</span>
+              <span>{closedNow ? "Poza godzinami zamówień" : "Przejdź do kasy"}</span>
               <b className="font-carta text-[16px] font-normal normal-case tracking-normal">{zl(subtotal)}</b>
             </Link>
           </div>
