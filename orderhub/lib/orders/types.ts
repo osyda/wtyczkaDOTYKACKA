@@ -66,6 +66,8 @@ export interface Order {
   cancelReason?: string;
   /** Kierowca, któremu wydano dostawę (rozliczenie kursów w „Dziś"). */
   driver?: string;
+  /** Rabat: kod promocyjny albo ręczny rabat obsługi (amount = zł od koszyka). */
+  discount?: { amount: number; code?: string; reason?: string };
 
   // Integracja z Dotykačką
   pos: {

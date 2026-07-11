@@ -172,6 +172,10 @@ export default function CheckoutPage() {
   const [quote, setQuote] = useState<Quote>(flatCityQuote());
   const [quoting, setQuoting] = useState(false);
   const [hours, setHours] = useState<{ acceptingOrders: boolean; message: string } | null>(null);
+  const [promoInput, setPromoInput] = useState("");
+  const [promo, setPromo] = useState<{ code: string; discount: number; label: string } | null>(null);
+  const [promoMsg, setPromoMsg] = useState<string | null>(null);
+  const [promoChecking, setPromoChecking] = useState(false);
 
   // Godziny otwarcia — ostatnie zamówienie 20 min przed zamknięciem (serwer i tak pilnuje).
   useEffect(() => {
@@ -289,11 +293,47 @@ export default function CheckoutPage() {
   }, [mode, coords, form.street, form.city, form.zip, manualKm]);
 
   const deliveryFee = quote.fee;
-  const total = subtotal + deliveryFee;
+  const discount = promo?.discount ?? 0;
+  const total = Math.max(0, subtotal - discount) + deliveryFee;
 
   // Minimalna wartość zamówienia z dostawą (bez opłaty za dowóz): do 6 km 40 zł, dalej 60 zł.
+  // Liczona od koszyka PRZED rabatem.
   const minOrder = mode === "delivery" ? (quote.minOrder ?? 0) : 0;
   const belowMin = minOrder > 0 && subtotal < minOrder;
+
+  const applyPromo = async (codeRaw?: string) => {
+    const code = (codeRaw ?? promoInput).trim();
+    if (!code) return;
+    setPromoChecking(true);
+    setPromoMsg(null);
+    try {
+      const res = await fetch("/api/promo/validate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ code, subtotal, mode, phone: form.phone, source: "online" }),
+      });
+      const d = await res.json();
+      if (d.ok) {
+        setPromo({ code: d.code, discount: d.discount, label: d.label });
+        setPromoMsg(null);
+      } else {
+        setPromo(null);
+        setPromoMsg(d.reason ?? "Kod nie zadziałał.");
+      }
+    } catch {
+      setPromoMsg("Nie udało się sprawdzić kodu — spróbuj ponownie.");
+    } finally {
+      setPromoChecking(false);
+    }
+  };
+
+  // Koszyk/tryb się zmienił → przelicz zastosowany kod (rabat % zależy od koszyka).
+  useEffect(() => {
+    if (!promo) return;
+    const t = setTimeout(() => applyPromo(promo.code), 400);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [subtotal, mode]);
 
   const phoneValid = form.phone.replace(/\D/g, "").length >= 9;
   const canOrder =
@@ -331,6 +371,7 @@ export default function CheckoutPage() {
       deliveryFee,
       total,
       payment,
+      promoCode: promo?.code,
     };
     try {
       const res = await fetch("/api/orders", {
@@ -536,6 +577,54 @@ export default function CheckoutPage() {
                 <span className="font-carta min-w-[56px] text-right text-[14px]">{zl(lineTotal(l))}</span>
               </div>
             ))}
+            {/* Kod rabatowy */}
+            <div className="mt-4 border-b pb-4" style={{ borderColor: C.hairlineSoft }}>
+              {promo ? (
+                <div className="flex items-baseline text-[12px]">
+                  <span style={{ color: C.muted }}>Kod {promo.label}</span>
+                  <span className="mx-2.5 flex-1 -translate-y-[3px] border-b border-dotted" style={{ borderColor: C.leader }} />
+                  <span className="font-carta text-[14px]" style={{ color: C.accent }}>−{zl(promo.discount)}</span>
+                  <button
+                    onClick={() => {
+                      setPromo(null);
+                      setPromoInput("");
+                    }}
+                    className="ml-3 cursor-pointer text-[10.5px] underline underline-offset-2"
+                    style={{ color: C.muted }}
+                  >
+                    usuń
+                  </button>
+                </div>
+              ) : (
+                <div className="flex items-end gap-3">
+                  <label className="min-w-0 flex-1">
+                    <span className="mb-1 block text-[9px] uppercase tracking-[0.26em]" style={{ color: C.muted, textIndent: "0.26em" }}>
+                      MAM KOD RABATOWY
+                    </span>
+                    <input
+                      value={promoInput}
+                      onChange={(e) => setPromoInput(e.target.value.toUpperCase())}
+                      onKeyDown={(e) => e.key === "Enter" && applyPromo()}
+                      placeholder="np. WITAJ10"
+                      className="w-full border-b bg-transparent pb-1.5 text-[14px] uppercase outline-none"
+                      style={{ borderColor: C.hairline, color: C.ink }}
+                    />
+                  </label>
+                  <button
+                    onClick={() => applyPromo()}
+                    disabled={promoChecking || !promoInput.trim()}
+                    className="cursor-pointer border-b pb-1.5 text-[10px] uppercase tracking-[0.22em] disabled:opacity-40"
+                    style={{ color: C.accent, borderColor: C.accent, textIndent: "0.22em" }}
+                  >
+                    {promoChecking ? "Sprawdzam…" : "Zastosuj"}
+                  </button>
+                </div>
+              )}
+              {promoMsg && (
+                <p className="mt-2 text-[11px]" style={{ color: C.accent }}>{promoMsg}</p>
+              )}
+            </div>
+
             <div className="mt-2">
               <SumLine label={deliveryLabel} value={mode === "delivery" && !quote.available ? "—" : zl(deliveryFee)} />
               <div className="flex items-baseline pt-2">

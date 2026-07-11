@@ -47,6 +47,12 @@ const IconPhone = ({ className }: { className?: string }) => (
     <path d="M5 4.5 H8.5 L10 9 L7.8 10.8 A12 12 0 0 0 13.2 16.2 L15 14 L19.5 15.5 V19 A1.8 1.8 0 0 1 17.5 20.8 A16 16 0 0 1 3.2 6.5 A1.8 1.8 0 0 1 5 4.5 Z" {...stroke} />
   </svg>
 );
+const IconTag = ({ className }: { className?: string }) => (
+  <svg viewBox="0 0 24 24" className={className}>
+    <path d="M12.5 3.5 H19 A1.5 1.5 0 0 1 20.5 5 V11.5 L11.5 20.5 A1.8 1.8 0 0 1 9 20.5 L3.5 15 A1.8 1.8 0 0 1 3.5 12.5 Z" {...stroke} />
+    <circle cx="16" cy="8" r="1.4" {...stroke} />
+  </svg>
+);
 const IconTruck = ({ className }: { className?: string }) => (
   <svg viewBox="0 0 24 24" className={className}>
     <path d="M3 7 H14 V16 H3 Z M14 10 H18.5 L21 13 V16 H14" {...stroke} />
@@ -203,6 +209,7 @@ function printOrder(order: Order) {
   <div>${esc(order.customer.name)} · tel. ${esc(order.customer.phone)}</div>
   <div>${addr}</div>
   <hr>
+  ${order.discount ? `<div class="row"><span>RABAT${order.discount.code ? ` (${esc(order.discount.code)})` : order.discount.reason ? ` (${esc(order.discount.reason)})` : ""}</span><span>−${zl(order.discount.amount)}</span></div>` : ""}
   <div class="row"><b>RAZEM</b><b>${zl(order.total)}</b></div>
   <div class="row"><span>płatność</span><span>${order.payment === "cash" ? "GOTÓWKA" : order.payment === "card" ? "KARTA" : "OPŁACONE ONLINE"}</span></div>
 </body></html>`;
@@ -221,7 +228,7 @@ export default function PanelPage() {
   const [now, setNow] = useState("--:--");
   const [caller, setCaller] = useState<CallerInfo | null>(null);
   const [simPhone, setSimPhone] = useState("");
-  const [view, setView] = useState<"board" | "history" | "calls">("board");
+  const [view, setView] = useState<"board" | "history" | "calls" | "promo">("board");
   const [calls, setCalls] = useState<{ id: string; phone: string; at: string; name: string | null }[]>([]);
   const lastRingAt = useRef<string>("");
   const [soundOn, setSoundOn] = useState(false);
@@ -504,6 +511,9 @@ export default function PanelPage() {
           <TopBtn active={view === "calls"} onClick={() => setView("calls")}>
             <IconPhone className="h-4 w-4" /> Telefony
           </TopBtn>
+          <TopBtn active={view === "promo"} onClick={() => setView("promo")}>
+            <IconTag className="h-4 w-4" /> Rabaty
+          </TopBtn>
           <Link
             href="/panel/telefon"
             className="flex items-center gap-1.5 rounded-full px-3.5 py-2 text-[12.5px] font-bold"
@@ -637,10 +647,195 @@ export default function PanelPage() {
         </div>
       ) : view === "history" ? (
         <HistoryView orders={orders} />
-      ) : (
+      ) : view === "calls" ? (
         <CallsView calls={calls} />
+      ) : (
+        <PromoView />
       )}
     </main>
+  );
+}
+
+/* ---------- Kody rabatowe ---------- */
+
+type PromoRow = {
+  code: string;
+  kind: "percent" | "amount";
+  value: number;
+  minSubtotal?: number;
+  scope: "all" | "delivery" | "pickup";
+  onlineOnly?: boolean;
+  oncePerPhone?: boolean;
+  firstOrderOnly?: boolean;
+  validUntil?: string;
+  maxUses?: number;
+  active: boolean;
+  usedCount: number;
+};
+
+function promoDesc(c: PromoRow): string {
+  const bits: string[] = [];
+  bits.push(c.kind === "percent" ? `−${c.value}%` : `−${c.value} zł`);
+  if (c.minSubtotal) bits.push(`od ${c.minSubtotal} zł`);
+  if (c.scope === "delivery") bits.push("tylko dostawa");
+  if (c.scope === "pickup") bits.push("tylko odbiór");
+  if (c.onlineOnly) bits.push("tylko strona");
+  if (c.oncePerPhone) bits.push("raz na numer");
+  if (c.firstOrderOnly) bits.push("nowi klienci");
+  if (c.validUntil) bits.push(`do ${c.validUntil}`);
+  if (c.maxUses) bits.push(`limit ${c.maxUses}`);
+  return bits.join(" · ");
+}
+
+function PromoView() {
+  const [codes, setCodes] = useState<PromoRow[]>([]);
+  const [saving, setSaving] = useState(false);
+  const [formError, setFormError] = useState<string | null>(null);
+  const [f, setF] = useState({
+    code: "",
+    kind: "percent" as "percent" | "amount",
+    value: "",
+    minSubtotal: "",
+    scope: "all" as "all" | "delivery" | "pickup",
+    onlineOnly: false,
+    oncePerPhone: false,
+    firstOrderOnly: false,
+    validUntil: "",
+    maxUses: "",
+  });
+
+  const load = useCallback(() => {
+    fetch("/api/promo/codes", { cache: "no-store" })
+      .then((r) => r.json())
+      .then((d) => setCodes(d.codes ?? []))
+      .catch(() => {});
+  }, []);
+  useEffect(load, [load]);
+
+  const submit = async () => {
+    setSaving(true);
+    setFormError(null);
+    const res = await fetch("/api/promo/codes", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        code: f.code,
+        kind: f.kind,
+        value: Number(f.value),
+        minSubtotal: f.minSubtotal ? Number(f.minSubtotal) : undefined,
+        scope: f.scope,
+        onlineOnly: f.onlineOnly,
+        oncePerPhone: f.oncePerPhone,
+        firstOrderOnly: f.firstOrderOnly,
+        validUntil: f.validUntil || undefined,
+        maxUses: f.maxUses ? Number(f.maxUses) : undefined,
+        active: true,
+      }),
+    });
+    setSaving(false);
+    if (!res.ok) {
+      const d = await res.json().catch(() => ({}));
+      setFormError(d.error ?? "Nie udało się zapisać kodu.");
+      return;
+    }
+    setF({ code: "", kind: "percent", value: "", minSubtotal: "", scope: "all", onlineOnly: false, oncePerPhone: false, firstOrderOnly: false, validUntil: "", maxUses: "" });
+    load();
+  };
+
+  const toggle = async (c: PromoRow) => {
+    await fetch("/api/promo/codes", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ ...c, active: !c.active }),
+    });
+    load();
+  };
+
+  const remove = async (code: string) => {
+    if (!window.confirm(`Usunąć kod ${code}? (Historia zamówień zostaje bez zmian.)`)) return;
+    await fetch(`/api/promo/codes?code=${encodeURIComponent(code)}`, { method: "DELETE" });
+    load();
+  };
+
+  const inputCls = "rounded-xl px-3.5 py-2.5 text-[13.5px] font-semibold outline-none";
+  const inputStyle = { background: SUB, color: CREAM, border: "1px solid rgba(27,23,16,0.13)" };
+
+  return (
+    <div className="mx-auto max-w-3xl p-4">
+      <div className="rounded-3xl p-4" style={{ background: CARD, border: "1px solid #EAE2D2" }}>
+        <h2 className="mb-3 text-[11px] font-extrabold uppercase tracking-[0.14em]" style={{ color: MUTED }}>
+          Nowy kod rabatowy
+        </h2>
+        <div className="flex flex-wrap gap-2">
+          <input value={f.code} onChange={(e) => setF({ ...f, code: e.target.value.toUpperCase() })} placeholder="KOD (np. LATO20)" className={`${inputCls} w-44 uppercase`} style={inputStyle} />
+          <select value={f.kind} onChange={(e) => setF({ ...f, kind: e.target.value as "percent" | "amount" })} className={inputCls} style={inputStyle}>
+            <option value="percent">− procent (%)</option>
+            <option value="amount">− kwota (zł)</option>
+          </select>
+          <input type="number" min={1} value={f.value} onChange={(e) => setF({ ...f, value: e.target.value })} placeholder={f.kind === "percent" ? "%" : "zł"} className={`${inputCls} w-20`} style={inputStyle} />
+          <input type="number" min={0} value={f.minSubtotal} onChange={(e) => setF({ ...f, minSubtotal: e.target.value })} placeholder="min. koszyk zł" className={`${inputCls} w-32`} style={inputStyle} />
+          <select value={f.scope} onChange={(e) => setF({ ...f, scope: e.target.value as "all" | "delivery" | "pickup" })} className={inputCls} style={inputStyle}>
+            <option value="all">dostawa i odbiór</option>
+            <option value="delivery">tylko dostawa</option>
+            <option value="pickup">tylko odbiór</option>
+          </select>
+          <input type="date" value={f.validUntil} onChange={(e) => setF({ ...f, validUntil: e.target.value })} className={inputCls} style={inputStyle} title="ważny do (pusty = bezterminowo)" />
+          <input type="number" min={0} value={f.maxUses} onChange={(e) => setF({ ...f, maxUses: e.target.value })} placeholder="limit użyć" className={`${inputCls} w-28`} style={inputStyle} />
+        </div>
+        <div className="mt-2.5 flex flex-wrap gap-4 text-[13px] font-semibold">
+          {(
+            [
+              ["onlineOnly", "tylko strona (nie telefon)"],
+              ["oncePerPhone", "raz na numer telefonu"],
+              ["firstOrderOnly", "tylko nowi klienci"],
+            ] as const
+          ).map(([key, label]) => (
+            <label key={key} className="flex cursor-pointer items-center gap-2">
+              <input type="checkbox" checked={f[key]} onChange={(e) => setF({ ...f, [key]: e.target.checked })} />
+              {label}
+            </label>
+          ))}
+        </div>
+        {formError && <p className="mt-2 text-[12.5px] font-semibold" style={{ color: ALERT }}>{formError}</p>}
+        <button
+          onClick={submit}
+          disabled={saving || f.code.trim().length < 3 || !Number(f.value)}
+          className="mt-3 rounded-full px-5 py-2.5 text-[13px] font-bold disabled:opacity-40"
+          style={{ background: LIME, color: "#1D2A22" }}
+        >
+          {saving ? "Zapisuję…" : "Dodaj kod"}
+        </button>
+      </div>
+
+      <div className="mt-4 space-y-2">
+        {codes.map((c) => (
+          <div key={c.code} className="flex flex-wrap items-center gap-3 rounded-2xl px-4 py-3" style={{ background: CARD, opacity: c.active ? 1 : 0.55 }}>
+            <div className="flex h-9 w-9 flex-none items-center justify-center rounded-full" style={{ background: c.active ? LIME : SUB, color: "#1D2A22" }}>
+              <IconTag className="h-4 w-4" />
+            </div>
+            <div className="min-w-0">
+              <b className="text-[15px] tracking-wide">{c.code}</b>
+              <div className="text-[12.5px]" style={{ color: MUTED }}>
+                {promoDesc(c)} · użyty {c.usedCount}×
+              </div>
+            </div>
+            <div className="ml-auto flex items-center gap-2">
+              <button onClick={() => toggle(c)} className="rounded-full px-3.5 py-1.5 text-[12.5px] font-bold" style={c.active ? { background: SUB, color: CREAM } : { background: LIME, color: "#1D2A22" }}>
+                {c.active ? "Wyłącz" : "Włącz"}
+              </button>
+              <button onClick={() => remove(c.code)} className="rounded-full px-3.5 py-1.5 text-[12.5px] font-bold" style={{ background: "rgba(183,56,47,0.1)", color: ALERT }}>
+                Usuń
+              </button>
+            </div>
+          </div>
+        ))}
+        {codes.length === 0 && (
+          <div className="rounded-2xl p-6 text-center text-sm" style={{ background: CARD, color: MUTED }}>
+            Brak kodów — dodaj pierwszy powyżej.
+          </div>
+        )}
+      </div>
+    </div>
   );
 }
 
@@ -1115,6 +1310,7 @@ function HistoryView({ orders: all }: { orders: Order[] }) {
   const card = done.filter((o) => o.payment === "card").reduce((s, o) => s + o.total, 0);
   const online = done.filter((o) => o.payment === "online").reduce((s, o) => s + o.total, 0);
   const avg = done.length ? revenue / done.length : 0;
+  const discounts = done.reduce((s, o) => s + (o.discount?.amount ?? 0), 0);
 
   // Rozliczenie kierowców: kursy i utarg per kierowca (dostawy zrealizowane).
   const byDriver = new Map<string, { count: number; sum: number }>();
@@ -1149,11 +1345,12 @@ function HistoryView({ orders: all }: { orders: Order[] }) {
           style={{ background: CARD, color: CREAM, border: "1px solid rgba(27,23,16,0.13)" }}
         />
       </div>
-      <div className="grid grid-cols-2 gap-3 md:grid-cols-5">
+      <div className="grid grid-cols-2 gap-3 md:grid-cols-6">
         <Tile label="Zrealizowane" value={String(done.length)} />
         <Tile label="Utarg online" value={zl(revenue)} />
         <Tile label="Gotówka / karta" value={`${zl(cash)} / ${zl(card + online)}`} />
         <Tile label="Średnie zamówienie" value={done.length ? zl(avg) : "—"} />
+        <Tile label="Rabaty" value={discounts > 0 ? `−${zl(discounts)}` : "—"} />
         <Tile label="Anulowane" value={String(canceled.length)} />
       </div>
 
@@ -1196,6 +1393,7 @@ function HistoryView({ orders: all }: { orders: Order[] }) {
                 {o.payment === "cash" ? "gotówka" : o.payment === "card" ? "karta" : "online"}
                 {o.source === "phone" ? " · telefon" : ""}
                 {o.driver ? ` · kierowca: ${o.driver}` : ""}
+                {o.discount ? ` · rabat −${zl(o.discount.amount)}${o.discount.code ? ` (${o.discount.code})` : o.discount.reason ? ` (${o.discount.reason})` : ""}` : ""}
               </span>
               <span className="ml-auto font-extrabold">{zl(o.total)}</span>
               {o.status === "canceled" ? (

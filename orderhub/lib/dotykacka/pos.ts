@@ -50,6 +50,13 @@ function buildNote(order: Order): string {
     parts.push(`${a.street ?? ""}, ${a.zip ?? ""} ${a.city ?? ""}`.trim());
   }
   parts.push(`tel ${order.customer.phone}`);
+  if (order.discount) {
+    parts.push(
+      `RABAT${order.discount.code ? ` KOD ${order.discount.code}` : ""} -${order.discount.amount} zł${
+        order.discount.reason ? ` (${order.discount.reason})` : ""
+      } | DO ZAPŁATY ${order.total} zł`
+    );
+  }
   if (order.customer.note) parts.push(`Uwagi: ${order.customer.note}`);
   parts.push(order.payment === "cash" ? "💵 gotówka" : order.payment === "card" ? "💳 karta" : "🌐 online");
   return parts.join(" | ");

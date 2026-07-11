@@ -206,9 +206,53 @@ function PhoneOrderInner() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [form.city]);
 
+  // Rabat: kod z ulotki ALBO ręczny rabat kelnerki (jedno z dwóch).
+  const [promoInput, setPromoInput] = useState("");
+  const [promo, setPromo] = useState<{ code: string; discount: number; label: string } | null>(null);
+  const [promoMsg, setPromoMsg] = useState<string | null>(null);
+  const [manualAmount, setManualAmount] = useState<number | "">("");
+  const [manualReason, setManualReason] = useState("");
+
+  const applyPromo = useCallback(
+    async (codeRaw: string, sub: number, m: FulfillmentMode) => {
+      const code = codeRaw.trim();
+      if (!code) return;
+      setPromoMsg(null);
+      try {
+        const res = await fetch("/api/promo/validate", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ code, subtotal: sub, mode: m, phone: form.phone, source: "phone" }),
+        });
+        const d = await res.json();
+        if (d.ok) {
+          setPromo({ code: d.code, discount: d.discount, label: d.label });
+          setManualAmount("");
+        } else {
+          setPromo(null);
+          setPromoMsg(d.reason ?? "Kod nie zadziałał.");
+        }
+      } catch {
+        setPromoMsg("Nie udało się sprawdzić kodu.");
+      }
+    },
+    [form.phone]
+  );
+
+  useEffect(() => {
+    if (!promo) return;
+    const t = setTimeout(() => applyPromo(promo.code, subtotal, mode), 400);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [subtotal, mode]);
+
+  const manual = promo ? 0 : typeof manualAmount === "number" && manualAmount > 0 ? Math.min(manualAmount, subtotal) : 0;
+  const discount = promo?.discount ?? manual;
+
   const deliveryFee = quote.fee;
-  const total = subtotal + deliveryFee;
-  // Minimalna wartość zamówienia z dostawą: do 6 km 40 zł, powyżej 60 zł (bez kosztu dowozu).
+  const total = Math.max(0, subtotal - discount) + deliveryFee;
+  // Minimalna wartość zamówienia z dostawą: do 6 km 40 zł, powyżej 60 zł
+  // (bez kosztu dowozu, liczona PRZED rabatem).
   const minOrder = mode === "delivery" ? (quote.minOrder ?? 0) : 0;
   const belowMin = minOrder > 0 && lines.length > 0 && subtotal < minOrder;
   const phoneValid = form.phone.replace(/\D/g, "").length >= 9;
@@ -247,6 +291,8 @@ function PhoneOrderInner() {
           source: "phone",
           staff: localStorage.getItem("mr_staff") ?? undefined,
           etaMinutes: timeMode === "asap" && etaMinutes ? etaMinutes : undefined,
+          promoCode: promo?.code,
+          manualDiscount: !promo && manual > 0 ? { amount: manual, reason: manualReason } : undefined,
         }),
       });
       const data = await res.json();
@@ -473,11 +519,76 @@ function PhoneOrderInner() {
               <Pill on={payment === "card"} onClick={() => setPayment("card")}>Karta</Pill>
             </div>
 
-            <div className="mt-4 flex items-center justify-between border-t pt-3" style={{ borderColor: BORDER }}>
-              <span className="text-[13px] font-bold" style={{ color: MUTED }}>
-                Razem{mode === "delivery" ? ` (z dostawą ${zl(deliveryFee)})` : ""}
-              </span>
-              <span className="text-[19px] font-extrabold">{zl(total)}</span>
+            <Sec>Rabat (opcjonalnie)</Sec>
+            {promo ? (
+              <div className="flex items-center justify-between rounded-xl px-3.5 py-2.5 text-[13px]" style={{ background: SUB }}>
+                <span className="font-bold">Kod {promo.label}: −{zl(promo.discount)}</span>
+                <button
+                  onClick={() => {
+                    setPromo(null);
+                    setPromoInput("");
+                  }}
+                  className="text-[12px] font-semibold underline"
+                  style={{ color: MUTED }}
+                >
+                  usuń
+                </button>
+              </div>
+            ) : (
+              <>
+                <div className="flex gap-2">
+                  <input
+                    value={promoInput}
+                    onChange={(e) => setPromoInput(e.target.value.toUpperCase())}
+                    onKeyDown={(e) => e.key === "Enter" && applyPromo(promoInput, subtotal, mode)}
+                    placeholder="kod z ulotki, np. ULOTKA15"
+                    className="min-w-0 flex-1 rounded-xl px-3.5 py-2.5 text-[13.5px] font-bold uppercase outline-none"
+                    style={{ background: SUB, border: "1px solid " + BORDER, color: INK }}
+                  />
+                  <button
+                    onClick={() => applyPromo(promoInput, subtotal, mode)}
+                    disabled={!promoInput.trim()}
+                    className="rounded-xl px-4 text-[13px] font-bold disabled:opacity-40"
+                    style={{ background: LIME, color: "#1D2A22" }}
+                  >
+                    Zastosuj
+                  </button>
+                </div>
+                <div className="mt-2 flex gap-2">
+                  <input
+                    type="number"
+                    min={0}
+                    value={manualAmount === "" ? "" : manualAmount}
+                    onChange={(e) => setManualAmount(e.target.value === "" ? "" : Number(e.target.value))}
+                    placeholder="rabat zł"
+                    className="w-24 rounded-xl px-3.5 py-2.5 text-[13.5px] font-bold outline-none"
+                    style={{ background: SUB, border: "1px solid " + BORDER, color: INK }}
+                  />
+                  <input
+                    value={manualReason}
+                    onChange={(e) => setManualReason(e.target.value)}
+                    placeholder="powód (np. spóźniona dostawa)"
+                    className="min-w-0 flex-1 rounded-xl px-3.5 py-2.5 text-[13.5px] outline-none"
+                    style={{ background: SUB, border: "1px solid " + BORDER, color: INK }}
+                  />
+                </div>
+              </>
+            )}
+            {promoMsg && <p className="mt-1.5 text-[12px] font-semibold" style={{ color: ALERT }}>{promoMsg}</p>}
+
+            <div className="mt-4 border-t pt-3" style={{ borderColor: BORDER }}>
+              {discount > 0 && (
+                <div className="mb-1 flex items-center justify-between text-[13px]" style={{ color: MUTED }}>
+                  <span className="font-bold">Rabat{promo ? ` (${promo.code})` : manualReason ? ` — ${manualReason}` : ""}</span>
+                  <span className="font-extrabold" style={{ color: ALERT }}>−{zl(discount)}</span>
+                </div>
+              )}
+              <div className="flex items-center justify-between">
+                <span className="text-[13px] font-bold" style={{ color: MUTED }}>
+                  Razem{mode === "delivery" ? ` (z dostawą ${zl(deliveryFee)})` : ""}
+                </span>
+                <span className="text-[19px] font-extrabold">{zl(total)}</span>
+              </div>
             </div>
             {belowMin && (
               <p className="mt-2 text-center text-[12.5px] font-semibold" style={{ color: ALERT }}>

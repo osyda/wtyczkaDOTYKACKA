@@ -122,6 +122,11 @@ przekierowanie 301 z `mammarosa.pl/zamow-online/` (wtyczka Redirection w WP). NI
   utworzone z user-id kierowcy/kelnerki liczy się do jego utargu bez wchodzenia na
   kod przy terminalu; jeśli tak, można zautomatyzować przypisanie (kierowca wybrany
   w panelu → user-id w POS) i wyeliminować przełączanie kodów.
+- Kody rabatowe (faza R1 GOTOWA, plan: docs/PLAN_KODY_RABATOWE.md): `lib/promo.ts`,
+  `/api/promo/validate` (publiczny) + `/api/promo/codes` (PIN), pole w kasie
+  i telefonie, rabat ręczny kelnerki z powodem (tylko telefoniczne), karta
+  „Rabaty" w panelu, rozliczenie w „Dziś", nota w POS i na kwicie. Total liczony
+  na serwerze; minimum dostawy PRZED rabatem. R2 (POS discount-percent) po kluczach.
 - Autoryzacja obsługi: `lib/staffAuth.ts` + `proxy.ts` + `/api/staff/*`.
   Bez `STAFF_PIN` → panel otwarty (tryb testowy). Z `STAFF_PIN` → logowanie wspólnym PIN-em
   LUB osobistym kodem pracownika z Dotykački (`lib/dotykacka/employees.ts` — pola-kandydaci

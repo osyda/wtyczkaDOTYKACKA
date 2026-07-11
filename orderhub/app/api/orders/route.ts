@@ -3,6 +3,7 @@ import { orderStore, setEta } from "@/lib/orders/store";
 import { sendOrderToPos } from "@/lib/dotykacka/pos";
 import { getOpenState } from "@/lib/hours";
 import { minOrderForFee } from "@/lib/delivery";
+import { checkPromoCode, redeemPromoCode } from "@/lib/promo";
 import type { NewOrderInput, Order } from "@/lib/orders/types";
 
 type OrderPayload = NewOrderInput & {
@@ -10,6 +11,10 @@ type OrderPayload = NewOrderInput & {
   staff?: string;
   /** Telefoniczne: kelnerka podaje czas od razu podczas rozmowy. */
   etaMinutes?: number;
+  /** Kod rabatowy — serwer sam przelicza i zużywa. */
+  promoCode?: string;
+  /** Rabat ręczny obsługi (tylko telefoniczne), z powodem. */
+  manualDiscount?: { amount?: number; reason?: string };
 };
 
 export const dynamic = "force-dynamic";
@@ -50,10 +55,38 @@ export async function POST(req: Request) {
     }
   }
 
+  // Rabat: kod (przeliczany i pilnowany na serwerze) albo ręczny od kelnerki.
+  // Minimum dostawy sprawdzone wyżej OD KOSZYKA PRZED rabatem — zgodnie z planem.
+  let discount: Order["discount"];
+  if (input.promoCode?.trim()) {
+    const check = await checkPromoCode({
+      code: input.promoCode,
+      subtotal: input.subtotal ?? 0,
+      mode: input.mode,
+      phone: input.customer.phone,
+      source: input.source ?? "online",
+    });
+    if (!check.ok) {
+      return NextResponse.json({ error: `Kod rabatowy: ${check.reason}` }, { status: 400 });
+    }
+    discount = { amount: check.discount, code: check.code };
+  } else if (input.source === "phone" && input.manualDiscount?.amount) {
+    const amount = Math.min(Math.round(Number(input.manualDiscount.amount) * 100) / 100, input.subtotal ?? 0);
+    if (amount > 0) discount = { amount, reason: input.manualDiscount.reason?.trim() || "rabat obsługi" };
+  }
+  if (discount) {
+    // Suma zawsze liczona na serwerze: koszyk − rabat + dostawa.
+    input.total = Math.round(((input.subtotal ?? 0) - discount.amount + (input.deliveryFee ?? 0)) * 100) / 100;
+  }
+
   let order = await orderStore.create(input);
 
   // Metadane spoza koszyka: źródło, podpis obsługi, czas podany przy telefonie.
   const extra: Partial<Order> = {};
+  if (discount) {
+    extra.discount = discount;
+    if (discount.code) await redeemPromoCode(discount.code, input.customer.phone);
+  }
   if (input.source) extra.source = input.source;
   if (input.staff?.trim()) extra.staff = input.staff.trim();
   if (input.etaMinutes && order.timeMode === "asap" && Number.isFinite(input.etaMinutes)) {
