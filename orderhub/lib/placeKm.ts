@@ -67,3 +67,33 @@ export async function setPlaceKm(city: string | undefined, km: number): Promise<
     }
   }
 }
+
+/** Pamięć per pełny adres (ulica+miejscowość) — mapy pytamy o dany adres tylko raz. */
+export async function getAddrKm(street?: string, city?: string): Promise<number | null> {
+  const key = placeKey(`${street ?? ""} ${city ?? ""}`);
+  if (!key) return null;
+  const r = redis();
+  if (r) {
+    try {
+      const v = await r.get<number>(`addrkm:${key}`);
+      return typeof v === "number" && v > 0 ? v : null;
+    } catch {
+      /* pamięć niżej */
+    }
+  }
+  return mem.get(`a:${key}`) ?? null;
+}
+
+export async function setAddrKm(street: string | undefined, city: string | undefined, km: number): Promise<void> {
+  const key = placeKey(`${street ?? ""} ${city ?? ""}`);
+  if (!key || !(km > 0) || km > 100) return;
+  mem.set(`a:${key}`, km);
+  const r = redis();
+  if (r) {
+    try {
+      await r.set(`addrkm:${key}`, km);
+    } catch {
+      /* pamięć już ma */
+    }
+  }
+}

@@ -7,7 +7,7 @@ import {
   type DeliveryQuote,
 } from "@/lib/delivery";
 import { estimateDrivingKm, distanceFromRestaurant, hasGeocoder, CITY_RADIUS_KM } from "@/lib/geo";
-import { getPlaceKm, setPlaceKm } from "@/lib/placeKm";
+import { getPlaceKm, setPlaceKm, getAddrKm, setAddrKm } from "@/lib/placeKm";
 
 export const dynamic = "force-dynamic";
 
@@ -51,12 +51,19 @@ export async function POST(req: Request) {
     return NextResponse.json(flatCityQuote());
   }
 
+  // Ten adres liczyliśmy już wcześniej → zero zapytań do map, natychmiastowa cena.
+  const cachedKm = await getAddrKm(body.street, body.city);
+  if (cachedKm !== null) {
+    return NextResponse.json(kmQuote(cachedKm));
+  }
+
   // Poza miastem → automatyczne liczenie odległości drogowej (geokoder z kotwicą na lokal).
   const address = [body.street, body.zip, body.city, "Polska"].filter(Boolean).join(", ");
   const km = await estimateDrivingKm(address);
 
   if (km !== null) {
-    // Zapamiętaj miejscowość — będzie działać nawet przy chwilowej awarii map.
+    // Zapamiętaj adres i miejscowość — kolejne wyceny bez map, odporne na awarie.
+    void setAddrKm(body.street, body.city, km);
     void setPlaceKm(body.city, km);
     return NextResponse.json(kmQuote(km));
   }
