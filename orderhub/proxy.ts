@@ -6,7 +6,8 @@ import { staffProtectionEnabled, staffToken } from "@/lib/staffAuth";
  * Proxy: ochrona staffowych endpointów API PIN-em (STAFF_PIN).
  * Bez ustawionego STAFF_PIN ochrona jest wyłączona (DEMO/local).
  * Publiczne (klient): POST /api/orders, GET /api/orders/[id], /api/delivery/*, /api/geo/*.
- * Chronione (obsługa): GET /api/orders (lista), .../eta, .../status, /api/cti/*.
+ * Chronione (obsługa): GET /api/orders (lista), .../eta, .../status, /api/cti/*
+ * poza /api/cti/call — webhookiem centralka uwierzytelnia się własnym kluczem.
  */
 export async function proxy(req: NextRequest) {
   if (!staffProtectionEnabled()) return NextResponse.next();
@@ -20,7 +21,7 @@ export async function proxy(req: NextRequest) {
     (pathname === "/api/orders" && method === "GET") ||
     pathname.endsWith("/eta") ||
     pathname.endsWith("/status") ||
-    pathname.startsWith("/api/cti/");
+    (pathname.startsWith("/api/cti/") && pathname !== "/api/cti/call");
 
   if (isStaffApi && !authed) {
     return NextResponse.json({ error: "Brak autoryzacji" }, { status: 401 });

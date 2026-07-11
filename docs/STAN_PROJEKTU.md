@@ -98,8 +98,15 @@ przekierowanie 301 z `mammarosa.pl/zamow-online/` (wtyczka Redirection w WP). NI
   Europe/Warsaw, obsługa zamknięcia po północy. Egzekwowanie: baner + zablokowana kasa
   w `/menu` i `/checkout` (odpytują `/api/hours` co 60 s) ORAZ serwerowo w POST
   `/api/orders` (403). Telefoniczne (`source:"phone"`) przechodzą zawsze. Karta na `/status`.
-- CTI (telefon → klient): `lib/cti.ts` + `/api/cti/lookup` + baner w panelu. Szkielet gotowy,
-  czeka na ustalenie typu linii telefonicznej właściciela.
+- Centralka telefoniczna (CTI) — GOTOWA od strony aplikacji (pełny opis:
+  `docs/CENTRALKA_TELEFON.md`): webhook `/api/cti/call` (GET/POST, klucz
+  `CTI_WEBHOOK_KEY`, wyjęty spod PIN-a w proxy, obsługa zalogowana może testować
+  bez klucza), stan `cti:ring` + dziennik `cti:calls` w `lib/ctiCalls.ts`
+  (Redis/pamięć, TTL 90 s, dedup), panel: poll `/api/cti/ring` co 3 s → baner
+  z klientem (`lookupCaller` z `lib/cti.ts`) + podwójny dzwonek, zakładka
+  „Telefony" (`/api/cti/calls`, Oddzwoń / Zamów), karta na `/status`.
+  Do podłączenia na żywo: MacroDroid na komórce lokalu ALBO webhook u operatora
+  VoIP — czeka na ustalenie typu linii właściciela.
 - Autoryzacja obsługi: `lib/staffAuth.ts` + `proxy.ts` + `/api/staff/*`.
   Bez `STAFF_PIN` → panel otwarty (tryb testowy). Z `STAFF_PIN` → logowanie wspólnym PIN-em
   LUB osobistym kodem pracownika z Dotykački (`lib/dotykacka/employees.ts` — pola-kandydaci

@@ -221,7 +221,9 @@ export default function PanelPage() {
   const [now, setNow] = useState("--:--");
   const [caller, setCaller] = useState<CallerInfo | null>(null);
   const [simPhone, setSimPhone] = useState("");
-  const [view, setView] = useState<"board" | "history">("board");
+  const [view, setView] = useState<"board" | "history" | "calls">("board");
+  const [calls, setCalls] = useState<{ id: string; phone: string; at: string; name: string | null }[]>([]);
+  const lastRingAt = useRef<string>("");
   const [soundOn, setSoundOn] = useState(false);
   const [staffName, setStaffName] = useState<string>("");
   const knownIds = useRef<Set<string> | null>(null);
@@ -303,6 +305,43 @@ export default function PanelPage() {
     return () => clearInterval(t);
   }, [refresh]);
 
+  // Centralka: czy dzwoni telefon? Nowy dzwonek → baner + dźwięk (raz na połączenie).
+  const checkRing = useCallback(async () => {
+    try {
+      const res = await fetch("/api/cti/ring", { cache: "no-store" });
+      const d = await res.json();
+      if (d.ringing && d.at !== lastRingAt.current) {
+        lastRingAt.current = d.at;
+        setCaller(d.caller);
+        if (localStorage.getItem("mr_sound") === "1") {
+          playDing();
+          window.setTimeout(playDing, 380);
+        }
+      }
+    } catch {
+      /* kolejny tick */
+    }
+  }, []);
+
+  useEffect(() => {
+    checkRing();
+    const t = setInterval(checkRing, 3000);
+    return () => clearInterval(t);
+  }, [checkRing]);
+
+  // Dziennik połączeń — gdy otwarta zakładka „Telefony".
+  useEffect(() => {
+    if (view !== "calls") return;
+    const load = () =>
+      fetch("/api/cti/calls", { cache: "no-store" })
+        .then((r) => r.json())
+        .then((d) => setCalls(d.calls ?? []))
+        .catch(() => {});
+    load();
+    const t = setInterval(load, 10000);
+    return () => clearInterval(t);
+  }, [view]);
+
   // Status POS (Dotykačka) — co minutę.
   useEffect(() => {
     const check = () =>
@@ -364,10 +403,11 @@ export default function PanelPage() {
     refresh();
   };
 
+  // Test centralki: przechodzi PEŁNĄ drogą webhooka (jak prawdziwe połączenie).
   const simulateCall = async () => {
     const phone = simPhone.trim() || orders[0]?.customer.phone || "500134092";
-    const res = await fetch(`/api/cti/lookup?phone=${encodeURIComponent(phone)}`);
-    setCaller(await res.json());
+    await fetch(`/api/cti/call?phone=${encodeURIComponent(phone)}`, { method: "POST" }).catch(() => {});
+    checkRing();
   };
 
   const toggleFullscreen = () => {
@@ -452,6 +492,9 @@ export default function PanelPage() {
           <TopBtn active={view === "history"} onClick={() => setView("history")}>
             <IconHistory className="h-4 w-4" /> Dziś
           </TopBtn>
+          <TopBtn active={view === "calls"} onClick={() => setView("calls")}>
+            <IconPhone className="h-4 w-4" /> Telefony
+          </TopBtn>
           <Link
             href="/panel/telefon"
             className="flex items-center gap-1.5 rounded-full px-3.5 py-2 text-[12.5px] font-bold"
@@ -492,7 +535,7 @@ export default function PanelPage() {
               <b>Połączenie · {caller.phone}</b>
               <div className="truncate" style={{ color: MUTED }}>
                 {caller.known
-                  ? `${caller.name} · ${caller.orderCount} zamówień${caller.lastItems?.length ? ` · ostatnio: ${caller.lastItems.join(", ")}` : ""}`
+                  ? `${caller.name}${caller.street ? ` · ${caller.street}${caller.city ? `, ${caller.city}` : ""}` : ""} · ${caller.orderCount} zamówień${caller.lastItems?.length ? ` · ostatnio: ${caller.lastItems.join(", ")}` : ""}`
                   : "nieznany numer — nowy klient"}
               </div>
             </div>
@@ -510,7 +553,7 @@ export default function PanelPage() {
         ) : (
           <div className="flex flex-wrap items-center gap-2.5 rounded-2xl px-4 py-2.5 text-sm" style={{ background: CARD }}>
             <span className="flex items-center gap-2 font-semibold" style={{ color: MUTED }}>
-              <IconPhone className="h-4 w-4" /> CTI (demo):
+              <IconPhone className="h-4 w-4" /> Test centralki:
             </span>
             <input
               value={simPhone}
@@ -583,10 +626,62 @@ export default function PanelPage() {
             {sched.length === 0 && <Empty />}
           </Column>
         </div>
-      ) : (
+      ) : view === "history" ? (
         <HistoryView orders={orders} />
+      ) : (
+        <CallsView calls={calls} />
       )}
     </main>
+  );
+}
+
+/* ---------- Dziennik połączeń ---------- */
+
+function CallsView({ calls }: { calls: { id: string; phone: string; at: string; name: string | null }[] }) {
+  return (
+    <div className="mx-auto max-w-3xl p-4">
+      <div className="mb-3 text-[13px] font-bold uppercase tracking-[0.14em]" style={{ color: MUTED }}>
+        Ostatnie połączenia
+      </div>
+      {calls.length === 0 && (
+        <div className="rounded-2xl p-6 text-center text-sm" style={{ background: CARD, color: MUTED }}>
+          Brak połączeń. Gdy centralka zgłosi telefon, pojawi się tutaj — a dzwonek
+          wyświetli się na górze panelu.
+        </div>
+      )}
+      <div className="space-y-2">
+        {calls.map((c) => (
+          <div key={c.id} className="flex flex-wrap items-center gap-3 rounded-2xl px-4 py-3" style={{ background: CARD }}>
+            <div className="flex h-9 w-9 flex-none items-center justify-center rounded-full" style={{ background: SUB }}>
+              <IconPhone className="h-4 w-4" />
+            </div>
+            <div className="min-w-0">
+              <b className="text-[15px] tabular-nums">{c.phone}</b>
+              <div className="text-[12.5px]" style={{ color: MUTED }}>
+                {new Date(c.at).toLocaleString("pl-PL", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" })}
+                {c.name ? ` · ${c.name}` : " · nieznany numer"}
+              </div>
+            </div>
+            <div className="ml-auto flex items-center gap-2">
+              <a
+                href={`tel:${c.phone}`}
+                className="rounded-full px-3.5 py-1.5 text-[12.5px] font-bold"
+                style={{ background: SUB, color: CREAM }}
+              >
+                Oddzwoń
+              </a>
+              <Link
+                href={`/panel/telefon?phone=${encodeURIComponent(c.phone)}${c.name ? `&name=${encodeURIComponent(c.name)}` : ""}`}
+                className="rounded-full px-3.5 py-1.5 text-[12.5px] font-bold"
+                style={{ background: LIME, color: "#1D2A22" }}
+              >
+                Zamów
+              </Link>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
   );
 }
 

@@ -54,8 +54,11 @@ Panel obsługi gotowy od A do Z. Poniżej wszystko, czego nie mogę zrobić za C
 
 10. **Rotacja sekretu**: w starej wtyczce WordPressa jest ujawniony client_secret
     Dotykački — wygeneruj nowy w panelu Dotykački, podmień w starej wtyczce.
-11. **Telefon stacjonarny (CTI)**: powiedz, jaką masz centralkę/linię — dobierzemy
-    sposób podpięcia identyfikacji dzwoniącego.
+11. **Telefon lokalu (centralka)**: system w aplikacji jest GOTOWY — przeczytaj
+    `docs/CENTRALKA_TELEFON.md`. Do zrobienia u Ciebie: (a) dodaj w Vercelu
+    `CTI_WEBHOOK_KEY` (długi losowy ciąg), (b) jeśli zamówienia odbiera komórka —
+    zainstaluj MacroDroid wg instrukcji (10 minut); jeśli stacjonarny — powiedz,
+    jaki masz numer/operatora, dobierzemy wariant.
 
 ## Dopiero przy go-live (nie teraz!)
 
