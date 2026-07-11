@@ -254,7 +254,7 @@ export function Shop({ menu }: { menu: Menu }) {
 
       {/* Toast */}
       <div
-        className="pointer-events-none fixed bottom-24 left-1/2 z-[55] -translate-x-1/2 whitespace-nowrap border px-6 py-[13px] text-[10px] uppercase tracking-[0.22em] transition-all duration-400"
+        className="pointer-events-none fixed bottom-24 left-1/2 z-[55] w-max max-w-[calc(100vw-52px)] border px-6 py-[13px] text-center text-[10px] uppercase leading-relaxed tracking-[0.22em] transition-all duration-400"
         style={{
           background: C.paper,
           borderColor: C.ink,

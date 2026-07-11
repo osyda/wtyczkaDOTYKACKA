@@ -97,11 +97,18 @@ export interface ReverseAddress {
 }
 
 /**
- * Reverse geocoding: współrzędne → adres (ulica/miasto/kod).
- * Wymaga klucza ORS. Bez klucza zwraca null (klient wpisuje adres ręcznie).
+ * Reverse geocoding: współrzędne → adres (ulica z numerem/miasto/kod).
+ * ORS (gdy klucz) z uzupełnieniem z OpenStreetMap Nominatim (bez klucza, za darmo) —
+ * dzięki temu „Użyj mojej lokalizacji" wpisuje adres nawet bez żadnej konfiguracji.
  */
 export async function reverseGeocode(lat: number, lng: number): Promise<ReverseAddress | null> {
-  if (!ORS_KEY) return null;
+  const fromOrs = ORS_KEY ? await reverseOrs(lat, lng) : null;
+  if (fromOrs?.street && /\d/.test(fromOrs.street) && fromOrs.city) return fromOrs;
+  const fromOsm = await reverseNominatim(lat, lng);
+  return fromOsm ?? fromOrs;
+}
+
+async function reverseOrs(lat: number, lng: number): Promise<ReverseAddress | null> {
   try {
     const url = new URL("https://api.openrouteservice.org/geocode/reverse");
     url.searchParams.set("api_key", ORS_KEY);
@@ -123,6 +130,41 @@ export async function reverseGeocode(lat: number, lng: number): Promise<ReverseA
       street: houseStreet || p.name || undefined,
       city: p.locality || p.localadmin || p.county || undefined,
       zip: p.postalcode || undefined,
+    };
+  } catch {
+    return null;
+  }
+}
+
+/** OpenStreetMap Nominatim — darmowe, bez klucza; zwykle zna też numer domu. */
+async function reverseNominatim(lat: number, lng: number): Promise<ReverseAddress | null> {
+  try {
+    const url = new URL("https://nominatim.openstreetmap.org/reverse");
+    url.searchParams.set("format", "jsonv2");
+    url.searchParams.set("lat", String(lat));
+    url.searchParams.set("lon", String(lng));
+    url.searchParams.set("zoom", "18");
+    url.searchParams.set("addressdetails", "1");
+    url.searchParams.set("accept-language", "pl");
+
+    const res = await fetch(url, {
+      cache: "no-store",
+      headers: { "User-Agent": "MammarosaOrderHub/1.0 (zamowienia; mammarosa.pl)" },
+      signal: AbortSignal.timeout(6000),
+    });
+    if (!res.ok) return null;
+    const data = (await res.json()) as { address?: Record<string, string> };
+    const a = data.address;
+    if (!a) return null;
+
+    const road = a.road || a.pedestrian || a.residential || "";
+    const street = [road, a.house_number].filter(Boolean).join(" ").trim();
+    const city = a.village || a.town || a.city || a.municipality || a.hamlet || undefined;
+    if (!street && !city) return null;
+    return {
+      street: street || undefined,
+      city,
+      zip: a.postcode || undefined,
     };
   } catch {
     return null;
