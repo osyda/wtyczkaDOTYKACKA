@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { orderStore, setEta } from "@/lib/orders/store";
 import { sendOrderToPos } from "@/lib/dotykacka/pos";
+import { getOpenState } from "@/lib/hours";
 import type { NewOrderInput, Order } from "@/lib/orders/types";
 
 type OrderPayload = NewOrderInput & {
@@ -27,6 +28,15 @@ export async function POST(req: Request) {
 
   if (!input.items?.length || !input.customer?.phone) {
     return NextResponse.json({ error: "Brak pozycji lub telefonu." }, { status: 400 });
+  }
+
+  // Godziny otwarcia: klienci online tylko w oknie przyjmowania zamówień.
+  // Telefoniczne (kelnerka) przechodzą zawsze — obsługa wie, co robi.
+  if (input.source !== "phone") {
+    const hours = await getOpenState();
+    if (!hours.acceptingOrders) {
+      return NextResponse.json({ error: hours.message }, { status: 403 });
+    }
   }
 
   let order = await orderStore.create(input);

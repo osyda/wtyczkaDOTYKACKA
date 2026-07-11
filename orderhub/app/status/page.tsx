@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { getHealth } from "@/lib/dotykacka/health";
 import { hasGeocoder, estimateDrivingKm } from "@/lib/geo";
+import { getOpenState, hasGoogleHours, dayLabel, LAST_ORDER_MIN } from "@/lib/hours";
 
 export const dynamic = "force-dynamic";
 
@@ -16,6 +17,16 @@ export default async function Home() {
   const lat = process.env.RESTAURANT_LAT || "54.1226 (domyślne)";
   const lng = process.env.RESTAURANT_LNG || "17.9766 (domyślne)";
 
+  const hours = await getOpenState();
+  const hoursSourceLabel =
+    hours.source === "google"
+      ? "z wizytówki Google (odświeżane co 6 h)"
+      : hours.source === "env"
+        ? "ze zmiennej OPENING_HOURS"
+        : hasGoogleHours()
+          ? "DOMYŚLNE — klucz Google jest, ale wizytówka nie odpowiedziała"
+          : "DOMYŚLNE — ustaw GOOGLE_MAPS_API_KEY lub OPENING_HOURS";
+
   return (
     <main className="min-h-screen bg-[#1F1714] text-[#F3E7D5]">
       <div className="mx-auto max-w-2xl px-6 py-16">
@@ -26,6 +37,31 @@ export default async function Home() {
             <h1 className="text-2xl font-bold">Mammarosa — OrderHub</h1>
             <p className="text-sm text-[#B7A691]">Nowy system zamówień · Faza 0 (szkielet)</p>
           </div>
+        </div>
+
+        {/* Godziny otwarcia */}
+        <div className="mt-4 rounded-2xl border border-[#3A322B] bg-[#241D1A] p-5">
+          <div className="mb-3 text-xs font-semibold uppercase tracking-wide text-[#B7A691]">
+            Godziny otwarcia i przyjmowanie zamówień
+          </div>
+          <div className="flex items-center gap-3">
+            <span
+              className={`inline-flex h-3 w-3 rounded-full ${
+                hours.acceptingOrders ? "bg-green-500" : hours.source === "default" ? "bg-amber-400" : "bg-red-500"
+              }`}
+            />
+            <span className="font-semibold">
+              {hours.acceptingOrders
+                ? `Przyjmujemy zamówienia (dziś do ${hours.lastOrder})`
+                : hours.message}
+            </span>
+          </div>
+          <p className="mt-2 text-sm text-[#B7A691]">
+            Źródło godzin: {hoursSourceLabel}. Ostatnie zamówienie {LAST_ORDER_MIN} min przed zamknięciem.
+          </p>
+          <p className="mt-2 text-sm text-[#E0D2BE]">
+            {Array.from({ length: 7 }, (_, d) => dayLabel(hours.week, d)).join(" · ")}
+          </p>
         </div>
 
         {/* Mapy i dostawa */}

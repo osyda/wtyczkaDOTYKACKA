@@ -171,6 +171,26 @@ export default function CheckoutPage() {
   const [geoStatus, setGeoStatus] = useState<"idle" | "locating" | "error">("idle");
   const [quote, setQuote] = useState<Quote>(flatCityQuote());
   const [quoting, setQuoting] = useState(false);
+  const [hours, setHours] = useState<{ acceptingOrders: boolean; message: string } | null>(null);
+
+  // Godziny otwarcia — ostatnie zamówienie 20 min przed zamknięciem (serwer i tak pilnuje).
+  useEffect(() => {
+    let alive = true;
+    const load = () =>
+      fetch("/api/hours")
+        .then((r) => r.json())
+        .then((d) => {
+          if (alive) setHours(d);
+        })
+        .catch(() => {});
+    load();
+    const t = window.setInterval(load, 60_000);
+    return () => {
+      alive = false;
+      window.clearInterval(t);
+    };
+  }, []);
+  const closedNow = hours !== null && !hours.acceptingOrders;
 
   function locateMe() {
     if (typeof navigator === "undefined" || !navigator.geolocation) {
@@ -273,6 +293,7 @@ export default function CheckoutPage() {
 
   const phoneValid = form.phone.replace(/\D/g, "").length >= 9;
   const canOrder =
+    !closedNow &&
     lines.length > 0 &&
     form.name.trim().length > 1 &&
     phoneValid &&
@@ -517,6 +538,9 @@ export default function CheckoutPage() {
                 <span className="font-carta text-[19px]">{zl(total)}</span>
               </div>
             </div>
+            {closedNow && hours && (
+              <p className="mt-3 text-center text-[12px] leading-snug" style={{ color: C.accent }}>{hours.message}</p>
+            )}
             {error && (
               <p className="mt-3 text-center text-[12px]" style={{ color: C.accent }}>{error}</p>
             )}
@@ -526,7 +550,9 @@ export default function CheckoutPage() {
               className="mt-[22px] flex w-full cursor-pointer items-center justify-between px-[22px] py-[18px] text-[11px] uppercase tracking-[0.24em] transition-all active:scale-[0.985] disabled:pointer-events-none disabled:opacity-35"
               style={{ background: C.ink, color: C.ivory, textIndent: "0.24em" }}
             >
-              <span>{submitting ? "Wysyłam…" : canOrder ? "Zamawiam" : "Uzupełnij dane"}</span>
+              <span>
+                {submitting ? "Wysyłam…" : closedNow ? "Poza godzinami zamówień" : canOrder ? "Zamawiam" : "Uzupełnij dane"}
+              </span>
               <b className="font-carta text-[16px] font-normal normal-case tracking-normal">{zl(total)}</b>
             </button>
           </div>
