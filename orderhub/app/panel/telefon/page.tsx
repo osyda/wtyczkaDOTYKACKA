@@ -29,7 +29,7 @@ const BORDER = "#EAE2D2";
 
 type TimeMode = "asap" | "scheduled";
 type Payment = "cash" | "card";
-type Quote = DeliveryQuote & { needsManual?: boolean };
+type Quote = DeliveryQuote & { needsManual?: boolean; remembered?: boolean };
 
 function Sec({ children }: { children: React.ReactNode }) {
   return (
@@ -112,6 +112,7 @@ function PhoneOrderInner() {
   const [payment, setPayment] = useState<Payment>("cash");
   const [caller, setCaller] = useState<CallerInfo | null>(null);
   const [quote, setQuote] = useState<Quote>(flatCityQuote());
+  const [manualKm, setManualKm] = useState<number | "">("");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const lookupTimer = useRef<number | null>(null);
@@ -180,7 +181,12 @@ function PhoneOrderInner() {
         const res = await fetch("/api/delivery/quote", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ mode, street: form.street, city: form.city, zip: form.zip }),
+          body: JSON.stringify({
+            mode,
+            street: form.street,
+            city: form.city,
+            manualKm: typeof manualKm === "number" ? manualKm : undefined,
+          }),
           signal: ctrl.signal,
         });
         setQuote(await res.json());
@@ -192,7 +198,13 @@ function PhoneOrderInner() {
       clearTimeout(t);
       ctrl.abort();
     };
-  }, [mode, form.street, form.city, form.zip]);
+  }, [mode, form.street, form.city, manualKm]);
+
+  // Nowa miejscowość = nowa odległość (nie przenoś starej wartości).
+  useEffect(() => {
+    setManualKm("");
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [form.city]);
 
   const deliveryFee = quote.fee;
   const total = subtotal + deliveryFee;
@@ -201,7 +213,8 @@ function PhoneOrderInner() {
     lines.length > 0 &&
     form.name.trim().length > 1 &&
     phoneValid &&
-    (mode === "pickup" || (form.street.trim().length > 2 && quote.available && !quote.outOfRange));
+    (mode === "pickup" ||
+      (form.street.trim().length > 2 && quote.available && !quote.outOfRange && !quote.needsManual));
 
   async function save() {
     setSubmitting(true);
@@ -295,12 +308,9 @@ function PhoneOrderInner() {
             </div>
             {mode === "delivery" && (
               <div className="mt-3 space-y-3">
-                <Field label="Ulica i numer" value={form.street} onChange={(v) => setForm({ ...form, street: v })} />
-                <div className="flex gap-3">
+                <div className="flex flex-wrap gap-3">
+                  <Field flex label="Ulica i numer" value={form.street} onChange={(v) => setForm({ ...form, street: v })} />
                   <Field flex label="Miejscowość" value={form.city} onChange={(v) => setForm({ ...form, city: v })} />
-                  <div className="w-28">
-                    <Field label="Kod" value={form.zip} onChange={(v) => setForm({ ...form, zip: v })} />
-                  </div>
                 </div>
                 <div className="text-[12.5px] font-semibold" style={{ color: quote.outOfRange ? ALERT : MUTED }}>
                   {quote.outOfRange
@@ -308,9 +318,29 @@ function PhoneOrderInner() {
                     : quote.inCity
                       ? `Dostawa: Kościerzyna — ${zl(deliveryFee)}`
                       : quote.km
-                        ? `Dostawa: ${quote.km} km — ${zl(deliveryFee)}`
-                        : "Wpisz adres — dostawa policzy się sama."}
+                        ? `Dostawa: ${quote.km} km — ${zl(deliveryFee)}${quote.remembered ? " (zapamiętana miejscowość)" : ""}`
+                        : quote.needsManual
+                          ? "Nowa miejscowość — podaj odległość raz, zapamiętamy ją:"
+                          : "Wpisz adres — dostawa policzy się sama."}
                 </div>
+                {quote.needsManual && (
+                  <div className="w-48">
+                    <label className="block">
+                      <span className="mb-1 block text-[10px] font-extrabold uppercase tracking-[0.12em]" style={{ color: MUTED }}>
+                        Odległość (km)
+                      </span>
+                      <input
+                        type="number"
+                        min={1}
+                        max={15}
+                        value={manualKm}
+                        onChange={(e) => setManualKm(e.target.value === "" ? "" : Number(e.target.value))}
+                        className="w-full rounded-xl px-3.5 py-3 text-[15px] outline-none"
+                        style={{ background: SUB, color: INK, border: "1px solid " + BORDER }}
+                      />
+                    </label>
+                  </div>
+                )}
               </div>
             )}
             <div className="mt-3">
