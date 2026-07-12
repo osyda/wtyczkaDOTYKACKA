@@ -34,6 +34,7 @@ export interface OrderItem {
 export interface OrderCustomer {
   name: string;
   phone: string;
+  email?: string; // opcjonalny — potwierdzenie mailowe z linkiem śledzenia
   street?: string;
   city?: string;
   zip?: string;

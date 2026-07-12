@@ -131,6 +131,13 @@ przekierowanie 301 z `mammarosa.pl/zamow-online/` (wtyczka Redirection w WP). NI
   (`pos.ts itemToPos`): DWIE pozycje z manual-price = 50% ceny każdej + notatki
   „PÓŁ NA PÓŁ (1/2) z: …"; dodatki doliczone do pierwszej połówki. UWAGA:
   zachowanie manual-price przy qty>1 do potwierdzenia testem po kluczach.
+- Maile do klientów (12.07.2026): `lib/email.ts` — potwierdzenie zamówienia
+  w stylu CARTA (inline CSS) z linkiem do śledzenia `/dziekujemy/[id]`; wysyłka
+  Resend przez fetch (bez SDK), za kluczem `RESEND_API_KEY` (bez klucza —
+  symulacja), nadawca `EMAIL_FROM`. Pole e-mail w kasie OPCJONALNE
+  (customer.email); mail idzie w tle po utworzeniu zamówienia (void, origin
+  z req.url). Telefoniczne bez maila. Karta na /status. Do zrobienia przez
+  właściciela: konto resend.com + klucz + weryfikacja domeny (DNS SPF/DKIM).
 - Kody rabatowe (faza R1 GOTOWA, plan: docs/PLAN_KODY_RABATOWE.md): `lib/promo.ts`,
   `/api/promo/validate` (publiczny) + `/api/promo/codes` (PIN), pole w kasie
   i telefonie, rabat ręczny kelnerki z powodem (tylko telefoniczne), karta

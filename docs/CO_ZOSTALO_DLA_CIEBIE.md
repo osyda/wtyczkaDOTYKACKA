@@ -45,6 +45,18 @@ Panel obsługi gotowy od A do Z. Poniżej wszystko, czego nie mogę zrobić za C
    `pn-czw 11:00-21:00; pt-sb 11:00-22:00; nd 12:00-21:00` (dzień wolny: `wt zamknięte`).
    Bez obu: domyślne 11:00–21:00 codziennie. Bufor zmienisz w `LAST_ORDER_MIN`.
 
+6a. **Maile z potwierdzeniem zamówienia** (system gotowy, czeka na klucz):
+   1. Załóż darmowe konto na **resend.com** (100 maili/dzień gratis — aż nadto).
+   2. Resend → API Keys → Create → skopiuj klucz → Vercel → Environment
+      Variables → `RESEND_API_KEY` → Redeploy. Od tej chwili działa wysyłka,
+      ale tylko na Twój własny adres (tryb testowy Resend).
+   3. Żeby maile szły do klientów z adresu zamowienia@mammarosa.pl:
+      Resend → Domains → Add domain → mammarosa.pl → pokaże 3 rekordy DNS
+      (SPF/DKIM) → dodaj je u operatora domeny (tam gdzie masz mammarosa.pl)
+      → po weryfikacji (zwykle < 1 h) wszystko działa samo.
+   Weryfikacja: karta „Maile do klientów" na `/status` + zamówienie testowe
+   z własnym adresem e-mail w kasie.
+
 ## Treści
 
 7. **Zdjęcia pizz w wyższej rozdzielczości** (obecne 300×300 px są miękkie na dużych

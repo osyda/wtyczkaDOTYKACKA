@@ -114,7 +114,7 @@ function Field({
   label: string;
   value: string;
   onChange: (v: string) => void;
-  inputMode?: "tel";
+  inputMode?: "tel" | "email";
   type?: string;
 }) {
   return (
@@ -161,6 +161,7 @@ export default function CheckoutPage() {
   const [form, setForm] = useState({
     name: "",
     phone: "",
+    email: "",
     street: "",
     city: "Kościerzyna",
     zip: "",
@@ -354,6 +355,7 @@ export default function CheckoutPage() {
       customer: {
         name: form.name,
         phone: form.phone,
+        email: form.email.trim() || undefined,
         street: form.street,
         city: form.city,
         zip: form.zip,
@@ -458,6 +460,12 @@ export default function CheckoutPage() {
             <div className="flex gap-[22px]">
               <Field label="IMIĘ I NAZWISKO" value={form.name} onChange={(v) => setForm({ ...form, name: v })} />
               <Field label="TELEFON" inputMode="tel" value={form.phone} onChange={(v) => setForm({ ...form, phone: v })} />
+              <Field
+                label="E-MAIL (POTWIERDZENIE — OPCJONALNIE)"
+                inputMode="email"
+                value={form.email}
+                onChange={(v) => setForm({ ...form, email: v })}
+              />
             </div>
             {mode === "delivery" && (
               <>

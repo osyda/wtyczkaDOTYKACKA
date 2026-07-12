@@ -4,6 +4,7 @@ import { sendOrderToPos } from "@/lib/dotykacka/pos";
 import { getOpenState } from "@/lib/hours";
 import { minOrderForFee } from "@/lib/delivery";
 import { checkPromoCode, redeemPromoCode } from "@/lib/promo";
+import { sendOrderConfirmation } from "@/lib/email";
 import type { NewOrderInput, Order } from "@/lib/orders/types";
 
 type OrderPayload = NewOrderInput & {
@@ -99,6 +100,9 @@ export async function POST(req: Request) {
   // Wyślij do POS (lub symuluj w trybie DEMO).
   const pos = await sendOrderToPos(order);
   const updated = await orderStore.update(order.id, { pos });
+
+  // Potwierdzenie mailowe (gdy klient podał adres) — w tle, nie blokuje odpowiedzi.
+  void sendOrderConfirmation(updated ?? order, new URL(req.url).origin);
 
   return NextResponse.json({ order: updated ?? order }, { status: 201 });
 }
