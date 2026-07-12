@@ -481,22 +481,22 @@ export default function PanelPage() {
 
   return (
     <main className="min-h-screen pb-8" style={{ background: BG, color: CREAM }}>
-      {/* Pasek górny */}
+      {/* Pasek górny — na telefonie zawija się w dwie linie zamiast rozpychać stronę */}
       <div
-        className="sticky top-0 z-40 flex h-16 items-center justify-between gap-2 px-4"
+        className="sticky top-0 z-40 flex flex-wrap items-center gap-x-2 gap-y-1.5 px-3 py-2 min-[920px]:h-16 min-[920px]:flex-nowrap min-[920px]:justify-between min-[920px]:px-4 min-[920px]:py-0"
         style={{ background: CARD, borderBottom: "1px solid rgba(27,23,16,0.06)" }}
       >
         <div className="flex items-center gap-3">
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/brand/icon-espresso.png" alt="" className="h-9 w-9 object-contain" />
+          <img src="/brand/icon-espresso.png" alt="" className="h-8 w-8 object-contain min-[920px]:h-9 min-[920px]:w-9" />
           <div>
             <div className="text-[13px] font-semibold uppercase tracking-[0.18em]">Mammarosa</div>
-            <div className="text-[11px]" style={{ color: MUTED }}>
+            <div className="hidden text-[11px] min-[920px]:block" style={{ color: MUTED }}>
               Panel zamówień{staffName ? ` · ${staffName}` : ""}
             </div>
           </div>
         </div>
-        <div className="flex items-center gap-2 text-sm">
+        <div className="flex w-full items-center gap-1.5 overflow-x-auto text-sm [scrollbar-width:none] min-[920px]:w-auto min-[920px]:min-w-0 min-[920px]:flex-1 min-[920px]:justify-end min-[920px]:gap-2 min-[920px]:overflow-visible">
           <TopBtn active={view === "board"} onClick={() => setView("board")}>
             <IconPot className="h-4 w-4" /> Zamówienia
             {newsCount > 0 && (
@@ -516,7 +516,7 @@ export default function PanelPage() {
           </TopBtn>
           <Link
             href="/panel/telefon"
-            className="flex items-center gap-1.5 rounded-full px-3.5 py-2 text-[12.5px] font-bold"
+            className="flex items-center gap-1.5 whitespace-nowrap rounded-full px-3 py-1.5 text-[12px] font-bold min-[920px]:px-3.5 min-[920px]:py-2 min-[920px]:text-[12.5px]"
             style={{ background: SUB, color: CREAM }}
           >
             <IconPhone className="h-4 w-4" /> + Telefon
@@ -544,7 +544,7 @@ export default function PanelPage() {
       <div className="px-4 pt-3.5">
         {caller ? (
           <div
-            className="flex items-center gap-3.5 rounded-2xl px-4 py-3"
+            className="flex flex-wrap items-center gap-3 rounded-2xl px-4 py-3 min-[700px]:flex-nowrap min-[700px]:gap-3.5"
             style={{ background: SUB, border: `1.5px solid ${LIME}55` }}
           >
             <div className="flex h-10 w-10 flex-none items-center justify-center rounded-full" style={{ background: LIME, color: "#1D2A22" }}>
@@ -906,7 +906,7 @@ function TopBtn({
     <button
       onClick={onClick}
       title={title}
-      className="flex items-center gap-1.5 rounded-full px-3.5 py-2 text-[12.5px] font-bold transition"
+      className="flex items-center gap-1.5 whitespace-nowrap rounded-full px-3 py-1.5 text-[12px] font-bold transition min-[920px]:px-3.5 min-[920px]:py-2 min-[920px]:text-[12.5px]"
       style={active ? { background: LIME, color: "#1D2A22" } : { background: SUB, color: CREAM }}
     >
       {children}
