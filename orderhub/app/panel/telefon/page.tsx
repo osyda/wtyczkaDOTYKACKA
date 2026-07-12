@@ -14,6 +14,7 @@ import type { Menu, MenuProduct } from "@/lib/dotykacka/types";
 import type { CallerInfo } from "@/lib/cti";
 import { CartProvider, useCart, lineTotal } from "@/lib/cart/CartProvider";
 import { ProductModal } from "@/components/ProductModal";
+import { HalfHalfModal } from "@/components/HalfHalfModal";
 import { zl } from "@/lib/format";
 import { isKoscierzyna, pickupQuote, flatCityQuote, type DeliveryQuote, type FulfillmentMode } from "@/lib/delivery";
 
@@ -96,6 +97,7 @@ function PhoneOrderInner() {
   const [menu, setMenu] = useState<Menu | null>(null);
   const [activeCat, setActiveCat] = useState<string>("");
   const [modalProduct, setModalProduct] = useState<MenuProduct | null>(null);
+  const [halfOpen, setHalfOpen] = useState(false);
 
   const [form, setForm] = useState({
     name: params.get("name") ?? "",
@@ -283,6 +285,7 @@ function PhoneOrderInner() {
             basePrice: l.basePrice,
             addons: l.addons,
             lineTotal: lineTotal(l),
+            halves: l.halves,
           })),
           subtotal,
           deliveryFee,
@@ -306,6 +309,7 @@ function PhoneOrderInner() {
   }
 
   const products = menu?.categories.find((c) => c.id === activeCat)?.products ?? [];
+  const activeCatName = menu?.categories.find((c) => c.id === activeCat)?.name ?? "";
   const etaOptions = mode === "pickup" ? [15, 20, 30, 45] : [30, 45, 60, 75];
 
   return (
@@ -413,6 +417,21 @@ function PhoneOrderInner() {
                   ))}
                 </div>
                 <div className="mt-3 grid grid-cols-1 gap-1 min-[700px]:grid-cols-2">
+                  {activeCatName.toLowerCase().includes("pizz") && products.length >= 2 && (
+                    <button
+                      onClick={() => setHalfOpen(true)}
+                      className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-left transition hover:opacity-90"
+                      style={{ background: "rgba(140,165,59,0.12)", border: "1px solid rgba(140,165,59,0.45)" }}
+                    >
+                      <span className="grid h-10 w-10 flex-none place-items-center rounded-lg text-[13px] font-extrabold" style={{ background: LIME, color: "#1D2A22" }}>
+                        ½/½
+                      </span>
+                      <span className="min-w-0 flex-1">
+                        <span className="block text-[14px] font-bold">Pizza pół na pół</span>
+                        <span className="block text-[11.5px]" style={{ color: MUTED }}>dwie połówki · cena = ½ + ½</span>
+                      </span>
+                    </button>
+                  )}
                   {products.map((p) => (
                     <button
                       key={p.id}
@@ -617,6 +636,12 @@ function PhoneOrderInner() {
 
       {modalProduct && (
         <ProductModal product={modalProduct} onClose={() => setModalProduct(null)} onAdded={() => {}} />
+      )}
+      {halfOpen && menu && (
+        <HalfHalfModal
+          pizzas={menu.categories.filter((c) => c.name.toLowerCase().includes("pizz")).flatMap((c) => c.products)}
+          onClose={() => setHalfOpen(false)}
+        />
       )}
     </main>
   );

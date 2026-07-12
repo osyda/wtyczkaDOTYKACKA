@@ -25,6 +25,8 @@ export interface CartLine {
   addons: CartLineAddon[];
   image?: string; // zdjęcie produktu (miniatura w koszyku/checkoucie)
   note?: string;
+  /** Pizza pół na pół: dwie połówki (cena linii = połowa sumy ich cen). */
+  halves?: { productId: string; name: string; price: number; image?: string }[];
 }
 
 interface CartState {
@@ -71,6 +73,8 @@ interface CartContextValue {
   itemCount: number;
   subtotal: number;
   addProduct: (product: MenuProduct, qty: number, addons: MenuAddon[], note?: string) => void;
+  /** Pizza pół na pół: 50% ceny pierwszej + 50% ceny drugiej (jak porcje w POS). */
+  addHalves: (a: MenuProduct, b: MenuProduct, qty: number, addons: MenuAddon[]) => void;
   setQty: (lineId: string, qty: number) => void;
   remove: (lineId: string) => void;
   clear: () => void;
@@ -131,6 +135,23 @@ export function CartProvider({
             addons: addons.map((a) => ({ id: a.id, name: a.name, price: a.price })),
             image: product.image,
             note,
+          },
+        }),
+      addHalves: (a, b, qty, addons) =>
+        dispatch({
+          type: "ADD",
+          line: {
+            lineId: makeLineId(),
+            productId: `half|${a.id}|${b.id}`,
+            name: `Pół na pół: ${a.name} / ${b.name}`,
+            basePrice: Math.round(((a.price + b.price) / 2) * 100) / 100,
+            qty,
+            addons: addons.map((x) => ({ id: x.id, name: x.name, price: x.price })),
+            image: a.image,
+            halves: [
+              { productId: a.id, name: a.name, price: a.price, image: a.image },
+              { productId: b.id, name: b.name, price: b.price, image: b.image },
+            ],
           },
         }),
       setQty: (lineId, qty) => dispatch({ type: "SET_QTY", lineId, qty }),

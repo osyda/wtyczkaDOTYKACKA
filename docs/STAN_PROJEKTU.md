@@ -122,6 +122,15 @@ przekierowanie 301 z `mammarosa.pl/zamow-online/` (wtyczka Redirection w WP). NI
   utworzone z user-id kierowcy/kelnerki liczy się do jego utargu bez wchodzenia na
   kod przy terminalu; jeśli tak, można zautomatyzować przypisanie (kierowca wybrany
   w panelu → user-id w POS) i wyeliminować przełączanie kodów.
+- Pizza pół na pół (12.07.2026, odwzorowanie „porcji 50%" właściciela z POS):
+  `components/HalfHalfModal.tsx` — wejście „Pizza pół na pół · ½/½" na górze
+  kategorii pizz w /menu ORAZ na ekranie telefonicznym; klient wybiera dwie
+  połówki (lista z cenami ½), cena = (cenaA+cenaB)/2, dodatki NA CAŁOŚĆ (suma
+  dodatków obu pizz bez duplikatów). Koszyk: `addHalves()` w CartProvider,
+  linia `half|idA|idB` + pole `halves[]` (niesione też w OrderItem). Do POS
+  (`pos.ts itemToPos`): DWIE pozycje z manual-price = 50% ceny każdej + notatki
+  „PÓŁ NA PÓŁ (1/2) z: …"; dodatki doliczone do pierwszej połówki. UWAGA:
+  zachowanie manual-price przy qty>1 do potwierdzenia testem po kluczach.
 - Kody rabatowe (faza R1 GOTOWA, plan: docs/PLAN_KODY_RABATOWE.md): `lib/promo.ts`,
   `/api/promo/validate` (publiczny) + `/api/promo/codes` (PIN), pole w kasie
   i telefonie, rabat ręczny kelnerki z powodem (tylko telefoniczne), karta

@@ -366,6 +366,7 @@ export default function CheckoutPage() {
         basePrice: l.basePrice,
         addons: l.addons,
         lineTotal: lineTotal(l),
+        halves: l.halves,
       })),
       subtotal,
       deliveryFee,
