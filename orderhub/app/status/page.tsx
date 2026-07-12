@@ -3,6 +3,7 @@ import { getHealth } from "@/lib/dotykacka/health";
 import { hasGeocoder, estimateDrivingKm } from "@/lib/geo";
 import { getOpenState, hasGoogleHours, dayLabel, LAST_ORDER_MIN } from "@/lib/hours";
 import { listCalls, webhookKey } from "@/lib/ctiCalls";
+import { emailEnabled } from "@/lib/email";
 
 export const dynamic = "force-dynamic";
 
@@ -89,6 +90,24 @@ export default async function Home() {
           </div>
           <p className="mt-2 text-sm text-[#B7A691]">
             Współrzędne lokalu: {lat}, {lng} — ustaw dokładne w RESTAURANT_LAT / RESTAURANT_LNG.
+          </p>
+        </div>
+
+        {/* Maile do klientów */}
+        <div className="mt-4 rounded-2xl border border-[#3A322B] bg-[#241D1A] p-5">
+          <div className="mb-3 text-xs font-semibold uppercase tracking-wide text-[#B7A691]">
+            Maile do klientów (Resend)
+          </div>
+          <div className="flex items-center gap-3">
+            <span className={`inline-flex h-3 w-3 rounded-full ${emailEnabled() ? "bg-green-500" : "bg-amber-400"}`} />
+            <span className="font-semibold">
+              {emailEnabled()
+                ? "Klucz ustawiony — potwierdzenia zamówień wychodzą do klientów"
+                : "Brak RESEND_API_KEY — potwierdzenia symulowane (nie wychodzą)"}
+            </span>
+          </div>
+          <p className="mt-2 text-sm text-[#B7A691]">
+            Mail idzie tylko, gdy klient poda adres w kasie (pole opcjonalne). Nadawca: EMAIL_FROM.
           </p>
         </div>
 
