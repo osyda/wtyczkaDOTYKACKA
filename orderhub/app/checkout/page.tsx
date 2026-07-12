@@ -168,6 +168,27 @@ export default function CheckoutPage() {
     note: "",
   });
   const [manualKm, setManualKm] = useState<number | "">("");
+
+  // Pamięć urządzenia (plan K1): dane klienta wypełniają się same przy kolejnym zamówieniu.
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem("mr_customer_v1");
+      if (!raw) return;
+      const saved = JSON.parse(raw) as Partial<typeof form>;
+      setForm((f) => ({
+        ...f,
+        name: saved.name ?? f.name,
+        phone: saved.phone ?? f.phone,
+        email: saved.email ?? f.email,
+        street: saved.street ?? f.street,
+        city: saved.city || f.city,
+        zip: saved.zip ?? f.zip,
+      }));
+    } catch {
+      /* pierwsze zamówienie */
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
   const [coords, setCoords] = useState<{ lat: number; lng: number } | null>(null);
   const [geoStatus, setGeoStatus] = useState<"idle" | "locating" | "error">("idle");
   const [quote, setQuote] = useState<Quote>(flatCityQuote());
@@ -384,6 +405,20 @@ export default function CheckoutPage() {
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error ?? "Błąd wysyłki zamówienia.");
+      // Pamięć urządzenia: dane do następnego razu + wpis w historii zamówień.
+      try {
+        localStorage.setItem(
+          "mr_customer_v1",
+          JSON.stringify({ name: form.name, phone: form.phone, email: form.email, street: form.street, city: form.city, zip: form.zip })
+        );
+        const hist = JSON.parse(localStorage.getItem("mr_orders_v1") ?? "[]") as { id: string }[];
+        localStorage.setItem(
+          "mr_orders_v1",
+          JSON.stringify([{ id: data.order.id, number: data.order.number, at: data.order.createdAt }, ...hist].slice(0, 20))
+        );
+      } catch {
+        /* pamięć pełna/wyłączona — nie blokujemy */
+      }
       clear();
       router.push(`/dziekujemy/${data.order.id}`);
     } catch (e) {
