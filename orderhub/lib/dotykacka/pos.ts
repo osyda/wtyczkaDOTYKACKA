@@ -25,18 +25,46 @@ interface PosResult {
   error: string | null;
 }
 
-function itemToPos(item: OrderItem) {
+function itemToPos(item: OrderItem): Array<Record<string, unknown>> {
+  const addonsNote = item.addons.length > 0 ? item.addons.map((a) => `+ ${a.name}`).join(", ") : "";
+  const addonsSum = item.addons.reduce((s, a) => s + a.price, 0);
+
+  // Pizza pół na pół → dwie pozycje po 50% ceny (odwzorowanie „porcji 50%" z POS).
+  // Dodatki (na całość) doliczamy do pierwszej połówki. Uwaga: zachowanie
+  // manual-price przy qty>1 do potwierdzenia testem po podpięciu kluczy.
+  if (item.halves?.length === 2) {
+    const [a, b] = item.halves;
+    const half = (p: number) => Math.round((p / 2) * 100) / 100;
+    const idOf = (pid: string) => (Number.isFinite(Number(pid)) ? Number(pid) : pid);
+    return [
+      {
+        id: idOf(a.productId),
+        qty: item.qty,
+        "take-away": true,
+        "manual-price": half(a.price) + addonsSum,
+        note: `PÓŁ NA PÓŁ (1/2) z: ${b.name}${addonsNote ? ` | ${addonsNote} (na całość)` : ""}`,
+      },
+      {
+        id: idOf(b.productId),
+        qty: item.qty,
+        "take-away": true,
+        "manual-price": half(b.price),
+        note: `PÓŁ NA PÓŁ (2/2) z: ${a.name}`,
+      },
+    ];
+  }
+
   const productIdNum = Number(item.productId);
-  const note =
-    item.addons.length > 0 ? item.addons.map((a) => `+ ${a.name}`).join(", ") : undefined;
-  return {
-    id: Number.isFinite(productIdNum) ? productIdNum : item.productId,
-    qty: item.qty,
-    "take-away": true,
-    ...(note ? { note } : {}),
-    // TODO Faza 2+: gdy mamy mapowanie dodatków → customizations:
-    // customizations: item.addons.map(a => ({ "product-customization-id": ..., "product-id": ... }))
-  };
+  return [
+    {
+      id: Number.isFinite(productIdNum) ? productIdNum : item.productId,
+      qty: item.qty,
+      "take-away": true,
+      ...(addonsNote ? { note: addonsNote } : {}),
+      // TODO Faza 2+: gdy mamy mapowanie dodatków → customizations:
+      // customizations: item.addons.map(a => ({ "product-customization-id": ..., "product-id": ... }))
+    },
+  ];
 }
 
 function buildNote(order: Order): string {
@@ -87,7 +115,7 @@ export async function sendOrderToPos(order: Order): Promise<PosResult> {
   }
 
   // 2) Pozycje + dostawa.
-  const items: Array<Record<string, unknown>> = order.items.map(itemToPos);
+  const items: Array<Record<string, unknown>> = order.items.flatMap(itemToPos);
   if (order.mode === "delivery" && order.deliveryFee > 0) {
     const pid = dotykackaConfig.deliveryCityProductId || dotykackaConfig.deliveryKmProductId;
     if (pid) {

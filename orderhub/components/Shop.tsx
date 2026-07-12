@@ -6,7 +6,13 @@ import type { Menu, MenuProduct } from "@/lib/dotykacka/types";
 import { zl } from "@/lib/format";
 import { useCart, lineTotal } from "@/lib/cart/CartProvider";
 import { ProductModal } from "./ProductModal";
+import { HalfHalfModal } from "./HalfHalfModal";
 import { C, SERIF } from "@/lib/carta";
+
+/** Kategoria pizz — po nazwie (dla wejścia „pół na pół"). */
+function isPizzaCat(name: string): boolean {
+  return name.toLowerCase().includes("pizz");
+}
 
 /* ================= CARTA · menu jak redakcyjna karta ================= */
 
@@ -15,6 +21,7 @@ type HoursState = { open: boolean; acceptingOrders: boolean; message: string; la
 export function Shop({ menu }: { menu: Menu }) {
   const isLive = menu.source === "live";
   const [modalProduct, setModalProduct] = useState<MenuProduct | null>(null);
+  const [halfOpen, setHalfOpen] = useState(false);
   const [cartOpen, setCartOpen] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
   const [hours, setHours] = useState<HoursState | null>(null);
@@ -197,6 +204,36 @@ export function Shop({ menu }: { menu: Menu }) {
               </span>
               <span className="h-px flex-1" style={{ background: C.hairline }} />
             </div>
+            {/* Pół na pół — wejście na górze kategorii pizz */}
+            {isPizzaCat(c.name) && c.products.length >= 2 && (
+              <button
+                onClick={() => setHalfOpen(true)}
+                className="ct-reveal flex w-full cursor-pointer items-center gap-4 border-b py-[15px] text-left transition-colors active:bg-[#F0EADD]"
+                style={{ borderColor: C.hairlineSoft }}
+              >
+                <span
+                  className="grid h-[46px] w-[46px] flex-none place-items-center border text-[15px]"
+                  style={{ borderColor: C.ink }}
+                >
+                  <span className="font-carta italic">½/½</span>
+                </span>
+                <span className="min-w-0 flex-1">
+                  <span className="flex items-baseline">
+                    <span className="font-carta text-[18.5px] italic">Pizza pół na pół</span>
+                    <span className="mx-2.5 flex-1 -translate-y-1 border-b border-dotted" style={{ borderColor: C.leader }} />
+                    <span
+                      className="whitespace-nowrap border-b pb-0.5 text-[10px] uppercase tracking-[0.2em]"
+                      style={{ color: C.accent, borderColor: C.accent, textIndent: "0.2em" }}
+                    >
+                      Złóż
+                    </span>
+                  </span>
+                  <span className="mt-[5px] block text-[11px] leading-relaxed" style={{ color: C.muted }}>
+                    Dwie ulubione na jednej — cena to połowa jednej i połowa drugiej.
+                  </span>
+                </span>
+              </button>
+            )}
             <div className="min-[700px]:grid min-[700px]:grid-cols-2 min-[700px]:gap-x-[58px]">
               {c.products
                 .filter((p) => p.id !== featured?.id)
@@ -284,6 +321,15 @@ export function Shop({ menu }: { menu: Menu }) {
       {/* Karta produktu */}
       {modalProduct && (
         <ProductModal product={modalProduct} onClose={() => setModalProduct(null)} onAdded={onAdded} />
+      )}
+
+      {/* Pół na pół */}
+      {halfOpen && (
+        <HalfHalfModal
+          pizzas={cats.filter((c) => isPizzaCat(c.name)).flatMap((c) => c.products)}
+          onClose={() => setHalfOpen(false)}
+          onAdded={onAdded}
+        />
       )}
 
       {/* Koszyk */}

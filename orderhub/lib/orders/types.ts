@@ -27,6 +27,8 @@ export interface OrderItem {
   basePrice: number;
   addons: OrderItemAddon[];
   lineTotal: number;
+  /** Pizza pół na pół — do POS idzie jako dwie pozycje po 50% ceny (jak porcje). */
+  halves?: { productId: string; name: string; price: number }[];
 }
 
 export interface OrderCustomer {
