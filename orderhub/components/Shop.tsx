@@ -25,7 +25,17 @@ export function Shop({ menu }: { menu: Menu }) {
   const [cartOpen, setCartOpen] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
   const [hours, setHours] = useState<HoursState | null>(null);
+  const [hasHistory, setHasHistory] = useState(false);
   const { lines, itemCount, subtotal, setQty, remove } = useCart();
+
+  // Pamięć urządzenia: link do historii pokazujemy tylko stałym klientom.
+  useEffect(() => {
+    try {
+      setHasHistory(JSON.parse(localStorage.getItem("mr_orders_v1") ?? "[]").length > 0);
+    } catch {
+      /* brak historii */
+    }
+  }, []);
 
   // Godziny otwarcia: po zamknięciu (i 20 min przed) blokujemy przejście do kasy.
   useEffect(() => {
@@ -117,6 +127,15 @@ export function Shop({ menu }: { menu: Menu }) {
             </span>
             <span className="h-px flex-1" style={{ background: C.hairline }} />
           </div>
+          {hasHistory && (
+            <Link
+              href="/moje"
+              className="mt-3.5 inline-block border-b pb-0.5 text-[9px] uppercase tracking-[0.26em]"
+              style={{ color: C.muted, borderColor: C.hairline, textIndent: "0.26em" }}
+            >
+              Twoje zamówienia →
+            </Link>
+          )}
         </header>
 
         {/* Poza godzinami — menu można oglądać, zamówić nie */}
