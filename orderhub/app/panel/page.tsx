@@ -410,8 +410,20 @@ export default function PanelPage() {
     refresh();
   };
 
+  // Przypisanie kierowcy (bez zmiany statusu) — zamówienie przechodzi do panelu kierowcy.
+  const assignDriver = async (id: string, driver: string) => {
+    await fetch(`/api/orders/${id}/driver`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ driver, by }),
+    });
+    refresh();
+  };
+
   // Lista kierowców (zmienna DRIVERS w Vercelu) — do przypisywania dostaw.
   const [drivers, setDrivers] = useState<string[]>([]);
+  // Dostawy prowadzone ręcznie przez kelnerkę (świadome pominięcie kierowcy).
+  const [manualIds, setManualIds] = useState<Set<string>>(new Set());
   useEffect(() => {
     fetch("/api/staff/drivers")
       .then((r) => r.json())
@@ -432,7 +444,15 @@ export default function PanelPage() {
   };
 
   const news = orders.filter((o) => o.status === "new");
-  const prog = orders.filter((o) => ["in_progress", "ready", "on_delivery"].includes(o.status));
+  // Dostawy z przypisanym kierowcą znikają z ekranu kelnerki — żyją w panelu kierowcy.
+  const prog = orders.filter(
+    (o) =>
+      ["in_progress", "ready", "on_delivery"].includes(o.status) &&
+      !(o.mode === "delivery" && o.driver)
+  );
+  const atDrivers = orders.filter(
+    (o) => ["in_progress", "ready", "on_delivery"].includes(o.status) && o.mode === "delivery" && o.driver
+  );
   const sched = orders
     .filter((o) => o.status === "scheduled")
     .sort((a, b) => (a.scheduledTime ?? "").localeCompare(b.scheduledTime ?? ""));
@@ -521,6 +541,18 @@ export default function PanelPage() {
           >
             <IconPhone className="h-4 w-4" /> + Telefon
           </Link>
+          <Link
+            href="/panel/kierowca"
+            className="flex items-center gap-1.5 whitespace-nowrap rounded-full px-3 py-1.5 text-[12px] font-bold min-[920px]:px-3.5 min-[920px]:py-2 min-[920px]:text-[12.5px]"
+            style={{ background: SUB, color: CREAM }}
+          >
+            <IconTruck className="h-4 w-4" /> Kierowca
+            {atDrivers.length > 0 && (
+              <span className="ml-1 rounded-full px-1.5 text-[11px] font-extrabold" style={{ background: OLIVE, color: "#fff" }}>
+                {atDrivers.length}
+              </span>
+            )}
+          </Link>
           <TopBtn active={soundOn} onClick={toggleSound} title={soundOn ? "Dźwięk włączony" : "Dźwięk wyłączony"}>
             {soundOn ? <IconBell className="h-4 w-4" /> : <IconBellOff className="h-4 w-4" />}
           </TopBtn>
@@ -608,10 +640,23 @@ export default function PanelPage() {
             {prog.map((o) => (
               <OrderCard key={o.id} order={o} onAdvance={advance}>
                 <EtaLine order={o} onEta={(m) => setEta(o.id, m)} />
-                <StatusButtons order={o} onAdvance={advance} drivers={drivers} />
+                {o.mode === "delivery" && !o.driver && !manualIds.has(o.id) ? (
+                  <DriverAssign
+                    drivers={drivers}
+                    onPick={(d) => assignDriver(o.id, d)}
+                    onSkip={() => setManualIds((s) => new Set(s).add(o.id))}
+                  />
+                ) : (
+                  <StatusButtons order={o} onAdvance={advance} drivers={drivers} />
+                )}
               </OrderCard>
             ))}
             {prog.length === 0 && <Empty />}
+            {atDrivers.length > 0 && (
+              <div className="rounded-xl px-3.5 py-2.5 text-[12.5px]" style={{ background: SUB, color: MUTED }}>
+                U kierowców: {atDrivers.map((o) => `#${o.number} (${o.driver})`).join(", ")} — patrz panel kierowcy.
+              </div>
+            )}
           </Column>
 
           <Column icon={<IconCal className="h-4 w-4" />} title="Na godzinę" count={sched.length}>
@@ -1167,6 +1212,60 @@ function OrderCard({
           </div>
         </div>
       )}
+    </div>
+  );
+}
+
+/** Wybór kierowcy zaraz po ustawieniu czasu — obowiązkowy krok dla dostaw. */
+function DriverAssign({
+  drivers,
+  onPick,
+  onSkip,
+}: {
+  drivers: string[];
+  onPick: (driver: string) => void;
+  onSkip: () => void;
+}) {
+  const [name, setName] = useState("");
+  return (
+    <div className="mt-2.5">
+      <div className="mb-1.5 text-[11.5px] font-bold uppercase tracking-[0.1em]" style={{ color: MUTED }}>
+        Przypisz kierowcę — zamówienie przejdzie do jego panelu
+      </div>
+      <div className="flex flex-wrap items-center gap-2">
+        {drivers.map((d) => (
+          <button
+            key={d}
+            onClick={() => onPick(d)}
+            className="rounded-full px-4 py-2 text-[12.5px] font-bold"
+            style={{ background: LIME, color: "#1D2A22" }}
+          >
+            {d}
+          </button>
+        ))}
+        <input
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" && name.trim()) onPick(name.trim());
+          }}
+          placeholder="inne imię…"
+          className="w-28 rounded-full px-3.5 py-2 text-[12.5px] font-semibold outline-none"
+          style={{ background: SUB, color: CREAM, border: "1px solid rgba(27,23,16,0.13)" }}
+        />
+        {name.trim() && (
+          <button
+            onClick={() => onPick(name.trim())}
+            className="rounded-full px-4 py-2 text-[12.5px] font-bold"
+            style={{ background: LIME, color: "#1D2A22" }}
+          >
+            OK
+          </button>
+        )}
+        <button onClick={onSkip} className="px-2 text-[12px] font-semibold underline" style={{ color: MUTED }}>
+          bez kierowcy (obsłużę ręcznie)
+        </button>
+      </div>
     </div>
   );
 }

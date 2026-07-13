@@ -39,6 +39,44 @@ export interface StaffEmployee {
   name: string;
 }
 
+/**
+ * Diagnostyka na /status: czy API zwraca pracowników i czy widać pola z kodami.
+ * NIE ujawnia samych kodów — tylko liczby i nazwy pól.
+ */
+export async function employeesDiagnostics(): Promise<{
+  available: boolean;
+  count: number;
+  withCode: number;
+  codeFields: string[];
+  error?: string;
+}> {
+  if (!hasCredentials()) return { available: false, count: 0, withCode: 0, codeFields: [] };
+  try {
+    const list = await getEmployees();
+    const fields = new Set<string>();
+    let withCode = 0;
+    for (const e of list) {
+      const found = PIN_FIELDS.filter((f) => {
+        const v = e[f];
+        return (typeof v === "string" && v.trim().length >= 3) || (typeof v === "number" && String(v).length >= 3);
+      });
+      if (found.length > 0) {
+        withCode++;
+        found.forEach((f) => fields.add(f));
+      }
+    }
+    return { available: true, count: list.length, withCode, codeFields: [...fields] };
+  } catch (e) {
+    return {
+      available: false,
+      count: 0,
+      withCode: 0,
+      codeFields: [],
+      error: e instanceof Error ? e.message.slice(0, 160) : "błąd API",
+    };
+  }
+}
+
 /** Znajdź pracownika po jego kodzie z POS. Zwraca null też przy problemach z API. */
 export async function findEmployeeByPin(pin: string): Promise<StaffEmployee | null> {
   const wanted = pin.trim();

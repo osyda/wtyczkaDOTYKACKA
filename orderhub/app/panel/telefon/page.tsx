@@ -208,6 +208,16 @@ function PhoneOrderInner() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [form.city]);
 
+  // Kierowca przypisywany od razu przy przyjęciu telefonu (dostawy).
+  const [drivers, setDrivers] = useState<string[]>([]);
+  const [selDriver, setSelDriver] = useState<string>("");
+  useEffect(() => {
+    fetch("/api/staff/drivers")
+      .then((r) => r.json())
+      .then((d) => setDrivers(d.drivers ?? []))
+      .catch(() => {});
+  }, []);
+
   // Rabat: kod z ulotki ALBO ręczny rabat kelnerki (jedno z dwóch).
   const [promoInput, setPromoInput] = useState("");
   const [promo, setPromo] = useState<{ code: string; discount: number; label: string } | null>(null);
@@ -297,6 +307,7 @@ function PhoneOrderInner() {
           etaMinutes: timeMode === "asap" && etaMinutes ? etaMinutes : undefined,
           promoCode: promo?.code,
           manualDiscount: !promo && manual > 0 ? { amount: manual, reason: manualReason } : undefined,
+          driver: mode === "delivery" && selDriver ? selDriver : undefined,
         }),
       });
       const data = await res.json();
@@ -538,6 +549,24 @@ function PhoneOrderInner() {
               <Pill on={payment === "cash"} onClick={() => setPayment("cash")}>Gotówka</Pill>
               <Pill on={payment === "card"} onClick={() => setPayment("card")}>Karta</Pill>
             </div>
+
+            {mode === "delivery" && drivers.length > 0 && (
+              <>
+                <Sec>Kierowca</Sec>
+                <div className="flex flex-wrap gap-2">
+                  {drivers.map((d) => (
+                    <Pill key={d} on={selDriver === d} onClick={() => setSelDriver(selDriver === d ? "" : d)}>
+                      {d}
+                    </Pill>
+                  ))}
+                </div>
+                <div className="mt-1 text-[11.5px]" style={{ color: MUTED }}>
+                  {selDriver
+                    ? `Kurs trafi prosto do panelu kierowcy (${selDriver}).`
+                    : "Bez wyboru — kierowcę przypiszesz później w panelu."}
+                </div>
+              </>
+            )}
 
             <Sec>Rabat (opcjonalnie)</Sec>
             {promo ? (

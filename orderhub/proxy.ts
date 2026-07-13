@@ -21,6 +21,7 @@ export async function proxy(req: NextRequest) {
     (pathname === "/api/orders" && method === "GET") ||
     pathname.endsWith("/eta") ||
     pathname.endsWith("/status") ||
+    pathname.endsWith("/driver") ||
     pathname === "/api/promo/codes" ||
     (pathname.startsWith("/api/cti/") && pathname !== "/api/cti/call");
 

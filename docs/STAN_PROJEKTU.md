@@ -111,6 +111,20 @@ przekierowanie 301 z `mammarosa.pl/zamow-online/` (wtyczka Redirection w WP). NI
   „Telefony" (`/api/cti/calls`, Oddzwoń / Zamów), karta na `/status`.
   Do podłączenia na żywo: MacroDroid na komórce lokalu ALBO webhook u operatora
   VoIP — czeka na ustalenie typu linii właściciela.
+- PRZEPŁYW KIEROWCÓW (przeprojektowany 13.07.2026 na życzenie właściciela):
+  dostawa: Nowe → kelnerka ustawia ETA → w „W realizacji" od razu obowiązkowy
+  wybór kierowcy (`DriverAssign`, POST /api/orders/[id]/driver — bez zmiany
+  statusu) → zamówienie ZNIKA z ekranu kelnerki (pasek „U kierowców: …") →
+  PANEL KIEROWCY `/panel/kierowca` (PIN, wybór imienia pamiętany na urządzeniu,
+  poll 8 s): karta kursu z mapą/telefonem/uwagami/„POBIERZ GOTÓWKĄ", przyciski
+  „Wyjeżdżam" (on_delivery) i „Dostarczone ✓" (completed). Telefoniczne: pole
+  „Kierowca" już na ekranie przyjmowania (payload.driver) → kurs od razu w
+  panelu kierowcy. Fallback „bez kierowcy (obsłużę ręcznie)" przywraca stare
+  przyciski. Druk w POS przy przypisaniu kierowcy: `issueOrderInPos`
+  (order/issue, posOrderId z order/create) za PODWÓJNYM bezpiecznikiem
+  DOTYKACKA_SEND_ORDERS=true + DOTYKACKA_ISSUE_ON_DRIVER=true — DO TESTU przy
+  go-live (fiskalizacja!). Diagnostyka logowania kodami pracowników: karta na
+  /status (`employeesDiagnostics` — liczby i nazwy pól, bez kodów).
 - Obieg z POS i utarg kierowców (USTALENIE 11.07.2026, workflow właściciela):
   dziś zamówienie wpada do POS, dostawę kelnerka drukuje wchodząc na KOD KIEROWCY
   (utarg kierowcy), odbiór kasuje ze swojego kodu. Z nowym systemem DZIEŃ PIERWSZY
