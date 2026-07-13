@@ -1,17 +1,40 @@
 /**
- * Autoryzacja obsługi.
+ * Autoryzacja obsługi — DWIE WARSTWY (decyzja właściciela 13.07.2026):
  *
- * Do panelu wpuszczają DWA rodzaje kodów:
- *  1. STAFF_PIN — wspólny PIN zapasowy (Vercel env),
- *  2. osobiste kody pracowników z Dotykački (te same, którymi logują się do POS),
- *     pobierane przez API — działa automatycznie po podpięciu kluczy.
+ *  1. HASŁO URZĄDZENIA (STAFF_PIN) — wpisywane raz na 90 dni na każdym
+ *     urządzeniu; chroni /panel, /panel/telefon, /panel/kierowca i /status.
+ *     Obcy bez hasła nie zobaczy nawet ekranu kodów.
+ *  2. OSOBISTE KODY personelu (STAFF_CODES = "Ania:1234, Kasia:5678") —
+ *     wpisywane ZA bramką urządzenia; identyfikują, kto obsługuje (podpis
+ *     przy zamówieniach). Dotykačka nie udostępnia PIN-ów przez API
+ *     (sprawdzone 13.07.2026), więc kody ustawia się ręcznie w Vercelu —
+ *     mogą być te same, co w POS.
  *
- * Ciasteczko sesji nie przechowuje żadnego PIN-u — trzyma token pochodny
- * z sekretu serwera, więc kod pracownika nie wycieka do przeglądarki.
+ * Ciasteczko sesji nie przechowuje żadnego hasła — trzyma token pochodny
+ * z sekretu serwera.
  */
 
 export function staffProtectionEnabled(): boolean {
   return Boolean(process.env.STAFF_PIN?.trim());
+}
+
+/** Czy skonfigurowano osobiste kody personelu (warstwa 2). */
+export function staffCodesEnabled(): boolean {
+  return Boolean(process.env.STAFF_CODES?.trim());
+}
+
+/** Dopasowanie osobistego kodu do imienia: STAFF_CODES="Ania:1234, Kasia:5678". */
+export function findStaffByCode(code: string): string | null {
+  const wanted = code.trim();
+  if (!wanted) return null;
+  for (const pair of (process.env.STAFF_CODES ?? "").split(",")) {
+    const idx = pair.lastIndexOf(":");
+    if (idx < 1) continue;
+    const name = pair.slice(0, idx).trim();
+    const c = pair.slice(idx + 1).trim();
+    if (name && c && c === wanted) return name;
+  }
+  return null;
 }
 
 /** Token sesji: skrót sekretu serwera (STAFF_PIN + refresh token). */

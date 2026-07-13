@@ -15,6 +15,7 @@ import type { CallerInfo } from "@/lib/cti";
 import { CartProvider, useCart, lineTotal } from "@/lib/cart/CartProvider";
 import { ProductModal } from "@/components/ProductModal";
 import { HalfHalfModal } from "@/components/HalfHalfModal";
+import { StaffGate } from "@/components/StaffGate";
 import { zl } from "@/lib/format";
 import { isKoscierzyna, pickupQuote, flatCityQuote, type DeliveryQuote, type FulfillmentMode } from "@/lib/delivery";
 
@@ -687,16 +688,18 @@ function PhoneOrderInner() {
 
 export default function PhoneOrderPage() {
   return (
-    <CartProvider storageKey="mammarosa_phone_cart_v1">
-      <Suspense
-        fallback={
-          <main className="grid min-h-screen place-items-center text-sm font-semibold" style={{ background: BG, color: MUTED }}>
-            Ładowanie…
-          </main>
-        }
-      >
-        <PhoneOrderInner />
-      </Suspense>
-    </CartProvider>
+    <StaffGate askName>
+      <CartProvider storageKey="mammarosa_phone_cart_v1">
+        <Suspense
+          fallback={
+            <main className="grid min-h-screen place-items-center text-sm font-semibold" style={{ background: BG, color: MUTED }}>
+              Ładowanie…
+            </main>
+          }
+        >
+          <PhoneOrderInner />
+        </Suspense>
+      </CartProvider>
+    </StaffGate>
   );
 }
