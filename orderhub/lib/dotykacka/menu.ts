@@ -15,6 +15,7 @@
 
 import { dotykackaConfig, hasCredentials } from "./config";
 import { dotyGetAll } from "./client";
+import { descriptionFor } from "./descriptions";
 import { mockMenu } from "./mock";
 import type { DotyCategory, DotyCustomization, DotyProduct, Menu, MenuAddon, MenuCategory } from "./types";
 
@@ -220,14 +221,22 @@ export async function getMenu(opts?: { full?: boolean }): Promise<Menu> {
     const seen = new Set<string>();
     addons = addons.filter((a) => (seen.has(a.id) ? false : (seen.add(a.id), true)));
 
+    // Warianty bez dopłaty — „Szybkie notatki" z karty produktu w POS
+    // (np. SZYNKA MIELONA / SZYNKA PLASTRY). Klient wybiera jeden.
+    const variants = (Array.isArray(p.notes) ? p.notes : [])
+      .map((n) => (typeof n === "string" ? n : (n?.note ?? "")))
+      .map((s) => s.trim())
+      .filter(Boolean);
+
     const catName = catNameById.get(String(p._categoryId)) ?? "";
     target.products.push({
       id: String(p.id),
       name: p.name,
-      description: p.description ?? "",
+      description: p.description?.trim() || p.subtitle?.trim() || descriptionFor(p.name),
       price: toNumber(p.priceWithVat),
       color: p.hexColor,
       image: p.imageUrl,
+      ...(variants.length > 0 ? { variants } : {}),
       ...(addons.length > 0 ? { addons } : {}),
       ...(packaging && String(p.id) !== packaging.id && needsPackaging(catName) ? { packaging } : {}),
     });

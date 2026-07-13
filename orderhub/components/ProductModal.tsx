@@ -20,6 +20,7 @@ export function ProductModal({
   const { addProduct } = useCart();
   const [qty, setQty] = useState(1);
   const [selected, setSelected] = useState<Record<string, boolean>>({});
+  const [variant, setVariant] = useState<string | null>(null);
   const [closing, setClosing] = useState(false);
   const closeTimer = useRef(0);
 
@@ -109,6 +110,44 @@ export function ProductModal({
           </div>
         )}
 
+        {(product.variants?.length ?? 0) > 0 && (
+          <>
+            <div className="mt-6 flex items-center gap-3.5">
+              <span className="h-px flex-1" style={{ background: C.hairline }} />
+              <span className="text-[9.5px] tracking-[0.3em]" style={{ color: C.muted, textIndent: "0.3em" }}>
+                DO WYBORU
+              </span>
+              <span className="h-px flex-1" style={{ background: C.hairline }} />
+            </div>
+            {product.variants!.map((v) => {
+              const on = variant === v;
+              return (
+                <button
+                  key={v}
+                  onClick={() => setVariant(on ? null : v)}
+                  className="flex w-full cursor-pointer items-center gap-3.5 border-b py-[13px] text-left"
+                  style={{ borderColor: C.hairlineSoft }}
+                >
+                  <span
+                    className="flex h-[17px] w-[17px] flex-none items-center justify-center rounded-full border transition-colors duration-200"
+                    style={{ borderColor: C.ink }}
+                  >
+                    <span
+                      className="h-[9px] w-[9px] rounded-full transition-opacity duration-200"
+                      style={{ background: C.ink, opacity: on ? 1 : 0 }}
+                    />
+                  </span>
+                  <span className="text-[13.5px]">{v}</span>
+                  <span className="flex-1 translate-y-1 border-b border-dotted" style={{ borderColor: C.leader }} />
+                  <span className="text-[11px]" style={{ color: C.muted }}>
+                    bez dopłaty
+                  </span>
+                </button>
+              );
+            })}
+          </>
+        )}
+
         {addons.length > 0 && (
           <>
             <div className="mt-6 flex items-center gap-3.5">
@@ -170,7 +209,12 @@ export function ProductModal({
 
         <button
           onClick={() => {
-            addProduct(product, qty, chosen);
+            // Wariant jedzie jako darmowy „dodatek" bez customizationId —
+            // w POS trafia do notatki pozycji (jak Szybka notatka przy terminalu).
+            const withVariant = variant
+              ? [{ id: `wariant:${variant}`, name: variant, price: 0 }, ...chosen]
+              : chosen;
+            addProduct(product, qty, withVariant);
             requestClose();
             onAdded?.(product.name, qty);
           }}
