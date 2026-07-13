@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { orderStore } from "@/lib/orders/store";
-import { issueAndPayInPos, sendOrderToPos } from "@/lib/dotykacka/pos";
+import { issueAndPayInPos, sendOrderToPos, fiscalizeMoment } from "@/lib/dotykacka/pos";
 
 export const dynamic = "force-dynamic";
 
@@ -36,11 +36,15 @@ export async function POST(req: Request, ctx: { params: Promise<{ id: string }> 
     updated = (await orderStore.update(id, { pos: { ...pos, deferred: false } })) ?? updated;
   }
 
-  // Druk rachunku + oznaczenie ZAPŁACONE w POS (za podwójnym bezpiecznikiem).
-  const issue = await issueAndPayInPos(updated);
-  if (!issue.ok && issue.error) {
-    const withErr = await orderStore.update(id, { pos: { ...updated.pos, error: issue.error } });
-    return NextResponse.json({ order: withErr ?? updated, posIssueError: issue.error });
+  // Fiskalizacja przy kierowcy tylko w trybie "driver" — w trybie "delivered"
+  // zamówienie zostaje OTWARTE w POS (kierowca wozi rachunek niefiskalny),
+  // a wystawienie+zapłata dzieje się przy „Dostarczone".
+  if (fiscalizeMoment() === "driver") {
+    const issue = await issueAndPayInPos(updated);
+    if (!issue.ok && issue.error) {
+      const withErr = await orderStore.update(id, { pos: { ...updated.pos, error: issue.error } });
+      return NextResponse.json({ order: withErr ?? updated, posIssueError: issue.error });
+    }
   }
 
   return NextResponse.json({ order: updated });

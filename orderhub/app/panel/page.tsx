@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { StaffGate, clearStaffName } from "@/components/StaffGate";
+import { printBill } from "@/lib/printBill";
 import type { Order, OrderStatus } from "@/lib/orders/types";
 import type { CallerInfo } from "@/lib/cti";
 import { zl } from "@/lib/format";
@@ -386,13 +387,16 @@ function PanelInner() {
     refresh();
   };
 
-  // Przypisanie kierowcy (bez zmiany statusu) — zamówienie przechodzi do panelu kierowcy.
+  // Przypisanie kierowcy (bez zmiany statusu) — zamówienie przechodzi do panelu
+  // kierowcy, a z panelu od razu drukuje się RACHUNEK NIEFISKALNY dla kierowcy.
   const assignDriver = async (id: string, driver: string) => {
-    await fetch(`/api/orders/${id}/driver`, {
+    const res = await fetch(`/api/orders/${id}/driver`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ driver, by }),
     });
+    const d = await res.json().catch(() => ({}));
+    if (res.ok && d.order) printBill(d.order);
     refresh();
   };
 

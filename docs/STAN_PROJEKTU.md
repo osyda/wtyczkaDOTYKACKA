@@ -136,11 +136,18 @@ przekierowanie 301 z `mammarosa.pl/zamow-online/` (wtyczka Redirection w WP). NI
   dokumentacji pos-actions, PDF od właściciela 13.07.2026): local (drukarka
   POS, domyślne), none (bez druku), remote/email (tylko SK/eKasa). print-type
   NIE steruje fiskalnością — o tym decyduje konfiguracja zadań wydruku
-  w terminalu. WYNIKI TESTU NA ŻYWO (13.07.2026): zamówienie w POS z dodatkami
+  w terminalu. WYNIKI TESTÓW NA ŻYWO (13.07.2026): zamówienie w POS z dodatkami
   jako customizations, opakowaniami i dowozem (sumy 1:1), utarg POPRAWNIE na
-  koncie kierowcy (Michał), wydruk automatyczny = paragon fiskalny. Dodano
-  order/pay po issue → status ZAPŁACONE wg metody (gotówka 900000001, karta
-  900000002, online 900000019).
+  koncie kierowcy (Michał), status ZAPŁACONE działa (order/pay wg metody:
+  gotówka 900000001, karta 900000002, online 900000019). print-type=none NIE
+  wyłącza paragonu fiskalnego — fiskalizacja przy KAŻDYM wystawieniu (moduł
+  fiskalny PL). Dlatego `fiscalizeMoment()` (env DOTYKACKA_FISCALIZE_ON:
+  driver | delivered | manual) wybiera moment wystawienia+zapłaty; w trybie
+  delivered/manual zamówienie po przypisaniu kierowcy zostaje OTWARTE w POS
+  (na koncie kierowcy), fiskalizacja przy „Dostarczone" (status route) albo
+  ręcznie w POS. RACHUNEK NIEFISKALNY: `lib/printBill.ts` — drukuje się
+  automatycznie z panelu przy przypisaniu kierowcy (i przy telefonicznym
+  z kierowcą); stopka „To nie jest paragon fiskalny".
 - Obieg z POS i utarg kierowców (USTALENIE 11.07.2026, workflow właściciela):
   dziś zamówienie wpada do POS, dostawę kelnerka drukuje wchodząc na KOD KIEROWCY
   (utarg kierowcy), odbiór kasuje ze swojego kodu. Z nowym systemem DZIEŃ PIERWSZY

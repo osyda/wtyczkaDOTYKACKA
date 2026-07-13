@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { orderStore } from "@/lib/orders/store";
+import { issueAndPayInPos, fiscalizeMoment } from "@/lib/dotykacka/pos";
 import type { OrderStatus } from "@/lib/orders/types";
 
 export const dynamic = "force-dynamic";
@@ -38,5 +39,21 @@ export async function POST(req: Request, ctx: { params: Promise<{ id: string }> 
   if (status === "on_delivery" && driver) patch.driver = driver;
   const updated = await orderStore.update(id, patch);
   if (!updated) return NextResponse.json({ error: "Nie znaleziono." }, { status: 404 });
+
+  // Tryb fiskalizacji "delivered": kierowca klika „Dostarczone" → dopiero teraz
+  // wystawiamy i płacimy w POS (paragon fiskalny drukuje się w lokalu).
+  if (
+    status === "completed" &&
+    updated.mode === "delivery" &&
+    updated.driver &&
+    fiscalizeMoment() === "delivered"
+  ) {
+    const issue = await issueAndPayInPos(updated);
+    if (!issue.ok && issue.error) {
+      const withErr = await orderStore.update(id, { pos: { ...updated.pos, error: issue.error } });
+      return NextResponse.json({ order: withErr ?? updated, posIssueError: issue.error });
+    }
+  }
+
   return NextResponse.json({ order: updated });
 }
