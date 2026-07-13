@@ -18,6 +18,8 @@ export interface OrderItemAddon {
   id: string;
   name: string;
   price: number;
+  /** ID grupy customizations Dotykački (gdy dodatek pochodzi z POS). */
+  customizationId?: string;
 }
 
 export interface OrderItem {

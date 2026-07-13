@@ -14,6 +14,8 @@ export interface CartLineAddon {
   id: string;
   name: string;
   price: number;
+  /** ID grupy customizations Dotykački — wysyłka dodatku do POS jako pozycji. */
+  customizationId?: string;
 }
 
 export interface CartLine {
@@ -132,7 +134,7 @@ export function CartProvider({
             name: product.name,
             basePrice: product.price,
             qty,
-            addons: addons.map((a) => ({ id: a.id, name: a.name, price: a.price })),
+            addons: addons.map((a) => ({ id: a.id, name: a.name, price: a.price, customizationId: a.customizationId })),
             image: product.image,
             note,
           },
@@ -146,7 +148,7 @@ export function CartProvider({
             name: `Pół na pół: ${a.name} / ${b.name}`,
             basePrice: Math.round(((a.price + b.price) / 2) * 100) / 100,
             qty,
-            addons: addons.map((x) => ({ id: x.id, name: x.name, price: x.price })),
+            addons: addons.map((x) => ({ id: x.id, name: x.name, price: x.price, customizationId: x.customizationId })),
             image: a.image,
             halves: [
               { productId: a.id, name: a.name, price: a.price, image: a.image },

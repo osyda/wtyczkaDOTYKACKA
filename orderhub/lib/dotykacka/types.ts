@@ -33,6 +33,19 @@ export interface DotyProduct {
   imageUrl?: string;
 }
 
+/** Grupa dodatków (customization) — wskazuje kategorię, z której pochodzą produkty-dodatki. */
+export interface DotyCustomization {
+  id: number | string;
+  _categoryId?: number | string;
+  _productId?: number | string;
+  _defaultProductIds?: Array<number | string>;
+  name?: string;
+  minSelected?: number;
+  maxSelected?: number;
+  sortOrder?: number;
+  deleted?: boolean;
+}
+
 /** Standardowa koperta paginacji w API v2. */
 export interface DotyPage<T> {
   currentPage: number;
@@ -49,6 +62,8 @@ export interface MenuAddon {
   id: string;
   name: string;
   price: number;
+  /** ID grupy customizations w Dotykačce — potrzebne przy wysyłce dodatku do POS. */
+  customizationId?: string;
 }
 
 export interface MenuProduct {
