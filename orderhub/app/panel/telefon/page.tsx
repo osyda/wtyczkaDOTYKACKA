@@ -16,7 +16,6 @@ import { CartProvider, useCart, lineTotal } from "@/lib/cart/CartProvider";
 import { ProductModal } from "@/components/ProductModal";
 import { HalfHalfModal } from "@/components/HalfHalfModal";
 import { StaffGate } from "@/components/StaffGate";
-import { printBill, openBillWindow } from "@/lib/printBill";
 import { zl } from "@/lib/format";
 import { isKoscierzyna, pickupQuote, flatCityQuote, type DeliveryQuote, type FulfillmentMode } from "@/lib/delivery";
 
@@ -281,8 +280,6 @@ function PhoneOrderInner() {
   async function save() {
     setSubmitting(true);
     setError(null);
-    // Okno na rachunek kierowcy — otwarte synchronicznie (blokada popupów).
-    const billWin = mode === "delivery" && selDriver ? openBillWindow() : null;
     try {
       const res = await fetch("/api/orders", {
         method: "POST",
@@ -316,13 +313,9 @@ function PhoneOrderInner() {
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error ?? "Błąd zapisu.");
-      // Kierowca wybrany od razu → drukujemy mu rachunek niefiskalny.
-      if (data.order?.driver && billWin) printBill(data.order, billWin);
-      else billWin?.close();
       clear();
       router.push("/panel");
     } catch (e) {
-      billWin?.close();
       setError(e instanceof Error ? e.message : "Błąd zapisu.");
       setSubmitting(false);
     }

@@ -142,12 +142,17 @@ przekierowanie 301 z `mammarosa.pl/zamow-online/` (wtyczka Redirection w WP). NI
   gotówka 900000001, karta 900000002, online 900000019). print-type=none NIE
   wyłącza paragonu fiskalnego — fiskalizacja przy KAŻDYM wystawieniu (moduł
   fiskalny PL). Dlatego `fiscalizeMoment()` (env DOTYKACKA_FISCALIZE_ON:
-  driver | delivered | manual) wybiera moment wystawienia+zapłaty; w trybie
-  delivered/manual zamówienie po przypisaniu kierowcy zostaje OTWARTE w POS
-  (na koncie kierowcy), fiskalizacja przy „Dostarczone" (status route) albo
-  ręcznie w POS. RACHUNEK NIEFISKALNY: `lib/printBill.ts` — drukuje się
-  automatycznie z panelu przy przypisaniu kierowcy (i przy telefonicznym
-  z kierowcą); stopka „To nie jest paragon fiskalny".
+  driver | delivered | manual) wybiera moment wystawienia+zapłaty.
+  DECYZJA WŁAŚCICIELA (13.07.2026, wieczór): ŻADNYCH rachunków z naszego
+  systemu — usunięty `lib/printBill.ts` i auto-druk z panelu/telefonu.
+  Docelowy obieg: zamówienie trafia do POS przy wyborze kierowcy
+  (DOTYKACKA_CREATE_ON_DRIVER=true) i TYLE — obsługa zamyka rachunek RĘCZNIE
+  w POS (tam wybiera „Nie fiskalizuj" dla rachunku niefiskalnego).
+  DOTYKACKA_FISCALIZE_ON zostaje PUSTE (= manual); tryby driver/delivered
+  zostają w kodzie uśpione na wypadek, gdyby support Dotykački odpowiedział,
+  jak wystawiać NIEFISKALNIE przez API (właściciel wysłał pytanie o flagę
+  „Nie fiskalizuj" w pos-actions — czekamy na odpowiedź).
+  DOTYKACKA_PRINT_TYPE usunięty z Vercela (none nie pomagał).
 - Obieg z POS i utarg kierowców (USTALENIE 11.07.2026, workflow właściciela):
   dziś zamówienie wpada do POS, dostawę kelnerka drukuje wchodząc na KOD KIEROWCY
   (utarg kierowcy), odbiór kasuje ze swojego kodu. Z nowym systemem DZIEŃ PIERWSZY

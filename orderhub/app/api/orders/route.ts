@@ -124,8 +124,8 @@ export async function POST(req: Request) {
     : await sendOrderToPos(order);
   let updated = await orderStore.update(order.id, { pos });
 
-  // Telefoniczne z kierowcą wybranym od razu: rachunek (niefiskalny) drukuje się
-  // z konta kierowcy już teraz (za podwójnym bezpiecznikiem — patrz issueOrderInPos).
+  // Wystawienie+zapłata przez API tylko w trybie "driver" (domyślnie "manual" —
+  // rachunki zamyka obsługa ręcznie w POS).
   if ((updated ?? order).driver && (updated ?? order).mode === "delivery" && fiscalizeMoment() === "driver") {
     const issue = await issueAndPayInPos(updated ?? order);
     if (!issue.ok && issue.error) {

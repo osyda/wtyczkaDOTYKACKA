@@ -8,8 +8,8 @@ export const dynamic = "force-dynamic";
  * POST /api/orders/[id]/driver { driver, by }
  * Przypisanie kierowcy do dostawy (bez zmiany statusu — kuchnia dalej gotuje).
  * Zamówienie znika z ekranu kelnerki i pojawia się w panelu kierowcy.
- * Przy włączonym bezpieczniku + DOTYKACKA_ISSUE_ON_DRIVER=true dodatkowo
- * wystawia (drukuje) rachunek w POS — do przetestowania przy go-live.
+ * DOPIERO teraz dostawa trafia do POS (na konto kierowcy) — rachunek zamyka
+ * obsługa ręcznie w POS (DOTYKACKA_FISCALIZE_ON domyślnie "manual").
  */
 export async function POST(req: Request, ctx: { params: Promise<{ id: string }> }) {
   const { id } = await ctx.params;
@@ -36,9 +36,9 @@ export async function POST(req: Request, ctx: { params: Promise<{ id: string }> 
     updated = (await orderStore.update(id, { pos: { ...pos, deferred: false } })) ?? updated;
   }
 
-  // Fiskalizacja przy kierowcy tylko w trybie "driver" — w trybie "delivered"
-  // zamówienie zostaje OTWARTE w POS (kierowca wozi rachunek niefiskalny),
-  // a wystawienie+zapłata dzieje się przy „Dostarczone".
+  // Wystawienie+zapłata przez API tylko w trybie "driver" (nieużywany domyślnie —
+  // rachunki zamyka obsługa ręcznie w POS; tryb zostaje na wypadek, gdyby
+  // Dotykačka odpowiedziała, jak wystawiać niefiskalnie przez API).
   if (fiscalizeMoment() === "driver") {
     const issue = await issueAndPayInPos(updated);
     if (!issue.ok && issue.error) {
