@@ -16,8 +16,7 @@ Po dodaniu/zmianie zmiennych ZAWSZE: Deployments → ⋯ przy najnowszym → **R
       Do centralki telefonicznej — ten sam ciąg wpiszesz potem w MacroDroid.
 - [ ] `STAFF_PIN` = HASŁO LOKALU (ustaw dłuższe niż 4 cyfry!) — wpisywane raz
       na 90 dni na każdym urządzeniu; chroni panel, telefon, kierowcę i /status.
-- [ ] `STAFF_CODES` = osobiste kody personelu (podpis przy zamówieniach),
-      np. `Ania:1234, Kasia:5678, Marcin H:1111` — mogą być te same co w POS.
+- [ ] ~~`STAFF_CODES`~~ — NIE ustawiać (decyzja właściciela: samo hasło lokalu).
 - [ ] `GOOGLE_MAPS_API_KEY` = klucz z Google Cloud (godziny otwarcia z wizytówki):
       console.cloud.google.com → projekt → włącz **Places API (New)** →
       Credentials → Create credentials → API key. (Wymaga podpięcia karty,

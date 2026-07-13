@@ -167,6 +167,9 @@ przekierowanie 301 z `mammarosa.pl/zamow-online/` (wtyczka Redirection w WP). NI
   i telefonie, rabat ręczny kelnerki z powodem (tylko telefoniczne), karta
   „Rabaty" w panelu, rozliczenie w „Dziś", nota w POS i na kwicie. Total liczony
   na serwerze; minimum dostawy PRZED rabatem. R2 (POS discount-percent) po kluczach.
+- DECYZJA WŁAŚCICIELA (13.07.2026): kodów osobistych NIE używamy — samo hasło
+  lokalu (STAFF_PIN). Warstwa kodów zostaje w kodzie uśpiona (włącza się tylko
+  gdy ktoś ustawi STAFF_CODES) — NIE ustawiać tej zmiennej.
 - Autoryzacja obsługi — DWUWARSTWOWA (13.07.2026): warstwa 1 = HASŁO LOKALU
   (STAFF_PIN, cookie 90 dni) chroni /panel, /panel/telefon, /panel/kierowca
   ORAZ /status (server-side); warstwa 2 = OSOBISTE KODY (STAFF_CODES=
