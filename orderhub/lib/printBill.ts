@@ -11,7 +11,16 @@ import type { Order } from "@/lib/orders/types";
 
 const esc = (t: string) => t.replace(/&/g, "&amp;").replace(/</g, "&lt;");
 
-export function printBill(order: Order) {
+/**
+ * Okno na rachunek trzeba otworzyć SYNCHRONICZNIE w obsłudze kliknięcia
+ * (przed jakimkolwiek await) — inaczej przeglądarka blokuje popup i nic
+ * się nie drukuje. Potem przekazujemy je do printBill().
+ */
+export function openBillWindow(): Window | null {
+  return window.open("", "_blank", "width=420,height=640");
+}
+
+export function printBill(order: Order, win?: Window | null) {
   const rows = order.items
     .map((it) => {
       const addons = it.addons
@@ -53,7 +62,7 @@ export function printBill(order: Order) {
   <div class="foot">Dziękujemy! · To nie jest paragon fiskalny.</div>
 </body></html>`;
 
-  const w = window.open("", "_blank", "width=420,height=640");
+  const w = win ?? window.open("", "_blank", "width=420,height=640");
   if (!w) return;
   w.document.write(html);
   w.document.close();
