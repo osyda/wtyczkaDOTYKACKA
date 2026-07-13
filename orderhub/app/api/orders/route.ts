@@ -1,6 +1,7 @@
 import { NextResponse, after } from "next/server";
 import { orderStore, setEta } from "@/lib/orders/store";
-import { sendOrderToPos } from "@/lib/dotykacka/pos";
+import { sendOrderToPos, issueOrderInPos } from "@/lib/dotykacka/pos";
+import { hasCredentials, posSendEnabled } from "@/lib/dotykacka/config";
 import { getOpenState } from "@/lib/hours";
 import { minOrderForFee } from "@/lib/delivery";
 import { checkPromoCode, redeemPromoCode } from "@/lib/promo";
@@ -108,8 +109,29 @@ export async function POST(req: Request) {
   }
 
   // Wyślij do POS (lub symuluj w trybie DEMO).
-  const pos = await sendOrderToPos(order);
-  const updated = await orderStore.update(order.id, { pos });
+  // Tryb „rachunek na koncie kierowcy" (DOTYKACKA_CREATE_ON_DRIVER=true):
+  // dostawy BEZ kierowcy czekają z wysyłką do POS do momentu przypisania —
+  // wtedy zamówienie powstaje od razu z user-id kierowcy.
+  const deferToDriver =
+    process.env.DOTYKACKA_CREATE_ON_DRIVER === "true" &&
+    hasCredentials() &&
+    posSendEnabled() &&
+    order.mode === "delivery" &&
+    !order.driver;
+
+  const pos = deferToDriver
+    ? { sent: false, simulated: false, orderNumber: null, customerId: null, error: null, deferred: true }
+    : await sendOrderToPos(order);
+  let updated = await orderStore.update(order.id, { pos });
+
+  // Telefoniczne z kierowcą wybranym od razu: rachunek (niefiskalny) drukuje się
+  // z konta kierowcy już teraz (za podwójnym bezpiecznikiem — patrz issueOrderInPos).
+  if ((updated ?? order).driver && (updated ?? order).mode === "delivery") {
+    const issue = await issueOrderInPos(updated ?? order);
+    if (!issue.ok && issue.error) {
+      updated = (await orderStore.update(order.id, { pos: { ...pos, error: issue.error } })) ?? updated;
+    }
+  }
 
   // Potwierdzenie mailowe (gdy klient podał adres) — PO wysłaniu odpowiedzi.
   // after() gwarantuje, że serverless nie utnie wysyłki (goły void był ucinany).

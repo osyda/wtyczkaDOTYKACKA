@@ -15,6 +15,7 @@
 import { dotykackaConfig, hasCredentials, posSendEnabled } from "./config";
 import { dotyRequest } from "./client";
 import { upsertCustomerByPhone } from "./customers";
+import { findEmployeeIdByName } from "./employees";
 import type { Order, OrderItem } from "@/lib/orders/types";
 
 interface PosResult {
@@ -147,13 +148,22 @@ export async function sendOrderToPos(order: Order): Promise<PosResult> {
     }
   }
 
-  // 3) order/create.
+  // 3) Rachunek „na koncie" kierowcy: gdy kurs ma przypisanego kierowcę,
+  // dopasowujemy go do pracownika w POS (po nazwie) i tworzymy zamówienie
+  // z jego user-id → utarg liczy się kierowcy, bez przełączania kodów.
+  let userId: string | null = null;
+  if (order.driver) {
+    userId = await findEmployeeIdByName(order.driver);
+  }
+
+  // 3b) order/create.
   const payload: Record<string, unknown> = {
     action: "order/create",
     "external-id": order.externalId,
     note: buildNote(order),
     items,
     ...(customerId ? { "customer-id": Number(customerId) || customerId } : {}),
+    ...(userId ? { "user-id": Number(userId) || userId } : {}),
   };
 
   const res = await dotyRequest<{ code?: number; order?: { id?: number | string; "order-number"?: string } }>(
@@ -183,9 +193,10 @@ export async function sendOrderToPos(order: Order): Promise<PosResult> {
 }
 
 /**
- * Wystawienie (druk) otwartego zamówienia w POS — akcja order/issue.
- * DO PRZETESTOWANIA NA ŻYWO przy go-live (fiskalizacja!): wołane tylko, gdy
- * DOTYKACKA_SEND_ORDERS=true ORAZ DOTYKACKA_ISSUE_ON_DRIVER=true.
+ * Wystawienie (wydruk RACHUNKU) otwartego zamówienia w POS — akcja order/issue.
+ * Rodzaj wydruku steruje DOTYKACKA_PRINT_TYPE (pusty = domyślny drukarki;
+ * wartość dobierzemy przy teście go-live — chodzi o rachunek NIEFISKALNY).
+ * Wołane tylko, gdy DOTYKACKA_SEND_ORDERS=true ORAZ DOTYKACKA_ISSUE_ON_DRIVER=true.
  */
 export async function issueOrderInPos(order: Order): Promise<{ ok: boolean; error?: string }> {
   if (!hasCredentials() || !posSendEnabled()) return { ok: true }; // symulacja
@@ -193,6 +204,7 @@ export async function issueOrderInPos(order: Order): Promise<{ ok: boolean; erro
   const posOrderId = order.pos?.posOrderId;
   if (!posOrderId) return { ok: false, error: "Brak posOrderId — zamówienie nie było utworzone w POS." };
 
+  const printType = process.env.DOTYKACKA_PRINT_TYPE?.trim() || null;
   const { cloudId, branchId } = dotykackaConfig;
   const res = await dotyRequest<{ code?: number }>(`/clouds/${cloudId}/branches/${branchId}/pos-actions`, {
     method: "POST",
@@ -201,7 +213,7 @@ export async function issueOrderInPos(order: Order): Promise<{ ok: boolean; erro
       "order-id": Number(posOrderId) || posOrderId,
       "print-config": {},
       "print-email": null,
-      "print-type": null,
+      "print-type": printType,
       "take-away": true,
     },
     headers: { "Idempotency-Key": `${order.externalId}-issue` },

@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { orderStore } from "@/lib/orders/store";
-import { issueOrderInPos } from "@/lib/dotykacka/pos";
+import { issueOrderInPos, sendOrderToPos } from "@/lib/dotykacka/pos";
 
 export const dynamic = "force-dynamic";
 
@@ -26,10 +26,17 @@ export async function POST(req: Request, ctx: { params: Promise<{ id: string }> 
 
   const patch: Record<string, unknown> = { driver };
   if (by) patch.staff = by;
-  const updated = await orderStore.update(id, patch);
+  let updated = await orderStore.update(id, patch);
   if (!updated) return NextResponse.json({ error: "Nie znaleziono." }, { status: 404 });
 
-  // Druk w POS przy wydaniu kierowcy (za podwójnym bezpiecznikiem).
+  // Wysyłka odroczona do kierowcy: zamówienie powstaje w POS DOPIERO teraz,
+  // od razu z user-id kierowcy → rachunek liczy się na jego konto.
+  if (updated.pos?.deferred && !updated.pos.posOrderId) {
+    const pos = await sendOrderToPos(updated);
+    updated = (await orderStore.update(id, { pos: { ...pos, deferred: false } })) ?? updated;
+  }
+
+  // Druk rachunku w POS przy wydaniu kierowcy (za podwójnym bezpiecznikiem).
   const issue = await issueOrderInPos(updated);
   if (!issue.ok && issue.error) {
     const withErr = await orderStore.update(id, { pos: { ...updated.pos, error: issue.error } });

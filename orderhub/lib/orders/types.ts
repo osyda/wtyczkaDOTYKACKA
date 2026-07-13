@@ -83,6 +83,8 @@ export interface Order {
     orderNumber?: string | null;
     /** ID otwartego zamówienia w POS — potrzebne do akcji order/issue (druk). */
     posOrderId?: string | null;
+    /** Wysyłka do POS odroczona do przypisania kierowcy (rachunek na jego koncie). */
+    deferred?: boolean;
     customerId?: string | null;
     error?: string | null;
   };
