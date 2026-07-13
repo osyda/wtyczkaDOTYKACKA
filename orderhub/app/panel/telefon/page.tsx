@@ -92,7 +92,7 @@ function Pill({
 function PhoneOrderInner() {
   const router = useRouter();
   const params = useSearchParams();
-  const { lines, subtotal, setQty, remove, clear } = useCart();
+  const { lines, subtotal, packagingFee, packagingCount, setQty, remove, clear } = useCart();
 
   const [menu, setMenu] = useState<Menu | null>(null);
   const [activeCat, setActiveCat] = useState<string>("");
@@ -252,7 +252,7 @@ function PhoneOrderInner() {
   const discount = promo?.discount ?? manual;
 
   const deliveryFee = quote.fee;
-  const total = Math.max(0, subtotal - discount) + deliveryFee;
+  const total = Math.max(0, subtotal - discount) + packagingFee + deliveryFee;
   // Minimalna wartość zamówienia z dostawą: do 6 km 40 zł, powyżej 60 zł
   // (bez kosztu dowozu, liczona PRZED rabatem).
   const minOrder = mode === "delivery" ? (quote.minOrder ?? 0) : 0;
@@ -286,6 +286,7 @@ function PhoneOrderInner() {
             addons: l.addons,
             lineTotal: lineTotal(l),
             halves: l.halves,
+            packaging: l.packaging,
           })),
           subtotal,
           deliveryFee,
@@ -596,6 +597,12 @@ function PhoneOrderInner() {
             {promoMsg && <p className="mt-1.5 text-[12px] font-semibold" style={{ color: ALERT }}>{promoMsg}</p>}
 
             <div className="mt-4 border-t pt-3" style={{ borderColor: BORDER }}>
+              {packagingFee > 0 && (
+                <div className="mb-1 flex items-center justify-between text-[13px]" style={{ color: MUTED }}>
+                  <span className="font-bold">Opakowania × {packagingCount}</span>
+                  <span className="font-extrabold">{zl(packagingFee)}</span>
+                </div>
+              )}
               {discount > 0 && (
                 <div className="mb-1 flex items-center justify-between text-[13px]" style={{ color: MUTED }}>
                   <span className="font-bold">Rabat{promo ? ` (${promo.code})` : manualReason ? ` — ${manualReason}` : ""}</span>

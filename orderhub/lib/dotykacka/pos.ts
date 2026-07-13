@@ -129,8 +129,16 @@ export async function sendOrderToPos(order: Order): Promise<PosResult> {
     customerId = null; // nie blokujemy zamówienia, gdy klient się nie zapisze
   }
 
-  // 2) Pozycje + dostawa.
+  // 2) Pozycje + opakowania + dostawa.
   const items: Array<Record<string, unknown>> = order.items.flatMap(itemToPos);
+
+  // Opakowania na wynos: jeden wiersz z produktem z POS (ilość = suma sztuk dań).
+  const packItems = order.items.filter((i) => i.packaging);
+  const packCount = packItems.reduce((s, i) => s + i.qty, 0);
+  if (packCount > 0) {
+    const packId = packItems[0]!.packaging!.id;
+    items.push({ id: Number(packId) || packId, qty: packCount, "take-away": true });
+  }
   if (order.mode === "delivery" && order.deliveryFee > 0) {
     const pid = dotykackaConfig.deliveryCityProductId || dotykackaConfig.deliveryKmProductId;
     if (pid) {

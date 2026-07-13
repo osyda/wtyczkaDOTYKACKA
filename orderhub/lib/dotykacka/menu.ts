@@ -144,6 +144,16 @@ export async function getMenu(opts?: { full?: boolean }): Promise<Menu> {
   const defaultGroupId = process.env.DOTYKACKA_PIZZA_CUSTOMIZATION_ID?.trim();
   const defaultGroup = defaultGroupId ? groups.find((g) => String(g.id) === defaultGroupId) : undefined;
 
+  // Opakowanie na wynos: produkt z POS doliczany do każdego dania głównego.
+  const packagingId = process.env.DOTYKACKA_PACKAGING_PRODUCT_ID?.trim();
+  const packagingProduct = packagingId ? rawProducts.find((p) => String(p.id) === packagingId) : undefined;
+  const packaging = packagingProduct
+    ? { id: String(packagingProduct.id), price: toNumber(packagingProduct.priceWithVat) }
+    : undefined;
+  // Dania główne = kategorie jedzeniowe (ranking < 60: pizza…desery); napoje,
+  // dodatki i sosy bez opakowania (jadą w opakowaniu dania).
+  const needsPackaging = (catName: string) => categoryRank(catName) < 60;
+
   const byCategory = new Map<string, MenuCategory>();
   for (const c of visibleCats) {
     if (isTechnicalCategory(c.name)) continue;
@@ -171,6 +181,7 @@ export async function getMenu(opts?: { full?: boolean }): Promise<Menu> {
     const seen = new Set<string>();
     addons = addons.filter((a) => (seen.has(a.id) ? false : (seen.add(a.id), true)));
 
+    const catName = catNameById.get(String(p._categoryId)) ?? "";
     target.products.push({
       id: String(p.id),
       name: p.name,
@@ -179,6 +190,7 @@ export async function getMenu(opts?: { full?: boolean }): Promise<Menu> {
       color: p.hexColor,
       image: p.imageUrl,
       ...(addons.length > 0 ? { addons } : {}),
+      ...(packaging && String(p.id) !== packaging.id && needsPackaging(catName) ? { packaging } : {}),
     });
     productCount++;
   }

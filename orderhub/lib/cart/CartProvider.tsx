@@ -29,6 +29,8 @@ export interface CartLine {
   note?: string;
   /** Pizza pół na pół: dwie połówki (cena linii = połowa sumy ich cen). */
   halves?: { productId: string; name: string; price: number; image?: string }[];
+  /** Opakowanie na wynos doliczane za każdą sztukę (produkt z POS). */
+  packaging?: { id: string; price: number };
 }
 
 interface CartState {
@@ -74,6 +76,9 @@ interface CartContextValue {
   lines: CartLine[];
   itemCount: number;
   subtotal: number;
+  /** Suma opakowań na wynos (liczba sztuk × cena z POS). */
+  packagingFee: number;
+  packagingCount: number;
   addProduct: (product: MenuProduct, qty: number, addons: MenuAddon[], note?: string) => void;
   /** Pizza pół na pół: 50% ceny pierwszej + 50% ceny drugiej (jak porcje w POS). */
   addHalves: (a: MenuProduct, b: MenuProduct, qty: number, addons: MenuAddon[]) => void;
@@ -121,10 +126,15 @@ export function CartProvider({
   const value = useMemo<CartContextValue>(() => {
     const itemCount = state.lines.reduce((s, l) => s + l.qty, 0);
     const subtotal = state.lines.reduce((s, l) => s + lineTotal(l), 0);
+    const packagingCount = state.lines.reduce((s, l) => s + (l.packaging ? l.qty : 0), 0);
+    const packagingFee =
+      Math.round(state.lines.reduce((s, l) => s + (l.packaging ? l.qty * l.packaging.price : 0), 0) * 100) / 100;
     return {
       lines: state.lines,
       itemCount,
       subtotal,
+      packagingFee,
+      packagingCount,
       addProduct: (product, qty, addons, note) =>
         dispatch({
           type: "ADD",
@@ -137,6 +147,7 @@ export function CartProvider({
             addons: addons.map((a) => ({ id: a.id, name: a.name, price: a.price, customizationId: a.customizationId })),
             image: product.image,
             note,
+            packaging: product.packaging,
           },
         }),
       addHalves: (a, b, qty, addons) =>
@@ -150,6 +161,7 @@ export function CartProvider({
             qty,
             addons: addons.map((x) => ({ id: x.id, name: x.name, price: x.price, customizationId: x.customizationId })),
             image: a.image,
+            packaging: a.packaging ?? b.packaging,
             halves: [
               { productId: a.id, name: a.name, price: a.price, image: a.image },
               { productId: b.id, name: b.name, price: b.price, image: b.image },

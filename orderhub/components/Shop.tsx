@@ -27,7 +27,7 @@ export function Shop({ menu }: { menu: Menu }) {
   const [toast, setToast] = useState<string | null>(null);
   const [hours, setHours] = useState<HoursState | null>(null);
   const [hasHistory, setHasHistory] = useState(false);
-  const { lines, itemCount, subtotal, setQty, remove } = useCart();
+  const { lines, itemCount, subtotal, packagingFee, packagingCount, setQty, remove } = useCart();
 
   // Pamięć urządzenia: link do historii pokazujemy tylko stałym klientom.
   useEffect(() => {
@@ -344,7 +344,7 @@ export function Shop({ menu }: { menu: Menu }) {
           <span className="text-[10px] uppercase tracking-[0.26em] text-[#B9AE97]" style={{ textIndent: "0.26em" }}>
             {itemCount > 0 ? `Twoje zamówienie · ${itemCount} poz.` : "Twoje zamówienie"}
           </span>
-          <b className="font-carta text-[15px] font-normal">{zl(subtotal)}</b>
+          <b className="font-carta text-[15px] font-normal">{zl(subtotal + packagingFee)}</b>
         </button>
       </footer>
 
@@ -418,12 +418,19 @@ export function Shop({ menu }: { menu: Menu }) {
                 </div>
               ))
             )}
+            {packagingFee > 0 && (
+              <div className="mt-3 flex items-baseline">
+                <span className="text-[11px]" style={{ color: C.muted }}>Opakowania na wynos × {packagingCount}</span>
+                <span className="mx-3 flex-1 -translate-y-[3px] border-b border-dotted" style={{ borderColor: C.leader }} />
+                <span className="font-carta text-[14px]">{zl(packagingFee)}</span>
+              </div>
+            )}
             <div className="mt-[18px] flex items-baseline">
               <span className="text-[10px] uppercase tracking-[0.26em]" style={{ color: C.muted, textIndent: "0.26em" }}>
                 RAZEM
               </span>
               <span className="mx-3 flex-1 -translate-y-[3px] border-b border-dotted" style={{ borderColor: C.leader }} />
-              <span className="font-carta text-[19px]">{zl(subtotal)}</span>
+              <span className="font-carta text-[19px]">{zl(subtotal + packagingFee)}</span>
             </div>
             <Link
               href="/checkout"
@@ -440,7 +447,7 @@ export function Shop({ menu }: { menu: Menu }) {
               }}
             >
               <span>{closedNow ? "Poza godzinami zamówień" : "Przejdź do kasy"}</span>
-              <b className="font-carta text-[16px] font-normal normal-case tracking-normal">{zl(subtotal)}</b>
+              <b className="font-carta text-[16px] font-normal normal-case tracking-normal">{zl(subtotal + packagingFee)}</b>
             </Link>
           </div>
         </div>

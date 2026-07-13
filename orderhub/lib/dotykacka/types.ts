@@ -75,6 +75,8 @@ export interface MenuProduct {
   image?: string; // zdjęcie potrawy (Dotykačka imageUrl) — gdy brak, pokazujemy placeholder
   emoji?: string; // emoji wg kategorii (placeholder)
   addons?: MenuAddon[];
+  /** Opakowanie na wynos doliczane do tego dania (produkt z POS: id + cena). */
+  packaging?: { id: string; price: number };
 }
 
 export interface MenuCategory {

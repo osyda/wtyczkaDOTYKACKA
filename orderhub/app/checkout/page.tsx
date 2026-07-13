@@ -150,7 +150,7 @@ function SumLine({ label, value }: { label: string; value: string }) {
 
 export default function CheckoutPage() {
   const router = useRouter();
-  const { lines, subtotal, setQty, remove, clear } = useCart();
+  const { lines, subtotal, packagingFee, packagingCount, setQty, remove, clear } = useCart();
 
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -316,7 +316,7 @@ export default function CheckoutPage() {
 
   const deliveryFee = quote.fee;
   const discount = promo?.discount ?? 0;
-  const total = Math.max(0, subtotal - discount) + deliveryFee;
+  const total = Math.max(0, subtotal - discount) + packagingFee + deliveryFee;
 
   // Minimalna wartość zamówienia z dostawą (bez opłaty za dowóz): do 6 km 40 zł, dalej 60 zł.
   // Liczona od koszyka PRZED rabatem.
@@ -390,6 +390,7 @@ export default function CheckoutPage() {
         addons: l.addons,
         lineTotal: lineTotal(l),
         halves: l.halves,
+        packaging: l.packaging,
       })),
       subtotal,
       deliveryFee,
@@ -670,6 +671,7 @@ export default function CheckoutPage() {
             </div>
 
             <div className="mt-2">
+              {packagingFee > 0 && <SumLine label={`Opakowania na wynos × ${packagingCount}`} value={zl(packagingFee)} />}
               <SumLine label={deliveryLabel} value={mode === "delivery" && !quote.available ? "—" : zl(deliveryFee)} />
               <div className="flex items-baseline pt-2">
                 <span className="text-[10px] uppercase tracking-[0.26em]" style={{ textIndent: "0.26em" }}>RAZEM</span>

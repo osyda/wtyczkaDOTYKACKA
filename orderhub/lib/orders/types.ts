@@ -31,6 +31,8 @@ export interface OrderItem {
   lineTotal: number;
   /** Pizza pół na pół — do POS idzie jako dwie pozycje po 50% ceny (jak porcje). */
   halves?: { productId: string; name: string; price: number }[];
+  /** Opakowanie na wynos doliczane za każdą sztukę (produkt z POS). */
+  packaging?: { id: string; price: number };
 }
 
 export interface OrderCustomer {
