@@ -224,3 +224,44 @@ export async function issueOrderInPos(order: Order): Promise<{ ok: boolean; erro
   }
   return { ok: true };
 }
+
+/** Metody płatności Dotykački (stałe identyfikatory z dokumentacji API). */
+const PAYMENT_METHOD_IDS: Record<string, number> = {
+  cash: 900000001,
+  card: 900000002,
+  online: 900000019,
+};
+
+/**
+ * Oznaczenie zamówienia jako ZAPŁACONE (order/pay) — metoda wg wyboru klienta.
+ * Wymóg właściciela (13.07.2026): zamówienie w POS zawsze ma status zapłacone.
+ */
+export async function payOrderInPos(order: Order): Promise<{ ok: boolean; error?: string }> {
+  if (!hasCredentials() || !posSendEnabled()) return { ok: true };
+  if (process.env.DOTYKACKA_ISSUE_ON_DRIVER !== "true") return { ok: true };
+  const posOrderId = order.pos?.posOrderId;
+  if (!posOrderId) return { ok: false, error: "Brak posOrderId — nie ma czego opłacić." };
+
+  const { cloudId, branchId } = dotykackaConfig;
+  const res = await dotyRequest<{ code?: number }>(`/clouds/${cloudId}/branches/${branchId}/pos-actions`, {
+    method: "POST",
+    body: {
+      action: "order/pay",
+      "order-id": Number(posOrderId) || posOrderId,
+      "payment-method-id": PAYMENT_METHOD_IDS[order.payment] ?? PAYMENT_METHOD_IDS.cash,
+    },
+    headers: { "Idempotency-Key": `${order.externalId}-pay` },
+  });
+  const code = res.data?.code;
+  if (!res.ok || (typeof code === "number" && code !== 0)) {
+    return { ok: false, error: `POS pay HTTP ${res.status} code ${code ?? "?"}: ${res.raw.slice(0, 160)}` };
+  }
+  return { ok: true };
+}
+
+/** Pełne wydanie kierowcy: wystaw (druk) + oznacz jako zapłacone. */
+export async function issueAndPayInPos(order: Order): Promise<{ ok: boolean; error?: string }> {
+  const issue = await issueOrderInPos(order);
+  if (!issue.ok) return issue;
+  return payOrderInPos(order);
+}
