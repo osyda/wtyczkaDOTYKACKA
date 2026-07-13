@@ -286,9 +286,9 @@ export function Shop({ menu }: { menu: Menu }) {
                       )}
                       <span className="min-w-0 flex-1">
                         <span className="flex items-baseline">
-                          <span className="font-carta whitespace-nowrap text-[18.5px]">{p.name}</span>
+                          <span className="font-carta min-w-0 text-[18.5px] leading-[1.25]">{p.name}</span>
                           <span
-                            className="mx-2.5 flex-1 -translate-y-1 border-b border-dotted"
+                            className="mx-2.5 min-w-[18px] flex-1 -translate-y-1 border-b border-dotted"
                             style={{ borderColor: C.leader }}
                           />
                           <span className="font-carta whitespace-nowrap text-[16.5px]">{zl(p.price)}</span>

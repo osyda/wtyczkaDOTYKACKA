@@ -147,9 +147,21 @@ export async function getMenu(opts?: { full?: boolean }): Promise<Menu> {
     return 50;
   };
 
+  // Produkty ukryte NA LISTACH DODATKÓW (w swojej kategorii pozostają widoczne).
+  // Nadpisywalne zmienną MENU_HIDDEN_ADDONS (frazy po przecinku).
+  const hiddenAddons = (process.env.MENU_HIDDEN_ADDONS ?? "frytki danie")
+    .split(",")
+    .map((s) => norm(s.trim()))
+    .filter(Boolean);
+  const isHiddenAddon = (name: string) => {
+    const n = norm(name);
+    return hiddenAddons.some((h) => n.includes(h));
+  };
+
   const groups = rawCustomizations.filter((g) => g.deleted !== true);
   const addonsOfGroup = (g: DotyCustomization): MenuAddon[] =>
     (productsByCat.get(String(g._categoryId ?? "")) ?? [])
+      .filter((p) => !isHiddenAddon(p.name))
       .map((p) => ({
         id: String(p.id),
         name: p.name,
