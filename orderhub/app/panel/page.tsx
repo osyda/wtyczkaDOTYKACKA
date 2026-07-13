@@ -1211,6 +1211,13 @@ function StatusButtons({
     onAdvance(order.id, s);
   };
 
+  // Wybór kierowcy: zamknij okienko OD RAZU (widok zmienia się bez odświeżania).
+  const pickDriver = (driver?: string) => {
+    setDriverOpen(false);
+    setDriverName("");
+    onAdvance(order.id, "on_delivery", undefined, driver);
+  };
+
   if (driverOpen) {
     return (
       <div className="mt-2.5">
@@ -1221,7 +1228,7 @@ function StatusButtons({
           {drivers.map((d) => (
             <button
               key={d}
-              onClick={() => onAdvance(order.id, "on_delivery", undefined, d)}
+              onClick={() => pickDriver(d)}
               className="rounded-full px-4 py-2 text-[12.5px] font-bold"
               style={{ background: LIME, color: "#1D2A22" }}
             >
@@ -1232,7 +1239,7 @@ function StatusButtons({
             value={driverName}
             onChange={(e) => setDriverName(e.target.value)}
             onKeyDown={(e) => {
-              if (e.key === "Enter" && driverName.trim()) onAdvance(order.id, "on_delivery", undefined, driverName.trim());
+              if (e.key === "Enter" && driverName.trim()) pickDriver(driverName.trim());
             }}
             placeholder="inne imię…"
             className="w-28 rounded-full px-3.5 py-2 text-[12.5px] font-semibold outline-none"
@@ -1240,7 +1247,7 @@ function StatusButtons({
           />
           {driverName.trim() && (
             <button
-              onClick={() => onAdvance(order.id, "on_delivery", undefined, driverName.trim())}
+              onClick={() => pickDriver(driverName.trim())}
               className="rounded-full px-4 py-2 text-[12.5px] font-bold"
               style={{ background: LIME, color: "#1D2A22" }}
             >
@@ -1248,7 +1255,7 @@ function StatusButtons({
             </button>
           )}
           <button
-            onClick={() => onAdvance(order.id, "on_delivery")}
+            onClick={() => pickDriver()}
             className="px-2 text-[12px] font-semibold underline"
             style={{ color: MUTED }}
           >
