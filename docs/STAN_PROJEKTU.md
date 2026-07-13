@@ -160,7 +160,10 @@ przekierowanie 301 z `mammarosa.pl/zamow-online/` (wtyczka Redirection w WP). NI
   dodatek bez customizationId → w POS ląduje w nocie pozycji (jak Szybka
   notatka przy terminalu). UWAGA: nazwa pola `notes` przyjęta z wiedzy o API —
   zweryfikować na żywym menu; jeśli warianty się nie pokażą, sprawdzić surową
-  odpowiedź /products.
+  odpowiedź /products. RODZAJ SZYNKI (decyzja 14.07.2026): każda ZAPIEKANKA
+  i każda pizza z „szynka mielona" w składzie dostaje automatycznie warianty
+  SZYNKA MIELONA / SZYNKA PLASTRY z WYMUSZONYM wyborem (variantsRequired —
+  przycisk „Dodaj" zablokowany do wyboru, radio nie do odznaczenia).
 - OPISY DAŃ: priorytet pola „Opis" (description) z Dotykački, potem subtitle,
   potem lokalna mapa `lib/dotykacka/descriptions.ts` (klucz = znormalizowana
   nazwa). Mapa PUSTA — czeka na menu od właściciela (obiecał podesłać).

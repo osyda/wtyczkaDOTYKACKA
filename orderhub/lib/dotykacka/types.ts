@@ -79,6 +79,8 @@ export interface MenuProduct {
   emoji?: string; // emoji wg kategorii (placeholder)
   /** Warianty bez dopłaty (Szybkie notatki z POS, np. „SZYNKA MIELONA / PLASTRY"). */
   variants?: string[];
+  /** true = trzeba wybrać jeden wariant, żeby dodać do koszyka (np. rodzaj szynki). */
+  variantsRequired?: boolean;
   addons?: MenuAddon[];
   /** Opakowanie na wynos doliczane do tego dania (produkt z POS: id + cena). */
   packaging?: { id: string; price: number };

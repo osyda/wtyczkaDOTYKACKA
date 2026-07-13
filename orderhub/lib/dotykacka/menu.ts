@@ -223,20 +223,31 @@ export async function getMenu(opts?: { full?: boolean }): Promise<Menu> {
 
     // Warianty bez dopłaty — „Szybkie notatki" z karty produktu w POS
     // (np. SZYNKA MIELONA / SZYNKA PLASTRY). Klient wybiera jeden.
-    const variants = (Array.isArray(p.notes) ? p.notes : [])
+    let variants = (Array.isArray(p.notes) ? p.notes : [])
       .map((n) => (typeof n === "string" ? n : (n?.note ?? "")))
       .map((s) => s.trim())
       .filter(Boolean);
 
     const catName = catNameById.get(String(p._categoryId)) ?? "";
+    const description = p.description?.trim() || p.subtitle?.trim() || descriptionFor(p.name);
+
+    // Rodzaj szynki (decyzja właściciela 14.07.2026): przy KAŻDEJ zapiekance
+    // i pizzy z szynką mieloną w składzie klient MUSI wybrać mielona/plastry.
+    let variantsRequired = false;
+    if (/zapiekank/.test(norm(catName)) || /szynka mielona/.test(norm(description))) {
+      if (variants.length === 0) variants = ["SZYNKA MIELONA", "SZYNKA PLASTRY"];
+      variantsRequired = true;
+    }
+
     target.products.push({
       id: String(p.id),
       name: p.name,
-      description: p.description?.trim() || p.subtitle?.trim() || descriptionFor(p.name),
+      description,
       price: toNumber(p.priceWithVat),
       color: p.hexColor,
       image: p.imageUrl,
       ...(variants.length > 0 ? { variants } : {}),
+      ...(variantsRequired ? { variantsRequired } : {}),
       ...(addons.length > 0 ? { addons } : {}),
       ...(packaging && String(p.id) !== packaging.id && needsPackaging(catName) ? { packaging } : {}),
     });

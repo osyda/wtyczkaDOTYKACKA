@@ -115,7 +115,7 @@ export function ProductModal({
             <div className="mt-6 flex items-center gap-3.5">
               <span className="h-px flex-1" style={{ background: C.hairline }} />
               <span className="text-[9.5px] tracking-[0.3em]" style={{ color: C.muted, textIndent: "0.3em" }}>
-                DO WYBORU
+                {product.variantsRequired ? "DO WYBORU · WYMAGANE" : "DO WYBORU"}
               </span>
               <span className="h-px flex-1" style={{ background: C.hairline }} />
             </div>
@@ -124,7 +124,7 @@ export function ProductModal({
               return (
                 <button
                   key={v}
-                  onClick={() => setVariant(on ? null : v)}
+                  onClick={() => setVariant(on && !product.variantsRequired ? null : v)}
                   className="flex w-full cursor-pointer items-center gap-3.5 border-b py-[13px] text-left"
                   style={{ borderColor: C.hairlineSoft }}
                 >
@@ -209,6 +209,7 @@ export function ProductModal({
 
         <button
           onClick={() => {
+            if (product.variantsRequired && !variant) return; // najpierw wybór wariantu
             // Wariant jedzie jako darmowy „dodatek" bez customizationId —
             // w POS trafia do notatki pozycji (jak Szybka notatka przy terminalu).
             const withVariant = variant
@@ -219,9 +220,14 @@ export function ProductModal({
             onAdded?.(product.name, qty);
           }}
           className="mt-[26px] flex w-full cursor-pointer items-center justify-between px-[22px] py-[18px] text-[11px] uppercase tracking-[0.24em] transition-transform active:scale-[0.985]"
-          style={{ background: C.ink, color: C.ivory, textIndent: "0.24em" }}
+          style={{
+            background: C.ink,
+            color: C.ivory,
+            textIndent: "0.24em",
+            ...(product.variantsRequired && !variant ? { opacity: 0.45, cursor: "not-allowed" } : {}),
+          }}
         >
-          <span>Dodaj do zamówienia</span>
+          <span>{product.variantsRequired && !variant ? "Najpierw wybierz wariant" : "Dodaj do zamówienia"}</span>
           <b className="font-carta text-[16px] font-normal normal-case tracking-normal">{zl(unit * qty)}</b>
         </button>
       </div>
