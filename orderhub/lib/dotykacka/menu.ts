@@ -121,15 +121,42 @@ export async function getMenu(opts?: { full?: boolean }): Promise<Menu> {
     productsByCat.get(key)!.push(p);
   }
 
-  // Grupa → lista dodatków (produkty z kategorii wskazanej przez grupę).
+  // Grupa → lista dodatków (produkty z kategorii wskazanej przez grupę),
+  // ułożona wg popularności: frytki/ziemniaki najpierw, surówki w środku,
+  // pieczywo itp. na końcu (życzenie właściciela 13.07.2026). Nazwy spoza
+  // listy (np. dodatki do pizzy) zachowują kolejność z POS.
+  const ADDON_RANKS: Array<[RegExp, number]> = [
+    [/frytk/, 0],
+    [/ziemnia/, 1],
+    [/pure/, 2],
+    [/ryz/, 3],
+    [/kasz/, 4],
+    [/makaron|kluski/, 5],
+    [/surowk/, 20],
+    [/buraczk/, 21],
+    [/marchewk/, 22],
+    [/kapust/, 23],
+    [/salatk/, 24],
+    [/warzyw/, 25],
+    [/grzank/, 85],
+    [/pieczyw|chleb|bulk|maslo/, 90],
+  ];
+  const addonRank = (name: string): number => {
+    const n = norm(name);
+    for (const [re, rank] of ADDON_RANKS) if (re.test(n)) return rank;
+    return 50;
+  };
+
   const groups = rawCustomizations.filter((g) => g.deleted !== true);
   const addonsOfGroup = (g: DotyCustomization): MenuAddon[] =>
-    (productsByCat.get(String(g._categoryId ?? "")) ?? []).map((p) => ({
-      id: String(p.id),
-      name: p.name,
-      price: toNumber(p.priceWithVat),
-      customizationId: String(g.id),
-    }));
+    (productsByCat.get(String(g._categoryId ?? "")) ?? [])
+      .map((p) => ({
+        id: String(p.id),
+        name: p.name,
+        price: toNumber(p.priceWithVat),
+        customizationId: String(g.id),
+      }))
+      .sort((a, b) => addonRank(a.name) - addonRank(b.name));
 
   // Produkt → grupy przypięte wprost (po _productId).
   const groupsByProduct = new Map<string, DotyCustomization[]>();
