@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { orderStore } from "@/lib/orders/store";
-import { issueOrderInPos, sendOrderToPos } from "@/lib/dotykacka/pos";
+import { issueAndPayInPos, sendOrderToPos } from "@/lib/dotykacka/pos";
 
 export const dynamic = "force-dynamic";
 
@@ -36,8 +36,8 @@ export async function POST(req: Request, ctx: { params: Promise<{ id: string }> 
     updated = (await orderStore.update(id, { pos: { ...pos, deferred: false } })) ?? updated;
   }
 
-  // Druk rachunku w POS przy wydaniu kierowcy (za podwójnym bezpiecznikiem).
-  const issue = await issueOrderInPos(updated);
+  // Druk rachunku + oznaczenie ZAPŁACONE w POS (za podwójnym bezpiecznikiem).
+  const issue = await issueAndPayInPos(updated);
   if (!issue.ok && issue.error) {
     const withErr = await orderStore.update(id, { pos: { ...updated.pos, error: issue.error } });
     return NextResponse.json({ order: withErr ?? updated, posIssueError: issue.error });
