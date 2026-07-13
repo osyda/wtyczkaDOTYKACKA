@@ -84,6 +84,40 @@ export async function employeesDiagnostics(): Promise<{
   }
 }
 
+function normName(s: string): string {
+  return s
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[̀-ͯ]/g, "")
+    .replace(/ł/g, "l")
+    .trim();
+}
+
+/**
+ * Dopasowanie kierowcy z panelu (np. „Michał") do pracownika w POS (np. „Michał G")
+ * — po nazwie, bez ogonków. Zwraca id pracownika do pola user-id w pos-actions.
+ */
+export async function findEmployeeIdByName(name: string): Promise<string | null> {
+  const wanted = normName(name);
+  if (!wanted) return null;
+  try {
+    const list = await getEmployees();
+    const active = list.filter((e) => e.deleted !== true && e.enabled !== false);
+    // Najpierw dokładne dopasowanie, potem prefiksowe (w obie strony).
+    const exact = active.find((e) => typeof e.name === "string" && normName(e.name) === wanted);
+    const prefix =
+      exact ??
+      active.find(
+        (e) =>
+          typeof e.name === "string" &&
+          (normName(e.name).startsWith(wanted) || wanted.startsWith(normName(e.name)))
+      );
+    return prefix ? String(prefix.id ?? "") || null : null;
+  } catch {
+    return null;
+  }
+}
+
 /** Znajdź pracownika po jego kodzie z POS. Zwraca null też przy problemach z API. */
 export async function findEmployeeByPin(pin: string): Promise<StaffEmployee | null> {
   const wanted = pin.trim();

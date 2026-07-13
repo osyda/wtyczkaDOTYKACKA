@@ -125,6 +125,16 @@ przekierowanie 301 z `mammarosa.pl/zamow-online/` (wtyczka Redirection w WP). NI
   DOTYKACKA_SEND_ORDERS=true + DOTYKACKA_ISSUE_ON_DRIVER=true — DO TESTU przy
   go-live (fiskalizacja!). Diagnostyka logowania kodami pracowników: karta na
   /status (`employeesDiagnostics` — liczby i nazwy pól, bez kodów).
+  RACHUNEK NA KONCIE KIEROWCY (13.07.2026): API NIE zwraca kodów PIN pracowników
+  (potwierdzone: pola m.in. requirePinAlways, barcode — bez pin/code), więc
+  logowanie kodami POS odpada (plan B: własne STAFF_CODES — do decyzji).
+  Za to attribution działa przez `user-id` w order/create:
+  `findEmployeeIdByName(driver)` dopasowuje „Michał" → pracownika „Michał G"
+  (bez ogonków, prefiksowo). DOTYKACKA_CREATE_ON_DRIVER=true → dostawy idą do
+  POS dopiero przy przypisaniu kierowcy (z jego user-id); telefoniczne z
+  kierowcą od razu z user-id. DOTYKACKA_PRINT_TYPE steruje rodzajem wydruku
+  order/issue (dobrać przy teście: rachunek NIEFISKALNY). TEST GO-LIVE:
+  1 zamówienie → kierowca → sprawdzić czyj utarg i co wyszło z drukarki.
 - Obieg z POS i utarg kierowców (USTALENIE 11.07.2026, workflow właściciela):
   dziś zamówienie wpada do POS, dostawę kelnerka drukuje wchodząc na KOD KIEROWCY
   (utarg kierowcy), odbiór kasuje ze swojego kodu. Z nowym systemem DZIEŃ PIERWSZY
