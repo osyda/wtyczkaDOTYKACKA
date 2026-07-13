@@ -32,9 +32,38 @@ function norm(name: string): string {
     .replace(/ł/g, "l");
 }
 
-/** Kategorie techniczne — nie pokazujemy ich klientom (produkty opłat itp.). */
-function isHiddenCategory(name: string): boolean {
+/** Kategorie techniczne — ukryte ZAWSZE i wszędzie (produkty opłat itp.). */
+function isTechnicalCategory(name: string): boolean {
   return /dowoz|dostawa|delivery|opłat|oplat/.test(norm(name));
+}
+
+/**
+ * Kategorie ukryte przed KLIENTAMI (decyzja właściciela 13.07.2026) — ekran
+ * telefoniczny kelnerki widzi je nadal (?full=1), żeby dało się wbić np. colę.
+ * Można nadpisać zmienną MENU_HIDDEN_CATEGORIES (frazy po przecinku).
+ */
+const DEFAULT_CUSTOMER_HIDDEN = [
+  "napoje zimne",
+  "napoje gorace",
+  "piwa",
+  "dodatki pizza",
+  "koktajle",
+  "danie dnia",
+  "wina",
+  "pozostale",
+  "sniadania",
+  "desery",
+];
+
+function customerHiddenList(): string[] {
+  const env = process.env.MENU_HIDDEN_CATEGORIES;
+  if (env?.trim()) return env.split(",").map((s) => norm(s.trim())).filter(Boolean);
+  return DEFAULT_CUSTOMER_HIDDEN;
+}
+
+function isCustomerHidden(name: string): boolean {
+  const n = norm(name);
+  return customerHiddenList().some((h) => n.includes(h));
 }
 
 /** Ranking kolejności: jedzenie od pizzy, napoje i dodatki na końcu. */
@@ -65,7 +94,8 @@ function categoryRank(name: string): number {
   return 38; // nieznane kategorie jedzeniowe — między daniami a deserami
 }
 
-export async function getMenu(): Promise<Menu> {
+export async function getMenu(opts?: { full?: boolean }): Promise<Menu> {
+  const full = opts?.full === true;
   if (!hasCredentials()) {
     return mockMenu();
   }
@@ -116,7 +146,8 @@ export async function getMenu(): Promise<Menu> {
 
   const byCategory = new Map<string, MenuCategory>();
   for (const c of visibleCats) {
-    if (isHiddenCategory(c.name)) continue;
+    if (isTechnicalCategory(c.name)) continue;
+    if (!full && isCustomerHidden(c.name)) continue;
     byCategory.set(String(c.id), { id: String(c.id), name: c.name, products: [] });
   }
   const uncategorized: MenuCategory = { id: "uncategorized", name: "Pozostałe", products: [] };
@@ -153,7 +184,8 @@ export async function getMenu(): Promise<Menu> {
   }
 
   const categories = [...byCategory.values()].filter((c) => c.products.length > 0);
-  if (uncategorized.products.length > 0) categories.push(uncategorized);
+  // „Pozostałe" (produkty bez kategorii) — tylko w pełnym widoku dla obsługi.
+  if (full && uncategorized.products.length > 0) categories.push(uncategorized);
   categories.sort((a, b) => categoryRank(a.name) - categoryRank(b.name));
 
   return {

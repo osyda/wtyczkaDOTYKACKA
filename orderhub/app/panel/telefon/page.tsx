@@ -121,7 +121,7 @@ function PhoneOrderInner() {
 
   // Menu (to samo, które widzą klienci).
   useEffect(() => {
-    fetch("/api/dotykacka/menu")
+    fetch("/api/dotykacka/menu?full=1")
       .then((r) => r.json())
       .then((d: Menu) => {
         setMenu(d);
