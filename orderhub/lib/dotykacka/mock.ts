@@ -19,7 +19,7 @@ export function mockMenu(): Menu {
   const pizzas = [
     { id: "pz-margherita", name: "Margherita", description: "Sos pomidorowy, mozzarella, oregano", price: 26, image: "/food/margherita.webp" },
     { id: "pz-vesuvio", name: "Vesuvio", description: "Sos pomidorowy, mozzarella, szynka", price: 30, image: "/food/vesuvio.webp" },
-    { id: "pz-capricciosa", name: "Capricciosa", description: "Szynka, pieczarki, mozzarella", price: 32, image: "/food/capricciosa.webp", variants: ["SZYNKA MIELONA", "SZYNKA PLASTRY"] },
+    { id: "pz-capricciosa", name: "Capricciosa", description: "Sos pomidorowy, ser, szynka mielona, pieczarki, oregano", price: 32, image: "/food/capricciosa.webp", variants: ["SZYNKA MIELONA", "SZYNKA PLASTRY"], variantsRequired: true },
     { id: "pz-milanese", name: "Milanese", description: "Kurczak, kukurydza, pieczarki", price: 33, image: "/food/milanese.webp" },
     { id: "pz-carbonara", name: "Carbonara", description: "Sos śmietanowy, boczek, pieczarki, cebula", price: 34, image: "/food/carbonara.webp" },
     { id: "pz-gyros", name: "Gyros", description: "Kurczak gyros, czerwona cebula, pomidorki", price: 35, image: "/food/gyros.webp" },
