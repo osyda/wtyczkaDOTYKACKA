@@ -14,7 +14,10 @@ import { zl } from "@/lib/format";
 import type { Order } from "@/lib/orders/types";
 
 const KEY = process.env.RESEND_API_KEY || "";
-const FROM = process.env.EMAIL_FROM || "Mammarosa <zamowienia@mammarosa.pl>";
+// Domyślny nadawca = testowy adres Resend (działa BEZ weryfikacji domeny).
+// Po dodaniu rekordów DNS mammarosa.pl w Resend ustaw w Vercelu:
+// EMAIL_FROM = Mammarosa <zamowienia@mammarosa.pl>
+const FROM = process.env.EMAIL_FROM || "Mammarosa <onboarding@resend.dev>";
 
 export function emailEnabled(): boolean {
   return Boolean(KEY);

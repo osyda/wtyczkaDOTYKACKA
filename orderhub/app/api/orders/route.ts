@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+import { NextResponse, after } from "next/server";
 import { orderStore, setEta } from "@/lib/orders/store";
 import { sendOrderToPos } from "@/lib/dotykacka/pos";
 import { getOpenState } from "@/lib/hours";
@@ -101,8 +101,14 @@ export async function POST(req: Request) {
   const pos = await sendOrderToPos(order);
   const updated = await orderStore.update(order.id, { pos });
 
-  // Potwierdzenie mailowe (gdy klient podał adres) — w tle, nie blokuje odpowiedzi.
-  void sendOrderConfirmation(updated ?? order, new URL(req.url).origin);
+  // Potwierdzenie mailowe (gdy klient podał adres) — PO wysłaniu odpowiedzi.
+  // after() gwarantuje, że serverless nie utnie wysyłki (goły void był ucinany).
+  const origin = new URL(req.url).origin;
+  const forEmail = updated ?? order;
+  after(async () => {
+    const result = await sendOrderConfirmation(forEmail, origin);
+    if (result.error) console.error(`[email] zamówienie #${forEmail.number}:`, result.error);
+  });
 
   return NextResponse.json({ order: updated ?? order }, { status: 201 });
 }
