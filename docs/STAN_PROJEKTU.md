@@ -153,6 +153,21 @@ przekierowanie 301 z `mammarosa.pl/zamow-online/` (wtyczka Redirection w WP). NI
   jak wystawiać NIEFISKALNIE przez API (właściciel wysłał pytanie o flagę
   „Nie fiskalizuj" w pos-actions — czekamy na odpowiedź).
   DOTYKACKA_PRINT_TYPE usunięty z Vercela (none nie pomagał).
+- WARIANTY PRODUKTU (13.07.2026): „Szybkie notatki (warianty)" z karty produktu
+  w Dotykačce (np. SZYNKA MIELONA / SZYNKA PLASTRY na Capricciosie) → pole
+  `notes` encji product → `MenuProduct.variants`. W oknie produktu sekcja
+  „DO WYBORU" (radio, bez dopłaty, można odznaczyć); wybór jedzie jako darmowy
+  dodatek bez customizationId → w POS ląduje w nocie pozycji (jak Szybka
+  notatka przy terminalu). UWAGA: nazwa pola `notes` przyjęta z wiedzy o API —
+  zweryfikować na żywym menu; jeśli warianty się nie pokażą, sprawdzić surową
+  odpowiedź /products.
+- OPISY DAŃ: priorytet pola „Opis" (description) z Dotykački, potem subtitle,
+  potem lokalna mapa `lib/dotykacka/descriptions.ts` (klucz = znormalizowana
+  nazwa). Mapa PUSTA — czeka na menu od właściciela (obiecał podesłać).
+- Pół na pół BEZ zdjęć połówek (brak wgranych zdjęć w POS) — sama typografia.
+- Ekran telefoniczny: kategorie jako drobne konturowe zakładki na osobnym
+  tle + nagłówek aktywnej kategorii z linią — wyraźnie oddzielone od kafelków
+  produktów (prośba właściciela, screen 13.07.2026).
 - Obieg z POS i utarg kierowców (USTALENIE 11.07.2026, workflow właściciela):
   dziś zamówienie wpada do POS, dostawę kelnerka drukuje wchodząc na KOD KIEROWCY
   (utarg kierowcy), odbiór kasuje ze swojego kodu. Z nowym systemem DZIEŃ PIERWSZY

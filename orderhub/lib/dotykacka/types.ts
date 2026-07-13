@@ -23,6 +23,7 @@ export interface DotyProduct {
   _categoryId?: number | string;
   name: string;
   description?: string;
+  subtitle?: string;
   priceWithVat?: number | string;
   currency?: string;
   unit?: string;
@@ -31,6 +32,8 @@ export interface DotyProduct {
   flags?: number;
   hexColor?: string;
   imageUrl?: string;
+  /** „Szybkie notatki (warianty)" z karty produktu — u nas darmowy wybór wariantu. */
+  notes?: Array<string | { note?: string }>;
 }
 
 /** Grupa dodatków (customization) — wskazuje kategorię, z której pochodzą produkty-dodatki. */
@@ -74,6 +77,8 @@ export interface MenuProduct {
   color?: string;
   image?: string; // zdjęcie potrawy (Dotykačka imageUrl) — gdy brak, pokazujemy placeholder
   emoji?: string; // emoji wg kategorii (placeholder)
+  /** Warianty bez dopłaty (Szybkie notatki z POS, np. „SZYNKA MIELONA / PLASTRY"). */
+  variants?: string[];
   addons?: MenuAddon[];
   /** Opakowanie na wynos doliczane do tego dania (produkt z POS: id + cena). */
   packaging?: { id: string; price: number };

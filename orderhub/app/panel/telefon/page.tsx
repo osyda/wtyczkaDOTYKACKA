@@ -422,14 +422,33 @@ function PhoneOrderInner() {
               <div className="py-6 text-center text-[13px]" style={{ color: MUTED }}>Ładowanie menu…</div>
             ) : (
               <>
-                <div className="flex flex-wrap gap-2">
-                  {menu.categories.map((c) => (
-                    <Pill key={c.id} on={activeCat === c.id} onClick={() => setActiveCat(c.id)}>
-                      {c.name}
-                    </Pill>
-                  ))}
+                {/* Kategorie: drobne konturowe „zakładki" na osobnym tle — mają się
+                    wyraźnie różnić od kafelków produktów poniżej. */}
+                <div className="rounded-2xl p-2.5" style={{ background: SUB, border: "1px solid " + BORDER }}>
+                  <div className="flex flex-wrap gap-1.5">
+                    {menu.categories.map((c) => (
+                      <button
+                        key={c.id}
+                        onClick={() => setActiveCat(c.id)}
+                        className="rounded-lg px-3 py-1.5 text-[11.5px] font-bold uppercase tracking-wide transition"
+                        style={
+                          activeCat === c.id
+                            ? { background: INK, color: BG }
+                            : { background: "transparent", color: MUTED, border: "1px solid " + BORDER }
+                        }
+                      >
+                        {c.name}
+                      </button>
+                    ))}
+                  </div>
                 </div>
-                <div className="mt-3 grid grid-cols-1 gap-1 min-[700px]:grid-cols-2">
+                <div className="mt-4 mb-1 flex items-center gap-2.5">
+                  <span className="text-[10px] font-bold uppercase tracking-[0.2em]" style={{ color: MUTED }}>
+                    {activeCatName || "Produkty"}
+                  </span>
+                  <span className="h-px flex-1" style={{ background: BORDER }} />
+                </div>
+                <div className="grid grid-cols-1 gap-1 min-[700px]:grid-cols-2">
                   {activeCatName.toLowerCase().includes("pizz") && !activeCatName.toLowerCase().includes("dodat") && products.length >= 2 && (
                     <button
                       onClick={() => setHalfOpen(true)}

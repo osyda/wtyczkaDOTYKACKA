@@ -53,27 +53,14 @@ export function HalfHalfModal({
   };
 
   const Half = ({ which, product }: { which: "L" | "P"; product: MenuProduct | null }) => (
-    <div className="flex-1 text-center">
-      <div
-        className="relative mx-auto h-[92px] w-[46px] overflow-hidden"
-        style={{ [which === "L" ? "borderRight" : "borderLeft"]: `1px dashed ${C.leader}` } as React.CSSProperties}
-      >
-        {product?.image ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
-            src={product.image}
-            alt=""
-            className="absolute top-0 h-[92px] w-[92px] max-w-none drop-shadow-[0_10px_12px_rgba(27,23,16,0.18)]"
-            style={{ [which === "L" ? "left" : "right"]: 0 } as React.CSSProperties}
-          />
-        ) : (
-          <div className="absolute inset-0" style={{ background: C.paper, border: `1px dashed ${C.leader}` }} />
-        )}
-      </div>
-      <div className="mt-2 text-[9px] uppercase tracking-[0.24em]" style={{ color: C.muted, textIndent: "0.24em" }}>
+    <div
+      className="flex-1 py-3 text-center"
+      style={{ [which === "L" ? "borderRight" : "borderLeft"]: `1px dashed ${C.leader}` } as React.CSSProperties}
+    >
+      <div className="text-[9px] uppercase tracking-[0.24em]" style={{ color: C.muted, textIndent: "0.24em" }}>
         {which === "L" ? "POŁÓWKA 1" : "POŁÓWKA 2"}
       </div>
-      <div className="font-carta mt-0.5 min-h-[20px] text-[14.5px] italic">{product?.name ?? "—"}</div>
+      <div className="font-carta mt-1 min-h-[22px] text-[16px] italic">{product?.name ?? "—"}</div>
       {product && (
         <button
           onClick={() => (which === "L" ? setA(null) : setB(null))}
