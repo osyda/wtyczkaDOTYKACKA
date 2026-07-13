@@ -16,6 +16,8 @@ type OrderPayload = NewOrderInput & {
   promoCode?: string;
   /** Rabat ręczny obsługi (tylko telefoniczne), z powodem. */
   manualDiscount?: { amount?: number; reason?: string };
+  /** Kierowca przypisany od razu przy przyjęciu telefonu (dostawy). */
+  driver?: string;
 };
 
 export const dynamic = "force-dynamic";
@@ -97,6 +99,7 @@ export async function POST(req: Request) {
   }
   if (input.source) extra.source = input.source;
   if (input.staff?.trim()) extra.staff = input.staff.trim();
+  if (input.driver?.trim() && input.mode === "delivery") extra.driver = input.driver.trim();
   if (input.etaMinutes && order.timeMode === "asap" && Number.isFinite(input.etaMinutes)) {
     Object.assign(extra, setEta(order, Number(input.etaMinutes)));
   }

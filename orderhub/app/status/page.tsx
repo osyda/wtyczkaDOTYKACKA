@@ -4,6 +4,7 @@ import { hasGeocoder, estimateDrivingKm } from "@/lib/geo";
 import { getOpenState, hasGoogleHours, dayLabel, LAST_ORDER_MIN } from "@/lib/hours";
 import { listCalls, webhookKey } from "@/lib/ctiCalls";
 import { emailEnabled } from "@/lib/email";
+import { employeesDiagnostics } from "@/lib/dotykacka/employees";
 
 export const dynamic = "force-dynamic";
 
@@ -31,6 +32,7 @@ export default async function Home() {
 
   const ctiKeySet = Boolean(webhookKey());
   const lastCall = (await listCalls(1))[0] ?? null;
+  const emp = await employeesDiagnostics();
 
   return (
     <main className="min-h-screen bg-[#1F1714] text-[#F3E7D5]">
@@ -90,6 +92,32 @@ export default async function Home() {
           </div>
           <p className="mt-2 text-sm text-[#B7A691]">
             Współrzędne lokalu: {lat}, {lng} — ustaw dokładne w RESTAURANT_LAT / RESTAURANT_LNG.
+          </p>
+        </div>
+
+        {/* Logowanie pracowników kodami z POS */}
+        <div className="mt-4 rounded-2xl border border-[#3A322B] bg-[#241D1A] p-5">
+          <div className="mb-3 text-xs font-semibold uppercase tracking-wide text-[#B7A691]">
+            Logowanie obsługi kodami z Dotykački
+          </div>
+          <div className="flex items-center gap-3">
+            <span
+              className={`inline-flex h-3 w-3 rounded-full ${
+                !emp.available ? "bg-amber-400" : emp.withCode > 0 ? "bg-green-500" : "bg-red-500"
+              }`}
+            />
+            <span className="font-semibold">
+              {!emp.available
+                ? emp.error
+                  ? `Błąd pobierania pracowników: ${emp.error}`
+                  : "Brak kluczy Dotykački — działa tylko wspólny STAFF_PIN"
+                : emp.withCode > 0
+                  ? `Działa: ${emp.count} pracowników, ${emp.withCode} z kodem (pola: ${emp.codeFields.join(", ")})`
+                  : `API zwraca ${emp.count} pracowników, ale BEZ kodów — logowanie kodami nie zadziała, zostaje wspólny STAFF_PIN`}
+            </span>
+          </div>
+          <p className="mt-2 text-sm text-[#B7A691]">
+            Test praktyczny: wejdź na /panel z innej przeglądarki i zaloguj się kodem pracownika z POS.
           </p>
         </div>
 

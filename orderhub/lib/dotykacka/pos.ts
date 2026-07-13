@@ -21,6 +21,7 @@ interface PosResult {
   sent: boolean;
   simulated: boolean;
   orderNumber: string | null;
+  posOrderId?: string | null;
   customerId: string | null;
   error: string | null;
 }
@@ -155,7 +156,7 @@ export async function sendOrderToPos(order: Order): Promise<PosResult> {
     ...(customerId ? { "customer-id": Number(customerId) || customerId } : {}),
   };
 
-  const res = await dotyRequest<{ code?: number; order?: { "order-number"?: string } }>(
+  const res = await dotyRequest<{ code?: number; order?: { id?: number | string; "order-number"?: string } }>(
     `/clouds/${cloudId}/branches/${branchId}/pos-actions`,
     { method: "POST", body: payload, headers: { "Idempotency-Key": order.externalId } }
   );
@@ -175,7 +176,39 @@ export async function sendOrderToPos(order: Order): Promise<PosResult> {
     sent: true,
     simulated: false,
     orderNumber: res.data?.order?.["order-number"] ?? null,
+    posOrderId: res.data?.order?.id !== undefined ? String(res.data.order.id) : null,
     customerId,
     error: null,
   };
+}
+
+/**
+ * Wystawienie (druk) otwartego zamówienia w POS — akcja order/issue.
+ * DO PRZETESTOWANIA NA ŻYWO przy go-live (fiskalizacja!): wołane tylko, gdy
+ * DOTYKACKA_SEND_ORDERS=true ORAZ DOTYKACKA_ISSUE_ON_DRIVER=true.
+ */
+export async function issueOrderInPos(order: Order): Promise<{ ok: boolean; error?: string }> {
+  if (!hasCredentials() || !posSendEnabled()) return { ok: true }; // symulacja
+  if (process.env.DOTYKACKA_ISSUE_ON_DRIVER !== "true") return { ok: true }; // wyłączone
+  const posOrderId = order.pos?.posOrderId;
+  if (!posOrderId) return { ok: false, error: "Brak posOrderId — zamówienie nie było utworzone w POS." };
+
+  const { cloudId, branchId } = dotykackaConfig;
+  const res = await dotyRequest<{ code?: number }>(`/clouds/${cloudId}/branches/${branchId}/pos-actions`, {
+    method: "POST",
+    body: {
+      action: "order/issue",
+      "order-id": Number(posOrderId) || posOrderId,
+      "print-config": {},
+      "print-email": null,
+      "print-type": null,
+      "take-away": true,
+    },
+    headers: { "Idempotency-Key": `${order.externalId}-issue` },
+  });
+  const code = res.data?.code;
+  if (!res.ok || (typeof code === "number" && code !== 0)) {
+    return { ok: false, error: `POS issue HTTP ${res.status} code ${code ?? "?"}: ${res.raw.slice(0, 160)}` };
+  }
+  return { ok: true };
 }

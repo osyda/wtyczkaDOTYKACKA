@@ -81,6 +81,8 @@ export interface Order {
     sent: boolean;
     simulated: boolean;
     orderNumber?: string | null;
+    /** ID otwartego zamówienia w POS — potrzebne do akcji order/issue (druk). */
+    posOrderId?: string | null;
     customerId?: string | null;
     error?: string | null;
   };
