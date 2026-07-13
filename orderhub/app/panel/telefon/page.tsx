@@ -417,7 +417,7 @@ function PhoneOrderInner() {
                   ))}
                 </div>
                 <div className="mt-3 grid grid-cols-1 gap-1 min-[700px]:grid-cols-2">
-                  {activeCatName.toLowerCase().includes("pizz") && products.length >= 2 && (
+                  {activeCatName.toLowerCase().includes("pizz") && !activeCatName.toLowerCase().includes("dodat") && products.length >= 2 && (
                     <button
                       onClick={() => setHalfOpen(true)}
                       className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-left transition hover:opacity-90"
@@ -639,7 +639,9 @@ function PhoneOrderInner() {
       )}
       {halfOpen && menu && (
         <HalfHalfModal
-          pizzas={menu.categories.filter((c) => c.name.toLowerCase().includes("pizz")).flatMap((c) => c.products)}
+          pizzas={menu.categories
+            .filter((c) => c.name.toLowerCase().includes("pizz") && !c.name.toLowerCase().includes("dodat"))
+            .flatMap((c) => c.products)}
           onClose={() => setHalfOpen(false)}
         />
       )}

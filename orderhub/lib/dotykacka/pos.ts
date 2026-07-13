@@ -55,14 +55,29 @@ function itemToPos(item: OrderItem): Array<Record<string, unknown>> {
   }
 
   const productIdNum = Number(item.productId);
+
+  // Dodatki zmapowane na customizations Dotykački → prawdziwe pozycje w POS
+  // (magazyn/druk kuchenny/cena z POS). Niezmapowane lądują w nocie.
+  const asNum = (v: string) => (Number.isFinite(Number(v)) ? Number(v) : v);
+  const mapped = item.addons.filter((a) => a.customizationId);
+  const unmapped = item.addons.filter((a) => !a.customizationId);
+  const unmappedNote = unmapped.length > 0 ? unmapped.map((a) => `+ ${a.name}`).join(", ") : "";
+
   return [
     {
       id: Number.isFinite(productIdNum) ? productIdNum : item.productId,
       qty: item.qty,
       "take-away": true,
-      ...(addonsNote ? { note: addonsNote } : {}),
-      // TODO Faza 2+: gdy mamy mapowanie dodatków → customizations:
-      // customizations: item.addons.map(a => ({ "product-customization-id": ..., "product-id": ... }))
+      ...(unmappedNote ? { note: unmappedNote } : {}),
+      ...(mapped.length > 0
+        ? {
+            customizations: mapped.map((a) => ({
+              "product-customization-id": asNum(a.customizationId!),
+              "product-id": asNum(a.id),
+              qty: 1,
+            })),
+          }
+        : {}),
     },
   ];
 }

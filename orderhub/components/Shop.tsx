@@ -9,9 +9,10 @@ import { ProductModal } from "./ProductModal";
 import { HalfHalfModal } from "./HalfHalfModal";
 import { C, SERIF } from "@/lib/carta";
 
-/** Kategoria pizz — po nazwie (dla wejścia „pół na pół"). */
+/** Kategoria pizz — po nazwie (dla wejścia „pół na pół"); bez „dodatki pizza". */
 function isPizzaCat(name: string): boolean {
-  return name.toLowerCase().includes("pizz");
+  const n = name.toLowerCase();
+  return n.includes("pizz") && !n.includes("dodat");
 }
 
 /* ================= CARTA · menu jak redakcyjna karta ================= */
@@ -106,6 +107,13 @@ export function Shop({ menu }: { menu: Menu }) {
     document.getElementById(`sec-${id}`)?.scrollIntoView({ behavior: "smooth", block: "start" });
   };
 
+  // Aktywna kategoria zawsze widoczna w przewijanym pasku.
+  useEffect(() => {
+    document
+      .querySelector(`#catbar [data-cat="${CSS.escape(activeCat)}"]`)
+      ?.scrollIntoView({ behavior: "smooth", inline: "center", block: "nearest" });
+  }, [activeCat]);
+
   return (
     <main className="min-h-screen pb-32" style={{ background: C.ivory, color: C.ink }}>
       <div className="mx-auto max-w-[430px] px-[26px] min-[700px]:max-w-[760px] min-[700px]:px-11 min-[1000px]:max-w-[900px]">
@@ -148,19 +156,22 @@ export function Shop({ menu }: { menu: Menu }) {
           </div>
         )}
 
-        {/* Pasek kategorii — przykleja się u góry */}
+        {/* Pasek kategorii — przykleja się u góry; przy wielu kategoriach przewija się w bok */}
         <nav
           id="catbar"
-          className="sticky top-0 z-40 -mx-[26px] mt-6 flex justify-center gap-[34px] border-b px-[26px] backdrop-blur-[10px] transition-shadow duration-300 min-[700px]:-mx-11 min-[700px]:px-11"
+          className="sticky top-0 z-40 -mx-[26px] mt-6 flex gap-[26px] overflow-x-auto border-b px-[26px] backdrop-blur-[10px] transition-shadow duration-300 [scrollbar-width:none] min-[700px]:-mx-11 min-[700px]:gap-[30px] min-[700px]:px-11"
           style={{ background: "rgba(247,243,235,.94)", borderColor: C.hairline }}
         >
-          {cats.map((c) => {
+          {cats.map((c, i) => {
             const on = activeCat === c.id;
             return (
               <button
                 key={c.id}
+                data-cat={c.id}
                 onClick={() => catGo(c.id)}
-                className="-mb-px cursor-pointer border-b-2 pb-[13px] pt-[15px] text-[11px] uppercase tracking-[0.24em] transition-colors duration-300"
+                className={`-mb-px cursor-pointer whitespace-nowrap border-b-2 pb-[13px] pt-[15px] text-[11px] uppercase tracking-[0.24em] transition-colors duration-300${
+                  i === 0 ? " ml-auto" : ""
+                }${i === cats.length - 1 ? " mr-auto" : ""}`}
                 style={{
                   textIndent: "0.24em",
                   color: on ? C.ink : C.muted,
