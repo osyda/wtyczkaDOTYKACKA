@@ -132,9 +132,15 @@ przekierowanie 301 z `mammarosa.pl/zamow-online/` (wtyczka Redirection w WP). NI
   `findEmployeeIdByName(driver)` dopasowuje „Michał" → pracownika „Michał G"
   (bez ogonków, prefiksowo). DOTYKACKA_CREATE_ON_DRIVER=true → dostawy idą do
   POS dopiero przy przypisaniu kierowcy (z jego user-id); telefoniczne z
-  kierowcą od razu z user-id. DOTYKACKA_PRINT_TYPE steruje rodzajem wydruku
-  order/issue (dobrać przy teście: rachunek NIEFISKALNY). TEST GO-LIVE:
-  1 zamówienie → kierowca → sprawdzić czyj utarg i co wyszło z drukarki.
+  kierowcą od razu z user-id. DOTYKACKA_PRINT_TYPE — wartości (z pełnej
+  dokumentacji pos-actions, PDF od właściciela 13.07.2026): local (drukarka
+  POS, domyślne), none (bez druku), remote/email (tylko SK/eKasa). print-type
+  NIE steruje fiskalnością — o tym decyduje konfiguracja zadań wydruku
+  w terminalu. WYNIKI TESTU NA ŻYWO (13.07.2026): zamówienie w POS z dodatkami
+  jako customizations, opakowaniami i dowozem (sumy 1:1), utarg POPRAWNIE na
+  koncie kierowcy (Michał), wydruk automatyczny = paragon fiskalny. Dodano
+  order/pay po issue → status ZAPŁACONE wg metody (gotówka 900000001, karta
+  900000002, online 900000019).
 - Obieg z POS i utarg kierowców (USTALENIE 11.07.2026, workflow właściciela):
   dziś zamówienie wpada do POS, dostawę kelnerka drukuje wchodząc na KOD KIEROWCY
   (utarg kierowcy), odbiór kasuje ze swojego kodu. Z nowym systemem DZIEŃ PIERWSZY
