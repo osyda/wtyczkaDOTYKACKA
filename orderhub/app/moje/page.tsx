@@ -65,7 +65,7 @@ export default function MyOrdersPage() {
         );
       } else {
         addProduct(
-          { id: it.productId, name: it.name, description: "", price: it.basePrice },
+          { id: it.productId, name: it.name, description: "", price: it.basePrice, packaging: it.packaging },
           it.qty,
           it.addons
         );

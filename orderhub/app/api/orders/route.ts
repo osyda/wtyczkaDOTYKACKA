@@ -75,10 +75,17 @@ export async function POST(req: Request) {
     const amount = Math.min(Math.round(Number(input.manualDiscount.amount) * 100) / 100, input.subtotal ?? 0);
     if (amount > 0) discount = { amount, reason: input.manualDiscount.reason?.trim() || "rabat obsługi" };
   }
-  if (discount) {
-    // Suma zawsze liczona na serwerze: koszyk − rabat + dostawa.
-    input.total = Math.round(((input.subtotal ?? 0) - discount.amount + (input.deliveryFee ?? 0)) * 100) / 100;
-  }
+  // Opakowania na wynos: liczone z pozycji (sztuki × cena produktu z POS).
+  const packagingFee =
+    Math.round(
+      (input.items ?? []).reduce((s, it) => s + (it.packaging && it.packaging.price > 0 ? it.qty * it.packaging.price : 0), 0) * 100
+    ) / 100;
+
+  // Suma zawsze liczona na serwerze: koszyk − rabat + opakowania + dostawa.
+  input.total =
+    Math.round(
+      (Math.max(0, (input.subtotal ?? 0) - (discount?.amount ?? 0)) + packagingFee + (input.deliveryFee ?? 0)) * 100
+    ) / 100;
 
   let order = await orderStore.create(input);
 
