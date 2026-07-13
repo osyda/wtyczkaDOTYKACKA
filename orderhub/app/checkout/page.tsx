@@ -496,13 +496,13 @@ export default function CheckoutPage() {
             <div className="flex gap-[22px]">
               <Field label="IMIĘ I NAZWISKO" value={form.name} onChange={(v) => setForm({ ...form, name: v })} />
               <Field label="TELEFON" inputMode="tel" value={form.phone} onChange={(v) => setForm({ ...form, phone: v })} />
-              <Field
-                label="E-MAIL (POTWIERDZENIE — OPCJONALNIE)"
-                inputMode="email"
-                value={form.email}
-                onChange={(v) => setForm({ ...form, email: v })}
-              />
             </div>
+            <Field
+              label="E-MAIL — WYŚLEMY POTWIERDZENIE (OPCJONALNIE)"
+              inputMode="email"
+              value={form.email}
+              onChange={(v) => setForm({ ...form, email: v })}
+            />
             {mode === "delivery" && (
               <>
                 <Field label="ULICA I NUMER" value={form.street} onChange={(v) => setForm({ ...form, street: v })} />
