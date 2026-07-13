@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
+import { StaffGate, clearStaffName } from "@/components/StaffGate";
 import type { Order, OrderStatus } from "@/lib/orders/types";
 import type { CallerInfo } from "@/lib/cti";
 import { zl } from "@/lib/format";
@@ -224,6 +225,14 @@ function printOrder(order: Order) {
 /* ============================================================ */
 
 export default function PanelPage() {
+  return (
+    <StaffGate askName>
+      <PanelInner />
+    </StaffGate>
+  );
+}
+
+function PanelInner() {
   const [orders, setOrders] = useState<Order[]>([]);
   const [now, setNow] = useState("--:--");
   const [caller, setCaller] = useState<CallerInfo | null>(null);
@@ -238,43 +247,10 @@ export default function PanelPage() {
   const [pos, setPos] = useState<{ mode: string; ok: boolean } | null>(null);
   const baseTitle = useRef("Mammarosa — panel");
 
-  // Bramka PIN.
-  const [authReady, setAuthReady] = useState(false);
-  const [needPin, setNeedPin] = useState(false);
-  const [pin, setPin] = useState("");
-  const [pinError, setPinError] = useState(false);
-
   useEffect(() => {
     setSoundOn(localStorage.getItem("mr_sound") === "1");
     setStaffName(localStorage.getItem("mr_staff") ?? "");
-    fetch("/api/staff/check")
-      .then((r) => r.json())
-      .then((d) => {
-        setNeedPin(Boolean(d.required) && !d.authed);
-        setAuthReady(true);
-      })
-      .catch(() => setAuthReady(true));
   }, []);
-
-  const submitPin = async () => {
-    setPinError(false);
-    const res = await fetch("/api/staff/login", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ pin }),
-    });
-    if (res.ok) {
-      const d = await res.json().catch(() => ({}));
-      if (d?.name) {
-        setStaffName(d.name);
-        localStorage.setItem("mr_staff", d.name);
-      }
-      setNeedPin(false);
-      setPin("");
-    } else {
-      setPinError(true);
-    }
-  };
 
   const toggleSound = () => {
     const next = !soundOn;
@@ -458,47 +434,6 @@ export default function PanelPage() {
     .sort((a, b) => (a.scheduledTime ?? "").localeCompare(b.scheduledTime ?? ""));
 
 
-  if (!authReady) {
-    return (
-      <main className="grid min-h-screen place-items-center text-sm font-semibold" style={{ background: BG, color: MUTED }}>
-        Ładowanie…
-      </main>
-    );
-  }
-
-  if (needPin) {
-    return (
-      <main className="grid min-h-screen place-items-center px-6" style={{ background: BG, color: CREAM }}>
-        <div className="w-full max-w-xs text-center">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/brand/icon-espresso.png" alt="Mammarosa" className="mx-auto mb-5 h-14 w-14 object-contain" />
-          <h1 className="text-lg font-bold tracking-[-0.01em]">Panel obsługi</h1>
-          <p className="mb-6 mt-1 text-sm" style={{ color: MUTED }}>
-            Wpisz swój kod z Dotykački lub wspólny PIN obsługi.
-          </p>
-          <input
-            type="password"
-            inputMode="numeric"
-            value={pin}
-            onChange={(e) => setPin(e.target.value)}
-            onKeyDown={(e) => e.key === "Enter" && submitPin()}
-            placeholder="PIN"
-            className="w-full rounded-2xl px-4 py-3.5 text-center text-lg tracking-[0.4em] outline-none placeholder:tracking-normal"
-            style={{ background: CARD, color: CREAM, border: "1px solid rgba(27,23,16,0.14)" }}
-          />
-          {pinError && <p className="mt-2 text-sm font-semibold" style={{ color: ALERT }}>Błędny PIN — spróbuj ponownie.</p>}
-          <button
-            onClick={submitPin}
-            className="mt-4 w-full rounded-full px-4 py-3.5 text-[15px] font-bold"
-            style={{ background: LIME, color: "#1D2A22" }}
-          >
-            Wejdź
-          </button>
-        </div>
-      </main>
-    );
-  }
-
   return (
     <main className="min-h-screen pb-8" style={{ background: BG, color: CREAM }}>
       {/* Pasek górny — na telefonie zawija się w dwie linie zamiast rozpychać stronę */}
@@ -512,7 +447,15 @@ export default function PanelPage() {
           <div>
             <div className="text-[13px] font-semibold uppercase tracking-[0.18em]">Mammarosa</div>
             <div className="hidden text-[11px] min-[920px]:block" style={{ color: MUTED }}>
-              Panel zamówień{staffName ? ` · ${staffName}` : ""}
+              Panel zamówień
+              {staffName ? (
+                <>
+                  {" · "}
+                  <button onClick={clearStaffName} className="cursor-pointer underline underline-offset-2" title="Zmień osobę">
+                    {staffName}
+                  </button>
+                </>
+              ) : null}
             </div>
           </div>
         </div>

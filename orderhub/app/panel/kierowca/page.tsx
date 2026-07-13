@@ -9,6 +9,7 @@
 
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
+import { StaffGate } from "@/components/StaffGate";
 import type { Order } from "@/lib/orders/types";
 import { zl } from "@/lib/format";
 
@@ -27,44 +28,25 @@ function clock(iso?: string): string {
 }
 
 export default function DriverPanelPage() {
-  const [authReady, setAuthReady] = useState(false);
-  const [needPin, setNeedPin] = useState(false);
-  const [pin, setPin] = useState("");
-  const [pinError, setPinError] = useState(false);
+  return (
+    <StaffGate>
+      <DriverInner />
+    </StaffGate>
+  );
+}
 
+function DriverInner() {
   const [drivers, setDrivers] = useState<string[]>([]);
   const [me, setMe] = useState<string>("");
   const [orders, setOrders] = useState<Order[]>([]);
 
   useEffect(() => {
     setMe(localStorage.getItem("mr_driver") ?? "");
-    fetch("/api/staff/check")
-      .then((r) => r.json())
-      .then((d) => {
-        setNeedPin(Boolean(d.required) && !d.authed);
-        setAuthReady(true);
-      })
-      .catch(() => setAuthReady(true));
     fetch("/api/staff/drivers")
       .then((r) => r.json())
       .then((d) => setDrivers(d.drivers ?? []))
       .catch(() => {});
   }, []);
-
-  const submitPin = async () => {
-    setPinError(false);
-    const res = await fetch("/api/staff/login", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ pin }),
-    });
-    if (res.ok) {
-      setNeedPin(false);
-      setPin("");
-    } else {
-      setPinError(true);
-    }
-  };
 
   const refresh = useCallback(async () => {
     try {
@@ -77,11 +59,10 @@ export default function DriverPanelPage() {
   }, []);
 
   useEffect(() => {
-    if (needPin || !authReady) return;
     refresh();
     const t = setInterval(refresh, 8000);
     return () => clearInterval(t);
-  }, [refresh, needPin, authReady]);
+  }, [refresh]);
 
   const pickMe = (name: string) => {
     setMe(name);
@@ -106,37 +87,6 @@ export default function DriverPanelPage() {
     )
     .sort((a, b) => (a.etaAt ?? a.createdAt).localeCompare(b.etaAt ?? b.createdAt));
 
-  if (!authReady) {
-    return (
-      <main className="grid min-h-screen place-items-center text-sm font-semibold" style={{ background: BG, color: MUTED }}>
-        Ładowanie…
-      </main>
-    );
-  }
-
-  if (needPin) {
-    return (
-      <main className="grid min-h-screen place-items-center px-6" style={{ background: BG, color: INK }}>
-        <div className="w-full max-w-xs text-center">
-          <div className="text-[15px] font-extrabold uppercase tracking-[0.18em]">Panel kierowcy</div>
-          <p className="mt-2 text-[13px]" style={{ color: MUTED }}>Podaj kod obsługi (raz na urządzenie).</p>
-          <input
-            value={pin}
-            onChange={(e) => setPin(e.target.value)}
-            onKeyDown={(e) => e.key === "Enter" && submitPin()}
-            type="password"
-            inputMode="numeric"
-            className="mt-4 w-full rounded-2xl px-4 py-4 text-center text-[22px] font-extrabold tracking-[0.4em] outline-none"
-            style={{ background: CARD, border: "1px solid rgba(27,23,16,0.13)" }}
-          />
-          {pinError && <p className="mt-2 text-[13px] font-bold" style={{ color: ALERT }}>Zły kod.</p>}
-          <button onClick={submitPin} className="mt-4 w-full rounded-full py-3.5 text-[15px] font-bold" style={{ background: LIME, color: "#1D2A22" }}>
-            Wejdź
-          </button>
-        </div>
-      </main>
-    );
-  }
 
   return (
     <main className="min-h-screen pb-10" style={{ background: BG, color: INK }}>

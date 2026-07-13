@@ -1,4 +1,7 @@
 import Link from "next/link";
+import { cookies } from "next/headers";
+import { staffProtectionEnabled, staffToken } from "@/lib/staffAuth";
+import { StatusGate } from "./StatusGate";
 import { getHealth } from "@/lib/dotykacka/health";
 import { hasGeocoder, estimateDrivingKm } from "@/lib/geo";
 import { getOpenState, hasGoogleHours, dayLabel, LAST_ORDER_MIN } from "@/lib/hours";
@@ -9,6 +12,15 @@ import { employeesDiagnostics } from "@/lib/dotykacka/employees";
 export const dynamic = "force-dynamic";
 
 export default async function Home() {
+  // Strona diagnostyczna tylko dla obsługi — za hasłem lokalu (jak panel).
+  if (staffProtectionEnabled()) {
+    const token = await staffToken();
+    const c = await cookies();
+    if (!token || c.get("staff_auth")?.value !== token) {
+      return <StatusGate />;
+    }
+  }
+
   const health = await getHealth();
 
   // Test map na żywo: znany punkt pod Kościerzyną — jeśli zwróci km, klucz działa.

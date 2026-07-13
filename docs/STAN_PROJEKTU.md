@@ -167,7 +167,14 @@ przekierowanie 301 z `mammarosa.pl/zamow-online/` (wtyczka Redirection w WP). NI
   i telefonie, rabat ręczny kelnerki z powodem (tylko telefoniczne), karta
   „Rabaty" w panelu, rozliczenie w „Dziś", nota w POS i na kwicie. Total liczony
   na serwerze; minimum dostawy PRZED rabatem. R2 (POS discount-percent) po kluczach.
-- Autoryzacja obsługi: `lib/staffAuth.ts` + `proxy.ts` + `/api/staff/*`.
+- Autoryzacja obsługi — DWUWARSTWOWA (13.07.2026): warstwa 1 = HASŁO LOKALU
+  (STAFF_PIN, cookie 90 dni) chroni /panel, /panel/telefon, /panel/kierowca
+  ORAZ /status (server-side); warstwa 2 = OSOBISTE KODY (STAFF_CODES=
+  "Ania:1234, Kasia:5678") wpisywane ZA bramką — podpis obsługi (mr_staff),
+  zmiana osoby: klik w imię w topbarze panelu. Wspólny komponent
+  `components/StaffGate.tsx` (askName), `/api/staff/code` (wymaga cookie
+  urządzenia — obcy nie zgaduje kodów). /status ma własną bramkę StatusGate.
+- Autoryzacja obsługi (stare): `lib/staffAuth.ts` + `proxy.ts` + `/api/staff/*`.
   Bez `STAFF_PIN` → panel otwarty (tryb testowy). Z `STAFF_PIN` → logowanie wspólnym PIN-em
   LUB osobistym kodem pracownika z Dotykački (`lib/dotykacka/employees.ts` — pola-kandydaci
   pin/loginPin/posPin/code/loginCode/password; NIEPOTWIERDZONE czy API zwraca kody —
