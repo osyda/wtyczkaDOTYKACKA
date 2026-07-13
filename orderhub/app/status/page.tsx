@@ -119,6 +119,11 @@ export default async function Home() {
           <p className="mt-2 text-sm text-[#B7A691]">
             Test praktyczny: wejdź na /panel z innej przeglądarki i zaloguj się kodem pracownika z POS.
           </p>
+          {emp.available && emp.withCode === 0 && emp.allFields.length > 0 && (
+            <p className="mt-2 break-words text-xs text-[#8A7A6B]">
+              Pola zwracane przez API: {emp.allFields.join(", ")}
+            </p>
+          )}
         </div>
 
         {/* Maile do klientów */}

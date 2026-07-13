@@ -48,14 +48,20 @@ export async function employeesDiagnostics(): Promise<{
   count: number;
   withCode: number;
   codeFields: string[];
+  /** Nazwy WSZYSTKICH pól zwracanych przez API (bez wartości) — do namierzenia pola z kodem. */
+  allFields: string[];
   error?: string;
 }> {
-  if (!hasCredentials()) return { available: false, count: 0, withCode: 0, codeFields: [] };
+  if (!hasCredentials()) return { available: false, count: 0, withCode: 0, codeFields: [], allFields: [] };
   try {
     const list = await getEmployees();
     const fields = new Set<string>();
+    const all = new Set<string>();
     let withCode = 0;
     for (const e of list) {
+      Object.entries(e).forEach(([k, v]) => {
+        if (v !== null && v !== undefined && v !== "") all.add(k);
+      });
       const found = PIN_FIELDS.filter((f) => {
         const v = e[f];
         return (typeof v === "string" && v.trim().length >= 3) || (typeof v === "number" && String(v).length >= 3);
@@ -65,13 +71,14 @@ export async function employeesDiagnostics(): Promise<{
         found.forEach((f) => fields.add(f));
       }
     }
-    return { available: true, count: list.length, withCode, codeFields: [...fields] };
+    return { available: true, count: list.length, withCode, codeFields: [...fields], allFields: [...all].sort() };
   } catch (e) {
     return {
       available: false,
       count: 0,
       withCode: 0,
       codeFields: [],
+      allFields: [],
       error: e instanceof Error ? e.message.slice(0, 160) : "błąd API",
     };
   }
