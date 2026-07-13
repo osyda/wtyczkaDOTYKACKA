@@ -68,7 +68,7 @@ function confirmationHtml(order: Order, trackUrl: string): string {
     <div style="text-align:center;letter-spacing:.4em;font-size:24px;font-weight:800;color:${ink};font-family:Arial,sans-serif;margin-top:12px">MAMMAROSA</div>
     <div style="border-top:1px solid ${hairline};margin:22px 0"></div>
 
-    <div style="text-align:center;font-style:italic;font-size:24px;color:${ink}">Grazie, ${esc(order.customer.name.split(" ")[0] || "")}!</div>
+    <div style="text-align:center;font-style:italic;font-size:24px;color:${ink}">Dziękujemy, ${esc(order.customer.name.split(" ")[0] || "")}!</div>
     <div style="text-align:center;font-size:13px;color:${muted};margin-top:6px;font-family:Arial,sans-serif">
       Przyjęliśmy zamówienie <b style="color:${ink}">#${order.number}</b> · ${when}
     </div>

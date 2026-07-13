@@ -108,7 +108,7 @@ export default function ThankYouPage() {
     <main className="min-h-screen pb-16" style={{ background: C.ivory, color: C.ink }}>
       <div className="mx-auto max-w-[430px] px-[26px] min-[700px]:max-w-[520px]">
         <div className="pt-16 text-center">
-          <h1 className="font-carta text-[44px] italic">Grazie{firstName ? `, ${firstName}` : ""}.</h1>
+          <h1 className="font-carta text-[44px] italic">Dziękujemy{firstName ? `, ${firstName}` : ""}.</h1>
           <div
             className="mt-2.5 text-[11px] uppercase tracking-[0.2em]"
             style={{ color: C.muted, textIndent: "0.2em" }}
