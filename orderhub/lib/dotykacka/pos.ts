@@ -193,14 +193,26 @@ export async function sendOrderToPos(order: Order): Promise<PosResult> {
 }
 
 /**
- * Wystawienie (wydruk RACHUNKU) otwartego zamówienia w POS — akcja order/issue.
- * Rodzaj wydruku steruje DOTYKACKA_PRINT_TYPE (pusty = domyślny drukarki;
- * wartość dobierzemy przy teście go-live — chodzi o rachunek NIEFISKALNY).
- * Wołane tylko, gdy DOTYKACKA_SEND_ORDERS=true ORAZ DOTYKACKA_ISSUE_ON_DRIVER=true.
+ * MOMENT FISKALIZACJI (test na żywo 13.07.2026: wystawienie w PL ZAWSZE drukuje
+ * paragon fiskalny — print-type=none tego nie wyłącza, bo steruje tylko drukiem
+ * niefiskalnym). Dlatego wybór momentu, KIEDY wystawiamy+płacimy:
+ *  - "driver"    → przy przypisaniu kierowcy (fiskalny drukuje się od razu),
+ *  - "delivered" → gdy kierowca kliknie „Dostarczone" (do tego czasu zamówienie
+ *                  w POS jest OTWARTE, a kierowca wozi nasz rachunek niefiskalny),
+ *  - "manual"    → nigdy przez API (obsługa zamyka w POS ręcznie).
+ * Zgodność wstecz: brak zmiennej → "driver" gdy DOTYKACKA_ISSUE_ON_DRIVER=true.
+ */
+export function fiscalizeMoment(): "driver" | "delivered" | "manual" {
+  const v = process.env.DOTYKACKA_FISCALIZE_ON?.trim().toLowerCase();
+  if (v === "driver" || v === "delivered" || v === "manual") return v;
+  return process.env.DOTYKACKA_ISSUE_ON_DRIVER === "true" ? "driver" : "manual";
+}
+
+/**
+ * Wystawienie otwartego zamówienia w POS — akcja order/issue (w PL = fiskalizacja).
  */
 export async function issueOrderInPos(order: Order): Promise<{ ok: boolean; error?: string }> {
   if (!hasCredentials() || !posSendEnabled()) return { ok: true }; // symulacja
-  if (process.env.DOTYKACKA_ISSUE_ON_DRIVER !== "true") return { ok: true }; // wyłączone
   const posOrderId = order.pos?.posOrderId;
   if (!posOrderId) return { ok: false, error: "Brak posOrderId — zamówienie nie było utworzone w POS." };
 
@@ -238,7 +250,6 @@ const PAYMENT_METHOD_IDS: Record<string, number> = {
  */
 export async function payOrderInPos(order: Order): Promise<{ ok: boolean; error?: string }> {
   if (!hasCredentials() || !posSendEnabled()) return { ok: true };
-  if (process.env.DOTYKACKA_ISSUE_ON_DRIVER !== "true") return { ok: true };
   const posOrderId = order.pos?.posOrderId;
   if (!posOrderId) return { ok: false, error: "Brak posOrderId — nie ma czego opłacić." };
 

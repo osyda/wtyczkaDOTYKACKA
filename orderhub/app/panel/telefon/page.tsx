@@ -16,6 +16,7 @@ import { CartProvider, useCart, lineTotal } from "@/lib/cart/CartProvider";
 import { ProductModal } from "@/components/ProductModal";
 import { HalfHalfModal } from "@/components/HalfHalfModal";
 import { StaffGate } from "@/components/StaffGate";
+import { printBill } from "@/lib/printBill";
 import { zl } from "@/lib/format";
 import { isKoscierzyna, pickupQuote, flatCityQuote, type DeliveryQuote, type FulfillmentMode } from "@/lib/delivery";
 
@@ -313,6 +314,8 @@ function PhoneOrderInner() {
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error ?? "Błąd zapisu.");
+      // Kierowca wybrany od razu → drukujemy mu rachunek niefiskalny.
+      if (data.order?.driver) printBill(data.order);
       clear();
       router.push("/panel");
     } catch (e) {
