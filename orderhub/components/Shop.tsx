@@ -315,7 +315,7 @@ export function Shop({ menu }: { menu: Menu }) {
         ))}
 
         <div className="mt-[34px] text-center text-[9px] tracking-[0.22em]" style={{ color: C.faint, textIndent: "0.22em" }}>
-          CIASTO 48H · PIEC OPALANY DREWNEM · ZAMÓWIENIA ONLINE
+          PIZZA I KUCHNIA POLSKA · 30 LAT DOŚWIADCZENIA · ZAMÓWIENIA ONLINE
         </div>
       </div>
 
