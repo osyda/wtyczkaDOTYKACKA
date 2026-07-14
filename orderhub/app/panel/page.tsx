@@ -288,18 +288,26 @@ function PanelInner() {
     return () => clearInterval(t);
   }, [refresh]);
 
-  // Centralka: czy dzwoni telefon? Nowy dzwonek → baner + dźwięk (raz na połączenie).
+  // Centralka: dzwonek gra W KÓŁKO (co tick, 3 s), dopóki połączenie dzwoni —
+  // cichnie po odebraniu/rozłączeniu (makro event=end) albo po zamknięciu banera (X).
+  const dismissedRingAt = useRef<string>("");
   const checkRing = useCallback(async () => {
     try {
       const res = await fetch("/api/cti/ring", { cache: "no-store" });
       const d = await res.json();
-      if (d.ringing && d.at !== lastRingAt.current) {
-        lastRingAt.current = d.at;
-        setCaller(d.caller);
-        if (localStorage.getItem("mr_sound") === "1") {
+      if (d.ringing) {
+        if (d.at !== lastRingAt.current) {
+          lastRingAt.current = d.at;
+          setCaller(d.caller);
+        }
+        const dismissed = dismissedRingAt.current === d.at;
+        if (!dismissed && localStorage.getItem("mr_sound") === "1") {
           playDing();
           window.setTimeout(playDing, 380);
         }
+      } else {
+        // Koniec dzwonienia → baner znika sam.
+        setCaller(null);
       }
     } catch {
       /* kolejny tick */
@@ -541,7 +549,14 @@ function PanelInner() {
             >
               Przyjmij zamówienie
             </Link>
-            <button onClick={() => setCaller(null)} className="flex-none text-sm font-semibold" style={{ color: MUTED }}>
+            <button
+              onClick={() => {
+                dismissedRingAt.current = lastRingAt.current; // wycisza dzwonek dla TEGO połączenia
+                setCaller(null);
+              }}
+              className="flex-none text-sm font-semibold"
+              style={{ color: MUTED }}
+            >
               ✕
             </button>
           </div>
