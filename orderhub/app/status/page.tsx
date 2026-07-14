@@ -13,6 +13,12 @@ import { hasCredentials } from "@/lib/dotykacka/config";
 
 export const dynamic = "force-dynamic";
 
+// Strona diagnostyczna obsługi — poza indeksem Google.
+export const metadata = {
+  title: "Status systemu",
+  robots: { index: false, follow: false },
+};
+
 export default async function Home() {
   // Strona diagnostyczna tylko dla obsługi — za hasłem lokalu (jak panel).
   if (staffProtectionEnabled()) {
