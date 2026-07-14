@@ -13,11 +13,72 @@
  * kategorie techniczne (DOWÓZ) ukrywamy — to produkty opłat, nie jedzenie.
  */
 
+import { Redis } from "@upstash/redis";
 import { dotykackaConfig, hasCredentials } from "./config";
 import { dotyGetAll } from "./client";
 import { descriptionFor } from "./descriptions";
 import { mockMenu } from "./mock";
 import type { DotyCategory, DotyCustomization, DotyProduct, Menu, MenuAddon, MenuCategory } from "./types";
+
+/* ---------- CACHE MENU (14.07.2026 — strona ładowała się 2–4 s) ----------
+ * Pobranie pełnego menu z Dotykački to kilka zapytań (produkty stronami po
+ * 100 itd.). Trzymamy zbudowane menu 5 min: w pamięci procesu i w Redis
+ * (przeżywa zimny start serverless). Gdy API padnie — podajemy ostatnią
+ * dobrą kopię zamiast błędu. */
+const MENU_TTL_MS = 5 * 60 * 1000;
+
+const URL_KV = process.env.KV_REST_API_URL || process.env.UPSTASH_REDIS_REST_URL;
+const TOKEN_KV = process.env.KV_REST_API_TOKEN || process.env.UPSTASH_REDIS_REST_TOKEN;
+let kv: Redis | null = null;
+function redis(): Redis | null {
+  if (!URL_KV || !TOKEN_KV) return null;
+  if (!kv) kv = new Redis({ url: URL_KV, token: TOKEN_KV });
+  return kv;
+}
+
+type MenuCacheEntry = { menu: Menu; at: number };
+declare global {
+  // eslint-disable-next-line no-var
+  var __mrMenuCache: Record<string, MenuCacheEntry> | undefined;
+}
+const gCache = (globalThis as typeof globalThis & { __mrMenuCache?: Record<string, MenuCacheEntry> }).__mrMenuCache ??
+  ((globalThis as typeof globalThis & { __mrMenuCache?: Record<string, MenuCacheEntry> }).__mrMenuCache = {});
+
+async function cachedMenu(key: string): Promise<Menu | null> {
+  const mem = gCache[key];
+  if (mem && Date.now() - mem.at < MENU_TTL_MS) return mem.menu;
+  try {
+    const fromKv = await redis()?.get<MenuCacheEntry>(`menu:cache:${key}`);
+    if (fromKv && Date.now() - fromKv.at < MENU_TTL_MS) {
+      gCache[key] = fromKv;
+      return fromKv.menu;
+    }
+  } catch {
+    /* cache to tylko przyspieszacz */
+  }
+  return null;
+}
+
+async function saveMenuCache(key: string, menu: Menu): Promise<void> {
+  const entry: MenuCacheEntry = { menu, at: Date.now() };
+  gCache[key] = entry;
+  try {
+    await redis()?.set(`menu:cache:${key}`, entry, { ex: Math.ceil(MENU_TTL_MS / 1000) + 60 });
+  } catch {
+    /* pamięć już ma */
+  }
+}
+
+/** Ostatnia dobra kopia (bez limitu wieku) — awaryjnie, gdy API Dotykački nie odpowiada. */
+async function staleMenu(key: string): Promise<Menu | null> {
+  if (gCache[key]) return gCache[key].menu;
+  try {
+    const fromKv = await redis()?.get<MenuCacheEntry>(`menu:cache:${key}`);
+    return fromKv?.menu ?? null;
+  } catch {
+    return null;
+  }
+}
 
 function toNumber(v: number | string | undefined): number {
   if (v === undefined) return 0;
@@ -101,15 +162,28 @@ export async function getMenu(opts?: { full?: boolean }): Promise<Menu> {
     return mockMenu();
   }
 
+  // Najpierw cache (pamięć → Redis) — świeże menu w ułamku sekundy.
+  const cacheKey = full ? "full" : "customer";
+  const cached = await cachedMenu(cacheKey);
+  if (cached) return cached;
+
   const { cloudId } = dotykackaConfig;
 
-  const [rawCategories, rawProducts, rawCustomizations] = await Promise.all([
-    dotyGetAll<DotyCategory>(`/clouds/${cloudId}/categories`),
-    dotyGetAll<DotyProduct>(`/clouds/${cloudId}/products`),
-    dotyGetAll<DotyCustomization>(`/clouds/${cloudId}/product-customizations`).catch(
-      () => [] as DotyCustomization[] // brak uprawnień/endpointu → menu bez dodatków
-    ),
-  ]);
+  let rawCategories: DotyCategory[], rawProducts: DotyProduct[], rawCustomizations: DotyCustomization[];
+  try {
+    [rawCategories, rawProducts, rawCustomizations] = await Promise.all([
+      dotyGetAll<DotyCategory>(`/clouds/${cloudId}/categories`),
+      dotyGetAll<DotyProduct>(`/clouds/${cloudId}/products`),
+      dotyGetAll<DotyCustomization>(`/clouds/${cloudId}/product-customizations`).catch(
+        () => [] as DotyCustomization[] // brak uprawnień/endpointu → menu bez dodatków
+      ),
+    ]);
+  } catch (e) {
+    // API Dotykački nie odpowiada → ostatnia dobra kopia zamiast błędu.
+    const stale = await staleMenu(cacheKey);
+    if (stale) return stale;
+    throw e;
+  }
 
   const visibleCats = rawCategories.filter((c) => c.display !== false && c.deleted !== true);
   const liveProducts = rawProducts.filter((p) => p.display !== false && p.deleted !== true);
@@ -259,11 +333,13 @@ export async function getMenu(opts?: { full?: boolean }): Promise<Menu> {
   if (full && uncategorized.products.length > 0) categories.push(uncategorized);
   categories.sort((a, b) => categoryRank(a.name) - categoryRank(b.name));
 
-  return {
+  const menu: Menu = {
     source: "live",
     branch: dotykackaConfig.branchId || null,
     categories,
     productCount,
     fetchedAt: new Date().toISOString(),
   };
+  await saveMenuCache(cacheKey, menu);
+  return menu;
 }
