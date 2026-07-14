@@ -12,7 +12,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useCallback, useEffect, useRef, useState } from "react";
 import type { Menu, MenuProduct } from "@/lib/dotykacka/types";
 import type { CallerInfo } from "@/lib/cti";
-import { CartProvider, useCart, lineTotal } from "@/lib/cart/CartProvider";
+import { CartProvider, useCart, lineTotal, type CartLine, type CartLineAddon } from "@/lib/cart/CartProvider";
 import { ProductModal } from "@/components/ProductModal";
 import { HalfHalfModal } from "@/components/HalfHalfModal";
 import { StaffGate } from "@/components/StaffGate";
@@ -90,10 +90,109 @@ function Pill({
   );
 }
 
+/**
+ * Edycja pozycji już dodanej do zamówienia (życzenie właściciela 14.07.2026):
+ * dotknięcie pozycji otwiera okno, w którym można zmienić wariant, dodatki
+ * i notatkę dla kuchni — jak przy poprawianiu rachunku w POS.
+ */
+function LineEditModal({
+  line,
+  product,
+  onClose,
+  onSave,
+}: {
+  line: CartLine;
+  product: MenuProduct | null;
+  onClose: () => void;
+  onSave: (patch: { addons: CartLineAddon[]; note?: string }) => void;
+}) {
+  const isVariant = (a: CartLineAddon) => a.id.startsWith("wariant:");
+  const [variant, setVariant] = useState<string | null>(line.addons.find(isVariant)?.name ?? null);
+  const [selected, setSelected] = useState<Record<string, boolean>>(() =>
+    Object.fromEntries(line.addons.filter((a) => !isVariant(a)).map((a) => [a.id, true]))
+  );
+  const [note, setNote] = useState(line.note ?? "");
+
+  const addons = product?.addons ?? [];
+  // Dodatki spoza menu (np. produkt zniknął z POS) — zachowujemy bez zmian.
+  const foreign = line.addons.filter((a) => !isVariant(a) && !addons.some((x) => x.id === a.id));
+
+  const save = () => {
+    const kept: CartLineAddon[] = [
+      ...(variant ? [{ id: `wariant:${variant}`, name: variant, price: 0 }] : []),
+      ...addons
+        .filter((a) => selected[a.id])
+        .map((a) => ({ id: a.id, name: a.name, price: a.price, customizationId: a.customizationId })),
+      ...foreign,
+    ];
+    onSave({ addons: kept, note: note.trim() || undefined });
+    onClose();
+  };
+
+  return (
+    <div className="fixed inset-0 z-[70] flex items-end justify-center min-[700px]:items-center" onClick={(e) => e.target === e.currentTarget && onClose()}>
+      <div className="absolute inset-0" style={{ background: "rgba(27,23,16,.4)" }} />
+      <div className="relative max-h-[88vh] w-full max-w-[480px] overflow-y-auto rounded-t-3xl p-5 min-[700px]:rounded-3xl" style={{ background: CARD, color: INK }}>
+        <div className="flex items-start justify-between gap-3">
+          <div>
+            <div className="text-[16px] font-extrabold">{line.name}</div>
+            <div className="text-[11.5px]" style={{ color: MUTED }}>edycja pozycji · ilość zmienisz przyciskami − / +</div>
+          </div>
+          <button onClick={onClose} className="px-1.5 text-[20px]" style={{ color: MUTED }}>✕</button>
+        </div>
+
+        {(product?.variants?.length ?? 0) > 0 && (
+          <>
+            <Sec>Do wyboru {product?.variantsRequired ? "· wymagane" : ""}</Sec>
+            <div className="flex flex-wrap gap-2">
+              {product!.variants!.map((v) => (
+                <Pill key={v} on={variant === v} onClick={() => setVariant(variant === v && !product?.variantsRequired ? null : v)}>
+                  {v}
+                </Pill>
+              ))}
+            </div>
+          </>
+        )}
+
+        {addons.length > 0 && (
+          <>
+            <Sec>Dodatki</Sec>
+            <div className="flex flex-wrap gap-2">
+              {addons.map((a) => (
+                <Pill key={a.id} on={!!selected[a.id]} onClick={() => setSelected((s) => ({ ...s, [a.id]: !s[a.id] }))}>
+                  {a.name} · {zl(a.price)}
+                </Pill>
+              ))}
+            </div>
+          </>
+        )}
+
+        <Sec>Notatka dla kuchni</Sec>
+        <input
+          value={note}
+          onChange={(e) => setNote(e.target.value)}
+          placeholder="np. bez cebuli, mocno wypieczona…"
+          className="w-full rounded-xl px-3.5 py-3 text-[15px] outline-none"
+          style={{ background: SUB, color: INK, border: "1px solid " + BORDER }}
+        />
+
+        <button
+          onClick={save}
+          className="mt-5 w-full rounded-full py-3.5 text-[14px] font-extrabold"
+          style={{ background: INK, color: BG }}
+        >
+          Zapisz zmiany
+        </button>
+      </div>
+    </div>
+  );
+}
+
 function PhoneOrderInner() {
   const router = useRouter();
   const params = useSearchParams();
-  const { lines, subtotal, packagingFee, packagingCount, setQty, remove, clear } = useCart();
+  const { lines, subtotal, packagingFee, packagingCount, setQty, remove, clear, updateLine } = useCart();
+  const [editLineId, setEditLineId] = useState<string | null>(null);
 
   const [menu, setMenu] = useState<Menu | null>(null);
   const [activeCat, setActiveCat] = useState<string>("");
@@ -500,8 +599,11 @@ function PhoneOrderInner() {
             ) : (
               lines.map((l) => (
                 <div key={l.lineId} className="flex items-center gap-2.5 border-b py-2.5" style={{ borderColor: BORDER }}>
-                  <div className="min-w-0 flex-1">
-                    <div className="truncate text-[14px] font-bold">{l.name}</div>
+                  {/* Dotknięcie pozycji = edycja (dodatki, wariant, notatka). */}
+                  <button onClick={() => setEditLineId(l.lineId)} className="min-w-0 flex-1 text-left">
+                    <div className="truncate text-[14px] font-bold">
+                      {l.name} <span className="text-[10.5px] font-semibold underline underline-offset-2" style={{ color: MUTED }}>edytuj</span>
+                    </div>
                     {l.addons.length > 0 && (
                       <div className="truncate text-[11px]" style={{ color: MUTED }}>
                         {l.addons.map((a) => a.name).join(", ")}
@@ -512,7 +614,7 @@ function PhoneOrderInner() {
                         ✎ {l.note}
                       </div>
                     )}
-                  </div>
+                  </button>
                   <button
                     onClick={() => (l.qty === 1 ? remove(l.lineId) : setQty(l.lineId, l.qty - 1))}
                     className="h-7 w-7 rounded-lg border text-[14px] font-bold"
@@ -699,6 +801,20 @@ function PhoneOrderInner() {
       {modalProduct && (
         <ProductModal product={modalProduct} onClose={() => setModalProduct(null)} onAdded={() => {}} allowNote />
       )}
+      {editLineId &&
+        (() => {
+          const line = lines.find((l) => l.lineId === editLineId);
+          if (!line) return null;
+          const product = menu?.categories.flatMap((c) => c.products).find((p) => p.id === line.productId) ?? null;
+          return (
+            <LineEditModal
+              line={line}
+              product={product}
+              onClose={() => setEditLineId(null)}
+              onSave={(patch) => updateLine(line.lineId, patch)}
+            />
+          );
+        })()}
       {halfOpen && menu && (
         <HalfHalfModal
           pizzas={menu.categories
