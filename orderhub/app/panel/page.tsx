@@ -1044,6 +1044,44 @@ const PREV_STATUS: Partial<Record<OrderStatus, OrderStatus>> = {
   completed: "ready",
 };
 
+/** Czerwona plakietka + przycisk ponownej wysyłki do POS (idempotentne). */
+function PosRetry({ orderId, error }: { orderId: string; error?: string | null }) {
+  const [busy, setBusy] = useState(false);
+  const [msg, setMsg] = useState<string | null>(null);
+  const retry = async () => {
+    setBusy(true);
+    setMsg(null);
+    try {
+      const res = await fetch(`/api/orders/${orderId}/pos`, { method: "POST" });
+      const d = await res.json();
+      setMsg(d.ok ? "Wysłano do POS ✓" : (d.order?.pos?.error ?? d.error ?? "Nadal nie doszło — spróbuj za chwilę."));
+    } catch {
+      setMsg("Brak połączenia — spróbuj za chwilę.");
+    }
+    setBusy(false);
+  };
+  return (
+    <div
+      className="mt-2.5 rounded-xl px-2.5 py-2 text-[12px] font-semibold"
+      style={{ background: "rgba(183,56,47,0.07)", border: "1px solid rgba(183,56,47,0.4)", color: "#8E3B2F" }}
+    >
+      <div className="flex flex-wrap items-center gap-2">
+        <span className="font-extrabold">NIE DOTARŁO DO DOTYKAČKI</span>
+        <button
+          onClick={retry}
+          disabled={busy}
+          className="rounded-full px-3.5 py-1.5 text-[12px] font-bold"
+          style={{ background: ALERT, color: "#FFF7EE", opacity: busy ? 0.6 : 1 }}
+        >
+          {busy ? "Wysyłam…" : "Wyślij ponownie do POS"}
+        </button>
+        {msg && <span>{msg}</span>}
+      </div>
+      {error && !msg && <div className="mt-1 break-words text-[11px] opacity-80">{error}</div>}
+    </div>
+  );
+}
+
 function OrderCard({
   order,
   highlight,
@@ -1133,6 +1171,12 @@ function OrderCard({
           {order.payment === "cash" ? "gotówka" : order.payment === "card" ? "karta" : "online"}
         </div>
       </div>
+
+      {/* Zamówienie NIE dotarło do Dotykački (np. chwilowy brak internetu) —
+          zostaje u nas i obsługa dosyła jednym kliknięciem (bez duplikatów). */}
+      {order.pos && !order.pos.simulated && !order.pos.deferred && (!order.pos.sent || order.pos.error) && (
+        <PosRetry orderId={order.id} error={order.pos.error} />
+      )}
 
       {children}
 
