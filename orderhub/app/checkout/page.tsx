@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { useCart, lineTotal } from "@/lib/cart/CartProvider";
+import { CrossSell } from "@/components/CrossSell";
 import { zl } from "@/lib/format";
 import {
   isKoscierzyna,
@@ -622,6 +623,7 @@ export default function CheckoutPage() {
                 <span className="font-carta min-w-[56px] text-right text-[14px]">{zl(lineTotal(l))}</span>
               </div>
             ))}
+            <CrossSell />
             {/* Kod rabatowy */}
             <div className="mt-4 border-b pb-4" style={{ borderColor: C.hairlineSoft }}>
               {promo ? (

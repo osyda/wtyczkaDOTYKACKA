@@ -7,6 +7,7 @@ import { zl } from "@/lib/format";
 import { useCart, lineTotal } from "@/lib/cart/CartProvider";
 import { ProductModal } from "./ProductModal";
 import { HalfHalfModal } from "./HalfHalfModal";
+import { CrossSell } from "./CrossSell";
 import { C, SERIF } from "@/lib/carta";
 
 /** Kategoria pizz — po nazwie (dla wejścia „pół na pół"); bez „dodatki pizza". */
@@ -418,6 +419,7 @@ export function Shop({ menu }: { menu: Menu }) {
                 </div>
               ))
             )}
+            <CrossSell menu={menu} />
             {packagingFee > 0 && (
               <div className="mt-3 flex items-baseline">
                 <span className="text-[11px]" style={{ color: C.muted }}>Opakowania na wynos × {packagingCount}</span>
