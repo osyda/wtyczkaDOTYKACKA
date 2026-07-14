@@ -155,6 +155,15 @@ przekierowanie 301 z `mammarosa.pl/zamow-online/` (wtyczka Redirection w WP). NI
   jak wystawiać NIEFISKALNIE przez API (właściciel wysłał pytanie o flagę
   „Nie fiskalizuj" w pos-actions — czekamy na odpowiedź).
   DOTYKACKA_PRINT_TYPE usunięty z Vercela (none nie pomagał).
+- KLIENT W DOTYKAČCE — DZIAŁA (potwierdzone na żywo 14.07.2026, 07:18 UTC:
+  HTTP 201, id 2207679348951051, baza 2523→2524). Wymagania API ustalone
+  metodą prób z kartą diagnostyczną na /status: POST /customers przyjmuje
+  WYŁĄCZNIE tablicę; WSZYSTKIE pola tekstowe muszą być nie-null (w tym
+  barcode, companyName, companyId, vatId, hexColor, headerPrint,
+  internalNote); filtrowanie po phone/externalId/barcode NIEWSPIERANE
+  (400/404) → deduplikacja przez mapę telefon→customerId w Redis
+  (dotykacka:custId:<tel>). barcode klienta = WWW-<telefon>, hexColor
+  #8E3B2F (bordowy — klienci online odróżnialni w POS), tag WWW.
 - WARIANTY PRODUKTU (13.07.2026): „Szybkie notatki (warianty)" z karty produktu
   w Dotykačce (np. SZYNKA MIELONA / SZYNKA PLASTRY na Capricciosie) → pole
   `notes` encji product → `MenuProduct.variants`. W oknie produktu sekcja
