@@ -40,6 +40,7 @@ interface CartState {
 type Action =
   | { type: "ADD"; line: CartLine }
   | { type: "SET_QTY"; lineId: string; qty: number }
+  | { type: "UPDATE"; lineId: string; patch: Partial<Pick<CartLine, "addons" | "note">> }
   | { type: "REMOVE"; lineId: string }
   | { type: "CLEAR" }
   | { type: "HYDRATE"; state: CartState };
@@ -55,6 +56,10 @@ function reducer(state: CartState, action: Action): CartState {
         lines: state.lines
           .map((l) => (l.lineId === action.lineId ? { ...l, qty: Math.max(0, action.qty) } : l))
           .filter((l) => l.qty > 0),
+      };
+    case "UPDATE":
+      return {
+        lines: state.lines.map((l) => (l.lineId === action.lineId ? { ...l, ...action.patch } : l)),
       };
     case "REMOVE":
       return { lines: state.lines.filter((l) => l.lineId !== action.lineId) };
@@ -82,6 +87,8 @@ interface CartContextValue {
   addProduct: (product: MenuProduct, qty: number, addons: MenuAddon[], note?: string) => void;
   /** Pizza pół na pół: 50% ceny pierwszej + 50% ceny drugiej (jak porcje w POS). */
   addHalves: (a: MenuProduct, b: MenuProduct, qty: number, addons: MenuAddon[]) => void;
+  /** Edycja istniejącej pozycji (dodatki/notatka) — ekran telefoniczny kelnerki. */
+  updateLine: (lineId: string, patch: Partial<Pick<CartLine, "addons" | "note">>) => void;
   setQty: (lineId: string, qty: number) => void;
   remove: (lineId: string) => void;
   clear: () => void;
@@ -168,6 +175,7 @@ export function CartProvider({
             ],
           },
         }),
+      updateLine: (lineId, patch) => dispatch({ type: "UPDATE", lineId, patch }),
       setQty: (lineId, qty) => dispatch({ type: "SET_QTY", lineId, qty }),
       remove: (lineId) => dispatch({ type: "REMOVE", lineId }),
       clear: () => dispatch({ type: "CLEAR" }),
