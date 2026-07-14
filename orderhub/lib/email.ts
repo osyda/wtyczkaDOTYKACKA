@@ -101,6 +101,26 @@ export interface EmailResult {
   error: string | null;
 }
 
+/** Ogólna wysyłka (raport dla managera itp.). Bez klucza — symulacja. */
+export async function sendEmail(to: string, subject: string, html: string): Promise<EmailResult> {
+  if (!KEY) return { sent: true, simulated: true, error: null };
+  try {
+    const res = await fetch("https://api.resend.com/emails", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${KEY}` },
+      body: JSON.stringify({ from: FROM, to: [to], subject, html }),
+      signal: AbortSignal.timeout(8000),
+    });
+    if (!res.ok) {
+      const body = await res.text();
+      return { sent: false, simulated: false, error: `Resend HTTP ${res.status}: ${body.slice(0, 160)}` };
+    }
+    return { sent: true, simulated: false, error: null };
+  } catch (e) {
+    return { sent: false, simulated: false, error: e instanceof Error ? e.message : "błąd wysyłki" };
+  }
+}
+
 /** Wysyła potwierdzenie zamówienia (jeśli klient podał e-mail). Nie blokuje zamówienia. */
 export async function sendOrderConfirmation(order: Order, baseUrl: string): Promise<EmailResult> {
   const to = order.customer.email?.trim();
