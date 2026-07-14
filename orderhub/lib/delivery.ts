@@ -4,7 +4,8 @@
  * - poza Kościerzyną: 2 zł za każdy km, do 15 km od Kościerzyny,
  * - powyżej 15 km: poza zasięgiem dostawy,
  * - minimalna wartość zamówienia (bez opłaty za dostawę):
- *   do 6 km → 40 zł, powyżej 6 km → 60 zł. Odbiór: bez minimum.
+ *   Kościerzyna → 25 zł (zmiana 14.07.2026), poza miastem do 6 km → 40 zł,
+ *   powyżej 6 km → 60 zł. Odbiór: bez minimum.
  *
  * Odległość liczona automatycznie z adresu (geokodowanie + trasa) — patrz lib/geo.ts.
  */
@@ -15,7 +16,8 @@ export const DELIVERY = {
   cityFlat: 5, // zł — Kościerzyna
   perKm: 2, // zł/km — poza Kościerzyną
   maxKm: 15, // km — granica zasięgu
-  minNear: 40, // zł — minimalna wartość zamówienia do 6 km
+  minCity: 25, // zł — minimalna wartość zamówienia w Kościerzynie
+  minNear: 40, // zł — minimalna wartość zamówienia do 6 km (poza miastem)
   minFar: 60, // zł — minimalna wartość zamówienia powyżej 6 km
   minFarFromKm: 6, // km — granica między progami minimum
   currency: "zł",
@@ -40,8 +42,10 @@ export function minOrderForKm(km: number): number {
 /**
  * Minimalna wartość zamówienia odtworzona z opłaty za dostawę (2 zł/km ⇒ km = fee/2).
  * Do walidacji po stronie serwera, gdy znamy tylko naliczoną opłatę.
+ * Opłata ≤ stawki miejskiej (5 zł) = Kościerzyna → próg miejski.
  */
 export function minOrderForFee(fee: number): number {
+  if (fee <= DELIVERY.cityFlat) return DELIVERY.minCity;
   return fee > DELIVERY.perKm * DELIVERY.minFarFromKm ? DELIVERY.minFar : DELIVERY.minNear;
 }
 
@@ -61,7 +65,7 @@ export function flatCityQuote(): DeliveryQuote {
     available: true,
     fee: DELIVERY.cityFlat,
     inCity: true,
-    minOrder: DELIVERY.minNear,
+    minOrder: DELIVERY.minCity,
     label: `Dostawa — Kościerzyna (${DELIVERY.cityFlat} zł)`,
   };
 }
