@@ -200,12 +200,13 @@ export async function sendOrderToPos(order: Order): Promise<PosResult> {
  *  - "delivered" → gdy kierowca kliknie „Dostarczone" (do tego czasu zamówienie
  *                  w POS jest OTWARTE, a kierowca wozi nasz rachunek niefiskalny),
  *  - "manual"    → nigdy przez API (obsługa zamyka w POS ręcznie).
- * Zgodność wstecz: brak zmiennej → "driver" gdy DOTYKACKA_ISSUE_ON_DRIVER=true.
+ * Brak zmiennej = "manual" (decyzja właściciela 13.07.2026: rachunki zamyka
+ * obsługa ręcznie w POS; stara zmienna DOTYKACKA_ISSUE_ON_DRIVER jest ignorowana).
  */
 export function fiscalizeMoment(): "driver" | "delivered" | "manual" {
   const v = process.env.DOTYKACKA_FISCALIZE_ON?.trim().toLowerCase();
   if (v === "driver" || v === "delivered" || v === "manual") return v;
-  return process.env.DOTYKACKA_ISSUE_ON_DRIVER === "true" ? "driver" : "manual";
+  return "manual";
 }
 
 /**
