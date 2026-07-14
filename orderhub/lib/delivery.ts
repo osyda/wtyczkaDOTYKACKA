@@ -87,7 +87,9 @@ export function kmQuote(km: number, estimated = false): DeliveryQuote {
       label: `Poza zasięgiem dostawy (${rounded} km > ${DELIVERY.maxKm} km)`,
     };
   }
-  const fee = Math.round(DELIVERY.perKm * rounded * 100) / 100;
+  // Opłata zaokrąglana do pełnych złotych (życzenie właściciela 14.07.2026) —
+  // bez groszy na rachunku, np. 7,4 km × 2 zł = 14,80 → 15 zł.
+  const fee = Math.round(DELIVERY.perKm * rounded);
   return {
     available: true,
     fee,
