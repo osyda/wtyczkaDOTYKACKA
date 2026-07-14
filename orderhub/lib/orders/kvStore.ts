@@ -75,5 +75,12 @@ export function makeKvStore(): OrderStore {
       await r.set(KEY(id), next);
       return next;
     },
+
+    async remove(id: string): Promise<boolean> {
+      const r = redis();
+      const deleted = await r.del(KEY(id));
+      await r.srem(IDS, id);
+      return deleted > 0;
+    },
   };
 }

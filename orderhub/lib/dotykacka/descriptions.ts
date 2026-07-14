@@ -29,6 +29,8 @@ const DESCRIPTIONS: Record<string, string> = {
   "prosciutto": "Sos pomidorowy, ser, prosciutto, pomidory koktajlowe, bazylia",
   "mammarosa": "Sos pomidorowy, ser, pieczarki, bekon, jajko sadzone, por",
   "frutti di mare": "Sos pomidorowy, ser, krewetki, małże, kraby",
+  "fruti di mare": "Sos pomidorowy, ser, krewetki, małże, kraby",
+  "frutti de mare": "Sos pomidorowy, ser, krewetki, małże, kraby",
   "pepperoni": "Sos pomidorowy, ser, pieczarki, szynka mielona, cebula, papryka pepperoni",
   "carbonara": "Sos śmietanowy, ser, boczek, pieczarki, cebula, oregano",
   "venezia": "Sos pomidorowy, ser, pieczarki, szynka mielona, cebula, papryka, oregano",
@@ -71,6 +73,12 @@ export function descriptionFor(productName: string): string {
     if (!n.startsWith(key + " ")) continue;
     const rest = n.slice(key.length).trim();
     if (rest === "pizza" || rest.startsWith("-") || rest.startsWith("(")) return desc;
+  }
+  // Długie klucze (8+ znaków, np. „fruttidimare") — wystarczy, że nazwa
+  // ZAWIERA klucz („PIZZA FRUTTI DI MARE", „FRUTTI DI MARE 32CM").
+  // Krótkich (gyros, mista, parma) tak nie dopasowujemy — za duże ryzyko pomyłki.
+  for (const [key, desc] of SQUASHED.entries()) {
+    if (key.length >= 8 && sq.includes(key)) return desc;
   }
   return "";
 }

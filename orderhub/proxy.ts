@@ -19,6 +19,7 @@ export async function proxy(req: NextRequest) {
 
   const isStaffApi =
     (pathname === "/api/orders" && method === "GET") ||
+    (pathname.startsWith("/api/orders/") && method === "DELETE") ||
     pathname.endsWith("/eta") ||
     pathname.endsWith("/status") ||
     pathname.endsWith("/driver") ||
