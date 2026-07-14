@@ -83,7 +83,15 @@ export async function customersProbe(): Promise<{ ok: boolean; status: number; t
 
 /* ---------- właściwy upsert ---------- */
 
-/** Znajdź klienta po telefonie albo utwórz nowego. Zwraca customerId lub null. */
+/**
+ * Znajdź klienta po telefonie albo utwórz nowego. Zwraca customerId lub null.
+ *
+ * USTALONE NA ŻYWO (14.07.2026, /status): filtr `phone|eq|…` → 400 „unsupported
+ * filter condition"; tworzenie wymaga WSZYSTKICH pól tekstowych nie-null
+ * (barcode, companyName, …); POST przyjmuje WYŁĄCZNIE tablicę („json array
+ * expected"). Dlatego: szukamy externalId → phone|like → phone|eq, a encja
+ * jedzie z kompletem pól ("" zamiast braku) + externalId/barcode = WWW-telefon.
+ */
 export async function upsertCustomerByPhone(customer: OrderCustomer): Promise<string | null> {
   const { cloudId } = dotykackaConfig;
   const phone = customer.phone.replace(/\s+/g, "");
@@ -95,75 +103,87 @@ export async function upsertCustomerByPhone(customer: OrderCustomer): Promise<st
     return id;
   };
 
-  // 1) Szukaj po telefonie (składnia filtra: attribute|operation|value).
-  const search = await dotyRequest<{ data?: DotyCustomer[] }>(`/clouds/${cloudId}/customers`, {
-    query: { filter: `phone|eq|${phone}`, limit: 1 },
-  });
-  const found = search.data?.data?.[0];
-  if (found) {
-    steps.push(`szukanie: HTTP ${search.status}, znaleziony id ${found.id}`);
-    return finish(String(found.id));
+  // 1) Szukanie — kilka wariantów filtra, pierwszy trafiony wygrywa.
+  const extId = `WWW-${phone}`;
+  const filters = [`externalId|eq|${extId}`, `phone|like|${phone}`, `phone|eq|${phone}`];
+  for (const filter of filters) {
+    const search = await dotyRequest<{ data?: DotyCustomer[] }>(`/clouds/${cloudId}/customers`, {
+      query: { filter, limit: 1 },
+    });
+    const found = search.data?.data?.[0];
+    if (found) {
+      steps.push(`szukanie ${filter.split("|").slice(0, 2).join("|")}: HTTP ${search.status}, znaleziony id ${found.id}`);
+      return finish(String(found.id));
+    }
+    steps.push(
+      search.ok
+        ? `szukanie ${filter.split("|").slice(0, 2).join("|")}: HTTP ${search.status}, brak`
+        : `szukanie ${filter.split("|").slice(0, 2).join("|")}: HTTP ${search.status} → ${search.raw.slice(0, 150)}`
+    );
+    // 400 = filtr niewspierany → próbujemy następnego wariantu; 200 bez wyniku
+    // też nie kończy szukania (stara baza nie ma externalId, sprawdzamy telefon).
   }
-  steps.push(
-    search.ok
-      ? `szukanie: HTTP ${search.status}, brak klienta z tym numerem`
-      : `szukanie: HTTP ${search.status} → ${search.raw.slice(0, 200)}`
-  );
 
-  // 2) Brak — utwórz (wzór z dokumentacji §9.8; pól pustych NIE wysyłamy,
-  // bo puste stringi potrafią nie przejść walidacji, np. email).
+  // 2) Tworzenie: komplet pól tekstowych ("" gdy brak — walidacja: must not be null).
   const { firstName, lastName } = splitName(customer.name);
-  const opt = (k: string, v: string | undefined | null) => (v && v.trim() ? { [k]: v.trim() } : {});
   const entity = {
     _cloudId: Number(cloudId) || cloudId,
+    externalId: extId,
     firstName: firstName || "Klient",
-    ...(lastName ? { lastName } : {}),
-    ...opt("email", customer.email),
+    lastName: lastName || "",
+    companyName: "",
+    companyId: "",
+    vatId: "",
+    email: customer.email?.trim() || "",
     phone,
-    ...opt("addressLine1", customer.street),
-    ...opt("city", customer.city),
-    ...opt("zip", customer.zip),
+    addressLine1: customer.street?.trim() || "",
+    addressLine2: "",
+    city: customer.city?.trim() || "",
+    zip: customer.zip?.trim() || "",
     country: "PL",
-    display: true,
-    deleted: false,
+    barcode: extId,
     points: 0,
     flags: 0,
+    display: true,
+    deleted: false,
     tags: ["WWW"],
     note: "Klient z zamówień online (Mammarosa OrderHub)",
+    internalNote: "",
   };
 
-  type CreateResp = DotyCustomer | DotyCustomer[] | { data?: DotyCustomer[] };
+  type CreateResp = DotyCustomer[] | { data?: DotyCustomer[] };
   const pickId = (data: CreateResp | null): string | null => {
     if (!data) return null;
     if (Array.isArray(data)) return data[0]?.id !== undefined ? String(data[0].id) : null;
-    if ("id" in data && data.id !== undefined) return String(data.id);
-    if ("data" in data && Array.isArray(data.data) && data.data[0]?.id !== undefined) return String(data.data[0].id);
+    if (Array.isArray(data.data) && data.data[0]?.id !== undefined) return String(data.data[0].id);
     return null;
   };
 
-  // Najpierw tablica (konwencja API v2), potem pojedynczy obiekt.
-  const asArray = await dotyRequest<CreateResp>(`/clouds/${cloudId}/customers`, {
+  const create = await dotyRequest<CreateResp>(`/clouds/${cloudId}/customers`, {
     method: "POST",
     body: [entity],
   });
-  let id = asArray.ok ? pickId(asArray.data) : null;
+  let id = create.ok ? pickId(create.data) : null;
   steps.push(
-    id
-      ? `tworzenie (tablica): HTTP ${asArray.status}, id ${id}`
-      : `tworzenie (tablica): HTTP ${asArray.status} → ${asArray.raw.slice(0, 300)}`
+    id ? `tworzenie: HTTP ${create.status}, id ${id}` : `tworzenie: HTTP ${create.status} → ${create.raw.slice(0, 300)}`
   );
-  if (!id) {
-    const asObject = await dotyRequest<CreateResp>(`/clouds/${cloudId}/customers`, {
+
+  // Gdyby API nie znało externalId na kliencie — ponów bez tego pola.
+  if (!id && !create.ok && /externalid/i.test(create.raw)) {
+    const { externalId: _drop, ...noExt } = entity;
+    void _drop;
+    const retry = await dotyRequest<CreateResp>(`/clouds/${cloudId}/customers`, {
       method: "POST",
-      body: entity,
+      body: [noExt],
     });
-    id = asObject.ok ? pickId(asObject.data) : null;
+    id = retry.ok ? pickId(retry.data) : null;
     steps.push(
       id
-        ? `tworzenie (obiekt): HTTP ${asObject.status}, id ${id}`
-        : `tworzenie (obiekt): HTTP ${asObject.status} → ${asObject.raw.slice(0, 300)}`
+        ? `tworzenie bez externalId: HTTP ${retry.status}, id ${id}`
+        : `tworzenie bez externalId: HTTP ${retry.status} → ${retry.raw.slice(0, 300)}`
     );
   }
+
   if (!id) console.error(`[dotykacka] klient ${phone} nie powstał: ${steps.join(" | ")}`);
   return finish(id);
 }
