@@ -30,6 +30,8 @@ interface PosResult {
 function itemToPos(item: OrderItem): Array<Record<string, unknown>> {
   const addonsNote = item.addons.length > 0 ? item.addons.map((a) => `+ ${a.name}`).join(", ") : "";
   const addonsSum = item.addons.reduce((s, a) => s + a.price, 0);
+  // Notatka kelnerki do pozycji (jak Szybka notatka w POS) — zawsze w nocie.
+  const staffNote = item.note?.trim() ?? "";
 
   // Pizza pół na pół → dwie pozycje po 50% ceny (odwzorowanie „porcji 50%" z POS).
   // Dodatki (na całość) doliczamy do pierwszej połówki. Uwaga: zachowanie
@@ -44,7 +46,7 @@ function itemToPos(item: OrderItem): Array<Record<string, unknown>> {
         qty: item.qty,
         "take-away": true,
         "manual-price": half(a.price) + addonsSum,
-        note: `PÓŁ NA PÓŁ (1/2) z: ${b.name}${addonsNote ? ` | ${addonsNote} (na całość)` : ""}`,
+        note: `PÓŁ NA PÓŁ (1/2) z: ${b.name}${addonsNote ? ` | ${addonsNote} (na całość)` : ""}${staffNote ? ` | ${staffNote}` : ""}`,
       },
       {
         id: idOf(b.productId),
@@ -63,14 +65,18 @@ function itemToPos(item: OrderItem): Array<Record<string, unknown>> {
   const asNum = (v: string) => (Number.isFinite(Number(v)) ? Number(v) : v);
   const mapped = item.addons.filter((a) => a.customizationId);
   const unmapped = item.addons.filter((a) => !a.customizationId);
-  const unmappedNote = unmapped.length > 0 ? unmapped.map((a) => `+ ${a.name}`).join(", ") : "";
+  const noteParts = [
+    ...(unmapped.length > 0 ? [unmapped.map((a) => `+ ${a.name}`).join(", ")] : []),
+    ...(staffNote ? [staffNote] : []),
+  ];
+  const itemNote = noteParts.join(" | ");
 
   return [
     {
       id: Number.isFinite(productIdNum) ? productIdNum : item.productId,
       qty: item.qty,
       "take-away": true,
-      ...(unmappedNote ? { note: unmappedNote } : {}),
+      ...(itemNote ? { note: itemNote } : {}),
       ...(mapped.length > 0
         ? {
             customizations: mapped.map((a) => ({

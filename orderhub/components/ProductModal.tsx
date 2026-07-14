@@ -12,15 +12,19 @@ export function ProductModal({
   product,
   onClose,
   onAdded,
+  allowNote,
 }: {
   product: MenuProduct;
   onClose: () => void;
   onAdded?: (name: string, qty: number) => void;
+  /** Ekran telefoniczny kelnerki: wolna notatka do pozycji (jak w POS). */
+  allowNote?: boolean;
 }) {
   const { addProduct } = useCart();
   const [qty, setQty] = useState(1);
   const [selected, setSelected] = useState<Record<string, boolean>>({});
   const [variant, setVariant] = useState<string | null>(null);
+  const [note, setNote] = useState("");
   const [closing, setClosing] = useState(false);
   const closeTimer = useRef(0);
 
@@ -183,6 +187,21 @@ export function ProductModal({
           </>
         )}
 
+        {allowNote && (
+          <label className="mt-5 block">
+            <span className="mb-1.5 block text-[9.5px] tracking-[0.3em]" style={{ color: C.muted, textIndent: "0.3em" }}>
+              NOTATKA DLA KUCHNI (NP. BEZ CEBULI)
+            </span>
+            <input
+              value={note}
+              onChange={(e) => setNote(e.target.value)}
+              placeholder="wpisz uwagę do tej pozycji…"
+              className="w-full border-b bg-transparent pb-1.5 text-[13.5px] outline-none"
+              style={{ borderColor: C.hairline, color: C.ink }}
+            />
+          </label>
+        )}
+
         {/* Ilość */}
         <div className="mt-[22px] flex items-center justify-between">
           <span className="text-[9.5px] tracking-[0.3em]" style={{ color: C.muted, textIndent: "0.3em" }}>
@@ -215,7 +234,7 @@ export function ProductModal({
             const withVariant = variant
               ? [{ id: `wariant:${variant}`, name: variant, price: 0 }, ...chosen]
               : chosen;
-            addProduct(product, qty, withVariant);
+            addProduct(product, qty, withVariant, note.trim() || undefined);
             requestClose();
             onAdded?.(product.name, qty);
           }}

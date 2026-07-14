@@ -29,6 +29,8 @@ export interface OrderItem {
   basePrice: number;
   addons: OrderItemAddon[];
   lineTotal: number;
+  /** Notatka do pozycji (jak Szybka notatka w POS) — leci do kuchni i na rachunek. */
+  note?: string;
   /** Pizza pół na pół — do POS idzie jako dwie pozycje po 50% ceny (jak porcje). */
   halves?: { productId: string; name: string; price: number }[];
   /** Opakowanie na wynos doliczane za każdą sztukę (produkt z POS). */
