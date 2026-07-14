@@ -1,8 +1,8 @@
 /**
  * Reguła dostawy Mammarosa (automatyczne wyliczanie):
  * - Kościerzyna: 5 zł (stała, płaska),
- * - poza Kościerzyną: 2 zł za każdy km, do 15 km od Kościerzyny,
- * - powyżej 15 km: poza zasięgiem dostawy,
+ * - poza Kościerzyną: 2 zł za każdy km, do 22 km od Kościerzyny,
+ * - powyżej 22 km: poza zasięgiem dostawy,
  * - minimalna wartość zamówienia (bez opłaty za dostawę):
  *   Kościerzyna → 25 zł (zmiana 14.07.2026), poza miastem do 6 km → 40 zł,
  *   powyżej 6 km → 60 zł. Odbiór: bez minimum.
@@ -15,7 +15,7 @@ export type FulfillmentMode = "delivery" | "pickup";
 export const DELIVERY = {
   cityFlat: 5, // zł — Kościerzyna
   perKm: 2, // zł/km — poza Kościerzyną
-  maxKm: 15, // km — granica zasięgu
+  maxKm: 22, // km — granica zasięgu (zmiana 14.07.2026, było 15)
   minCity: 25, // zł — minimalna wartość zamówienia w Kościerzynie
   minNear: 40, // zł — minimalna wartość zamówienia do 6 km (poza miastem)
   minFar: 60, // zł — minimalna wartość zamówienia powyżej 6 km
