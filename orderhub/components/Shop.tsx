@@ -132,7 +132,7 @@ export function Shop({ menu }: { menu: Menu }) {
           <div className="mt-4 flex items-center gap-3.5">
             <span className="h-px flex-1" style={{ background: C.hairline }} />
             <span className="whitespace-nowrap text-[8.5px] tracking-[0.3em] text-[#7A7060]" style={{ textIndent: "0.3em" }}>
-              MENU · KOŚCIERZYNA · DOSTAWA 5–15 KM{isLive ? "" : " · DEMO"}
+              MENU · KOŚCIERZYNA · DOSTAWA DO 22 KM{isLive ? "" : " · DEMO"}
             </span>
             <span className="h-px flex-1" style={{ background: C.hairline }} />
           </div>
