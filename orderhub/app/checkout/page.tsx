@@ -650,7 +650,7 @@ export default function CheckoutPage() {
                       value={promoInput}
                       onChange={(e) => setPromoInput(e.target.value.toUpperCase())}
                       onKeyDown={(e) => e.key === "Enter" && applyPromo()}
-                      placeholder="np. WITAJ10"
+                      placeholder="wpisz kod"
                       className="w-full border-b bg-transparent pb-1.5 text-[14px] uppercase outline-none"
                       style={{ borderColor: C.hairline, color: C.ink }}
                     />
