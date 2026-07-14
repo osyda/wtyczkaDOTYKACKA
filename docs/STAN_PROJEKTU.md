@@ -122,7 +122,9 @@ przekierowanie 301 z `mammarosa.pl/zamow-online/` (wtyczka Redirection w WP). NI
   panelu kierowcy. Fallback „bez kierowcy (obsłużę ręcznie)" przywraca stare
   przyciski. Druk w POS przy przypisaniu kierowcy: `issueOrderInPos`
   (order/issue, posOrderId z order/create) za PODWÓJNYM bezpiecznikiem
-  DOTYKACKA_SEND_ORDERS=true + DOTYKACKA_ISSUE_ON_DRIVER=true — DO TESTU przy
+  DOTYKACKA_SEND_ORDERS=true (DOTYKACKA_ISSUE_ON_DRIVER WYCOFANE 14.07.2026 —
+  ignorowane przez kod; fiskalizację steruje wyłącznie DOTYKACKA_FISCALIZE_ON,
+  domyślnie manual) — DO TESTU przy
   go-live (fiskalizacja!). Diagnostyka logowania kodami pracowników: karta na
   /status (`employeesDiagnostics` — liczby i nazwy pól, bez kodów).
   RACHUNEK NA KONCIE KIEROWCY (13.07.2026): API NIE zwraca kodów PIN pracowników
