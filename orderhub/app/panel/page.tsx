@@ -378,33 +378,50 @@ function PanelInner() {
 
   const by = staffName || undefined;
 
-  const setEta = async (id: string, minutes: number) => {
-    await fetch(`/api/orders/${id}/eta`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ minutes, by }),
-    });
-    refresh();
+  // WSKAŹNIK „SYSTEM MYŚLI" (życzenie właściciela 14.07.2026): każda akcja
+  // (ETA, status, kierowca) pokazuje nakładkę z kręciołkiem i blokuje ekran —
+  // kelnerka widzi, że coś się dzieje (wysyłka do Dotykački trwa 2–3 s),
+  // a przy okazji nie kliknie drugi raz.
+  const [busy, setBusy] = useState<string | null>(null);
+  const withBusy = async (label: string, fn: () => Promise<void>) => {
+    setBusy(label);
+    try {
+      await fn();
+    } finally {
+      setBusy(null);
+    }
   };
-  const advance = async (id: string, status: OrderStatus, reason?: string, driver?: string) => {
-    await fetch(`/api/orders/${id}/status`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ status, by, reason, driver }),
+
+  const setEta = (id: string, minutes: number) =>
+    withBusy("Zapisuję czas…", async () => {
+      await fetch(`/api/orders/${id}/eta`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ minutes, by }),
+      });
+      await refresh();
     });
-    refresh();
-  };
+  const advance = (id: string, status: OrderStatus, reason?: string, driver?: string) =>
+    withBusy("Zapisuję zmianę…", async () => {
+      await fetch(`/api/orders/${id}/status`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status, by, reason, driver }),
+      });
+      await refresh();
+    });
 
   // Przypisanie kierowcy (bez zmiany statusu) — dopiero teraz zamówienie
   // z dostawą trafia do POS (na konto kierowcy); rachunek zamyka obsługa w POS.
-  const assignDriver = async (id: string, driver: string) => {
-    await fetch(`/api/orders/${id}/driver`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ driver, by }),
+  const assignDriver = (id: string, driver: string) =>
+    withBusy("Wysyłam do Dotykački…", async () => {
+      await fetch(`/api/orders/${id}/driver`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ driver, by }),
+      });
+      await refresh();
     });
-    refresh();
-  };
 
   // Lista kierowców (zmienna DRIVERS w Vercelu) — do przypisywania dostaw.
   const [drivers, setDrivers] = useState<string[]>([]);
@@ -446,6 +463,21 @@ function PanelInner() {
 
   return (
     <main className="min-h-screen pb-8" style={{ background: BG, color: CREAM }}>
+      {/* Nakładka „system myśli" — widoczna przy każdej akcji, blokuje podwójne kliknięcia */}
+      {busy && (
+        <div className="fixed inset-0 z-[90] grid place-items-center" style={{ background: "rgba(27,23,16,0.18)" }}>
+          <div
+            className="flex items-center gap-3 rounded-full px-6 py-3.5 shadow-lg"
+            style={{ background: CARD, border: "1px solid rgba(27,23,16,0.1)" }}
+          >
+            <span
+              className="h-5 w-5 animate-spin rounded-full border-2 border-t-transparent"
+              style={{ borderColor: OLIVE, borderTopColor: "transparent" }}
+            />
+            <span className="text-[14px] font-bold">{busy}</span>
+          </div>
+        </div>
+      )}
       {/* Pasek górny — na telefonie zawija się w dwie linie zamiast rozpychać stronę */}
       <div
         className="sticky top-0 z-40 flex flex-wrap items-center gap-x-2 gap-y-1.5 px-3 py-2 min-[920px]:h-16 min-[920px]:flex-nowrap min-[920px]:justify-between min-[920px]:px-4 min-[920px]:py-0"
