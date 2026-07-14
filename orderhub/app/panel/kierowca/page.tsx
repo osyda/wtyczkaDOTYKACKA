@@ -69,13 +69,20 @@ function DriverInner() {
     localStorage.setItem("mr_driver", name);
   };
 
+  // „System myśli" — nakładka na czas zapisu (kierowca widzi reakcję od razu).
+  const [busy, setBusy] = useState(false);
   const setStatus = async (id: string, status: "on_delivery" | "completed") => {
-    await fetch(`/api/orders/${id}/status`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ status, by: me }),
-    });
-    refresh();
+    setBusy(true);
+    try {
+      await fetch(`/api/orders/${id}/status`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status, by: me }),
+      });
+      await refresh();
+    } finally {
+      setBusy(false);
+    }
   };
 
   const mine = orders
@@ -90,6 +97,14 @@ function DriverInner() {
 
   return (
     <main className="min-h-screen pb-10" style={{ background: BG, color: INK }}>
+      {busy && (
+        <div className="fixed inset-0 z-[90] grid place-items-center" style={{ background: "rgba(27,23,16,0.18)" }}>
+          <div className="flex items-center gap-3 rounded-full px-6 py-3.5 shadow-lg" style={{ background: CARD, border: "1px solid rgba(27,23,16,0.1)" }}>
+            <span className="h-5 w-5 animate-spin rounded-full border-2" style={{ borderColor: OLIVE, borderTopColor: "transparent" }} />
+            <span className="text-[14px] font-bold">Zapisuję…</span>
+          </div>
+        </div>
+      )}
       <div className="sticky top-0 z-40 flex items-center justify-between px-4 py-3" style={{ background: CARD, borderBottom: "1px solid rgba(27,23,16,0.06)" }}>
         <div>
           <div className="text-[13px] font-semibold uppercase tracking-[0.18em]">Mammarosa</div>
