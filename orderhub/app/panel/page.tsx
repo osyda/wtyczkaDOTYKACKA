@@ -177,7 +177,8 @@ function printOrder(order: Order) {
       const addons = it.addons.length
         ? `<div class="ad">${it.addons.map((a) => `+ ${esc(a.name)}`).join("<br>")}</div>`
         : "";
-      return `<div class="it"><b>${it.qty}×</b> ${esc(it.name)}${addons}</div>`;
+      const note = it.note ? `<div class="ad"><b>✎ ${esc(it.note)}</b></div>` : "";
+      return `<div class="it"><b>${it.qty}×</b> ${esc(it.name)}${addons}${note}</div>`;
     })
     .join("");
   const when =
@@ -1156,6 +1157,9 @@ function OrderCard({
             <span className="font-extrabold" style={{ color: OLIVE }}>{it.qty}×</span> {it.name}
             {it.addons.length > 0 && (
               <span style={{ color: MUTED }}> · {it.addons.map((a) => a.name).join(", ")}</span>
+            )}
+            {it.note && (
+              <span className="font-bold" style={{ color: "#8E3B2F" }}> · ✎ {it.note}</span>
             )}
           </div>
         ))}

@@ -296,6 +296,7 @@ function PhoneOrderInner() {
             basePrice: l.basePrice,
             addons: l.addons,
             lineTotal: lineTotal(l),
+            note: l.note,
             halves: l.halves,
             packaging: l.packaging,
           })),
@@ -506,6 +507,11 @@ function PhoneOrderInner() {
                         {l.addons.map((a) => a.name).join(", ")}
                       </div>
                     )}
+                    {l.note && (
+                      <div className="truncate text-[11px] font-bold" style={{ color: "#8E3B2F" }}>
+                        ✎ {l.note}
+                      </div>
+                    )}
                   </div>
                   <button
                     onClick={() => (l.qty === 1 ? remove(l.lineId) : setQty(l.lineId, l.qty - 1))}
@@ -691,7 +697,7 @@ function PhoneOrderInner() {
       </div>
 
       {modalProduct && (
-        <ProductModal product={modalProduct} onClose={() => setModalProduct(null)} onAdded={() => {}} />
+        <ProductModal product={modalProduct} onClose={() => setModalProduct(null)} onAdded={() => {}} allowNote />
       )}
       {halfOpen && menu && (
         <HalfHalfModal
