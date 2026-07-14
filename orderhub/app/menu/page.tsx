@@ -36,6 +36,8 @@ async function restaurantJsonLd(): Promise<string> {
     priceRange: "$$",
     address: {
       "@type": "PostalAddress",
+      streetAddress: "Rynek 13",
+      postalCode: "83-400",
       addressLocality: "Kościerzyna",
       addressCountry: "PL",
     },
