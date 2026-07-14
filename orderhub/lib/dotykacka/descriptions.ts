@@ -34,6 +34,7 @@ const DESCRIPTIONS: Record<string, string> = {
   "venezia": "Sos pomidorowy, ser, pieczarki, szynka mielona, cebula, papryka, oregano",
   "familiare": "Sos pomidorowy, ser, bekon, jajko sadzone, ogórek konserwowy, cebula, oregano",
   "diabolo": "Sos pomidorowy, ser, bekon, jajko gotowane, papryka pepperoni ostra, oregano",
+  "diabolo ostra": "Sos pomidorowy, ser, bekon, jajko gotowane, papryka pepperoni ostra, oregano",
   "ruccola": "Sos pomidorowy, mozzarella, prosciutto, pomidory suszone, rukola",
   "gyros": "Sos pomidorowy, ser, kurczak-gyros, cebula czerwona, pomidory koktajlowe",
 };
@@ -44,16 +45,32 @@ function norm(name: string): string {
     .normalize("NFD")
     .replace(/[̀-ͯ]/g, "")
     .replace(/ł/g, "l")
+    .replace(/\s+/g, " ")
     .trim();
 }
+
+/** Wersja „ścieśniona": tylko litery/cyfry — odporna na podwójne spacje,
+ *  myślniki, kropki itp. (np. „FRUTTI  DI-MARE" ≈ „frutti di mare"). */
+function squash(name: string): string {
+  return norm(name).replace(/[^a-z0-9]/g, "");
+}
+
+const SQUASHED = new Map(Object.entries(DESCRIPTIONS).map(([k, v]) => [squash(k), v]));
 
 export function descriptionFor(productName: string): string {
   const n = norm(productName);
   if (DESCRIPTIONS[n]) return DESCRIPTIONS[n];
+  const sq = squash(productName);
+  const bySquash = SQUASHED.get(sq);
+  if (bySquash) return bySquash;
   // Nazwy w POS bywają dłuższe niż w menu (np. „BOLOGNESE PIZZA",
-  // „DIABOLO - OSTRA") — dopasuj po pierwszym słowie/prefiksie z granicą słowa.
+  // „DIABOLO - OSTRA") — dopasuj po prefiksie, ale TYLKO gdy końcówka to
+  // dopisek typu „pizza" / „- ostra" (żeby „GYROS Z KURCZAKA" z dań
+  // obiadowych nie łapał opisu pizzy Gyros).
   for (const [key, desc] of Object.entries(DESCRIPTIONS)) {
-    if (n.startsWith(key + " ")) return desc;
+    if (!n.startsWith(key + " ")) continue;
+    const rest = n.slice(key.length).trim();
+    if (rest === "pizza" || rest.startsWith("-") || rest.startsWith("(")) return desc;
   }
   return "";
 }
