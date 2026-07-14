@@ -683,7 +683,7 @@ function PanelInner() {
           </Column>
         </div>
       ) : view === "history" ? (
-        <HistoryView orders={orders} />
+        <HistoryView orders={orders} onChanged={refresh} />
       ) : view === "calls" ? (
         <CallsView calls={calls} />
       ) : (
@@ -1441,8 +1441,17 @@ function Tile({ label, value }: { label: string; value: string }) {
   );
 }
 
-function HistoryView({ orders: all }: { orders: Order[] }) {
+function HistoryView({ orders: all, onChanged }: { orders: Order[]; onChanged: () => void }) {
   const [day, setDay] = useState(() => dateInputValue(new Date()));
+  // Rozwinięte szczegóły + usuwanie (życzenie właściciela 14.07.2026).
+  const [openId, setOpenId] = useState<string | null>(null);
+  const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
+  const removeOrder = async (id: string) => {
+    await fetch(`/api/orders/${id}`, { method: "DELETE" });
+    setConfirmDelete(null);
+    setOpenId(null);
+    onChanged();
+  };
   const today = dateInputValue(new Date());
   const yesterday = dateInputValue(new Date(Date.now() - 86400000));
   const orders = all
@@ -1525,30 +1534,94 @@ function HistoryView({ orders: all }: { orders: Order[] }) {
         {orders.length === 0 && <Empty />}
         <div className="flex flex-col gap-2">
           {orders.map((o) => (
-            <div
-              key={o.id}
-              className="flex flex-wrap items-center gap-x-4 gap-y-1 rounded-xl px-3.5 py-2.5 text-[13px]"
-              style={{ background: SUB, opacity: o.status === "canceled" ? 0.65 : 1 }}
-            >
-              <b className="tabular-nums">#{o.number}</b>
-              <span style={{ color: MUTED }}>{clock(o.createdAt)}</span>
-              <span className="font-semibold">{o.customer.name}</span>
-              <span style={{ color: MUTED }}>
-                {o.items.reduce((s, i) => s + i.qty, 0)} poz. · {o.mode === "pickup" ? "odbiór" : "dostawa"} ·{" "}
-                {o.payment === "cash" ? "gotówka" : o.payment === "card" ? "karta" : "online"}
-                {o.source === "phone" ? " · telefon" : ""}
-                {o.driver ? ` · kierowca: ${o.driver}` : ""}
-                {o.discount ? ` · rabat −${zl(o.discount.amount)}${o.discount.code ? ` (${o.discount.code})` : o.discount.reason ? ` (${o.discount.reason})` : ""}` : ""}
-              </span>
-              <span className="ml-auto font-extrabold">{zl(o.total)}</span>
-              {o.status === "canceled" ? (
-                <span className="rounded-full px-2.5 py-0.5 text-[11px] font-bold" style={{ background: "rgba(183,56,47,0.12)", color: ALERT }}>
-                  anulowane{o.cancelReason ? ` — ${o.cancelReason}` : ""}
+            <div key={o.id} className="rounded-xl" style={{ background: SUB, opacity: o.status === "canceled" ? 0.65 : 1 }}>
+              {/* Wiersz — dotknięcie rozwija/zamyka szczegóły */}
+              <button
+                onClick={() => setOpenId(openId === o.id ? null : o.id)}
+                className="flex w-full flex-wrap items-center gap-x-4 gap-y-1 px-3.5 py-2.5 text-left text-[13px]"
+              >
+                <b className="tabular-nums">#{o.number}</b>
+                <span style={{ color: MUTED }}>{clock(o.createdAt)}</span>
+                <span className="font-semibold">{o.customer.name}</span>
+                {/* Źródło zamówienia — wyraźna plakietka */}
+                {o.source === "phone" ? (
+                  <span className="rounded-full px-2 py-0.5 text-[10.5px] font-bold" style={{ background: "rgba(213,227,107,0.5)", color: "#3F4A19" }}>
+                    TELEFON
+                  </span>
+                ) : (
+                  <span className="rounded-full px-2 py-0.5 text-[10.5px] font-bold" style={{ background: "rgba(91,107,46,0.14)", color: OLIVE }}>
+                    ONLINE
+                  </span>
+                )}
+                <span style={{ color: MUTED }}>
+                  {o.items.reduce((s, i) => s + i.qty, 0)} poz. · {o.mode === "pickup" ? "odbiór" : "dostawa"} ·{" "}
+                  {o.payment === "cash" ? "gotówka" : o.payment === "card" ? "karta" : "online"}
+                  {o.driver ? ` · kierowca: ${o.driver}` : ""}
+                  {o.discount ? ` · rabat −${zl(o.discount.amount)}${o.discount.code ? ` (${o.discount.code})` : o.discount.reason ? ` (${o.discount.reason})` : ""}` : ""}
                 </span>
-              ) : (
-                <span className="rounded-full px-2.5 py-0.5 text-[11px] font-bold" style={{ background: "rgba(140,165,59,0.16)", color: OLIVE }}>
-                  zrealizowane{o.staff ? ` — ${o.staff}` : ""}
-                </span>
+                <span className="ml-auto font-extrabold">{zl(o.total)}</span>
+                {o.status === "canceled" ? (
+                  <span className="rounded-full px-2.5 py-0.5 text-[11px] font-bold" style={{ background: "rgba(183,56,47,0.12)", color: ALERT }}>
+                    anulowane{o.cancelReason ? ` — ${o.cancelReason}` : ""}
+                  </span>
+                ) : (
+                  <span className="rounded-full px-2.5 py-0.5 text-[11px] font-bold" style={{ background: "rgba(140,165,59,0.16)", color: OLIVE }}>
+                    zrealizowane{o.staff ? ` — ${o.staff}` : ""}
+                  </span>
+                )}
+              </button>
+
+              {/* Szczegóły zamówienia + usuwanie */}
+              {openId === o.id && (
+                <div className="border-t px-3.5 py-3 text-[12.5px]" style={{ borderColor: "rgba(27,23,16,0.1)" }}>
+                  <div className="space-y-0.5" style={{ color: "#4A443B" }}>
+                    {o.items.map((it, i) => (
+                      <div key={i}>
+                        <span className="font-extrabold" style={{ color: OLIVE }}>{it.qty}×</span> {it.name}
+                        <span className="font-semibold"> {zl(it.lineTotal)}</span>
+                        {it.addons.length > 0 && <span style={{ color: MUTED }}> · {it.addons.map((a) => a.name).join(", ")}</span>}
+                        {it.note && <span className="font-bold" style={{ color: "#8E3B2F" }}> · ✎ {it.note}</span>}
+                      </div>
+                    ))}
+                  </div>
+                  <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1" style={{ color: MUTED }}>
+                    <a href={`tel:${o.customer.phone}`} className="font-bold underline underline-offset-2" style={{ color: CREAM }}>
+                      {o.customer.phone}
+                    </a>
+                    {o.mode === "delivery" && <span>{o.customer.street}, {o.customer.city ?? ""}</span>}
+                    {o.customer.note && <span className="font-semibold" style={{ color: "#8E3B2F" }}>Uwagi: {o.customer.note}</span>}
+                    {o.deliveryFee > 0 && <span>dostawa {zl(o.deliveryFee)}</span>}
+                    {o.pos.orderNumber && <span>POS: {o.pos.orderNumber}</span>}
+                  </div>
+                  <div className="mt-3 flex items-center gap-3">
+                    <button onClick={() => printOrder(o)} className="flex items-center gap-1 text-[12px] font-semibold underline underline-offset-2" style={{ color: MUTED }}>
+                      <IconPrint className="h-3.5 w-3.5" /> drukuj kwit
+                    </button>
+                    {confirmDelete === o.id ? (
+                      <span className="ml-auto flex items-center gap-2">
+                        <span className="text-[12px] font-bold" style={{ color: ALERT }}>Usunąć #{o.number} bezpowrotnie?</span>
+                        <button
+                          onClick={() => removeOrder(o.id)}
+                          className="rounded-full px-3.5 py-1.5 text-[12px] font-bold"
+                          style={{ background: ALERT, color: "#FFF7EE" }}
+                        >
+                          Tak, usuń
+                        </button>
+                        <button onClick={() => setConfirmDelete(null)} className="text-[12px] font-semibold underline" style={{ color: MUTED }}>
+                          nie
+                        </button>
+                      </span>
+                    ) : (
+                      <button
+                        onClick={() => setConfirmDelete(o.id)}
+                        className="ml-auto text-[12px] font-semibold underline underline-offset-2"
+                        style={{ color: ALERT }}
+                      >
+                        usuń z historii
+                      </button>
+                    )}
+                  </div>
+                </div>
               )}
             </div>
           ))}

@@ -14,6 +14,8 @@ export interface OrderStore {
   get(id: string): Promise<Order | null>;
   list(): Promise<Order[]>;
   update(id: string, patch: Partial<Order>): Promise<Order | null>;
+  /** Trwałe usunięcie (historia w panelu) — NIE cofa niczego w Dotykačce. */
+  remove(id: string): Promise<boolean>;
 }
 
 // --- Implementacja in-memory ---
@@ -75,6 +77,10 @@ export const memoryStore: OrderStore = {
     const next = { ...cur, ...patch, pos: { ...cur.pos, ...(patch.pos ?? {}) } };
     db.orders.set(id, next);
     return next;
+  },
+
+  async remove(id) {
+    return db.orders.delete(id);
   },
 };
 
