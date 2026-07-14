@@ -250,6 +250,12 @@ export async function getOpenState(): Promise<OpenState> {
   const { week, source } = await getWeekHours();
   const { day, minutes } = nowInPoland();
 
+  // TRYB TESTOWY (ORDERS_ALWAYS_OPEN=true): przyjmujemy zamówienia całą dobę,
+  // niezależnie od godzin otwarcia. Tylko na czas testów — usunąć po starcie!
+  if (process.env.ORDERS_ALWAYS_OPEN === "true") {
+    return { open: true, acceptingOrders: true, today: week[day], lastOrder: null, message: "", source, week };
+  }
+
   const evaluate = (h: DayHours, nowMin: number): { open: boolean; accepting: boolean; lastOrder: number } | null => {
     if (!h) return null;
     const openMin = toMin(h.open);
