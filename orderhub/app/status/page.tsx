@@ -8,6 +8,8 @@ import { getOpenState, hasGoogleHours, dayLabel, LAST_ORDER_MIN } from "@/lib/ho
 import { listCalls, webhookKey } from "@/lib/ctiCalls";
 import { emailEnabled } from "@/lib/email";
 import { employeesDiagnostics } from "@/lib/dotykacka/employees";
+import { customersProbe, lastCustomerDebug } from "@/lib/dotykacka/customers";
+import { hasCredentials } from "@/lib/dotykacka/config";
 
 export const dynamic = "force-dynamic";
 
@@ -45,6 +47,10 @@ export default async function Home() {
   const ctiKeySet = Boolean(webhookKey());
   const lastCall = (await listCalls(1))[0] ?? null;
   const emp = await employeesDiagnostics();
+
+  // Klienci w Dotykačce: test odczytu + przebieg ostatniej próby zapisu.
+  const custProbe = hasCredentials() ? await customersProbe().catch(() => null) : null;
+  const custLast = await lastCustomerDebug();
 
   return (
     <main className="min-h-screen bg-[#1F1714] text-[#F3E7D5]">
@@ -134,6 +140,44 @@ export default async function Home() {
           {emp.available && emp.withCode === 0 && emp.allFields.length > 0 && (
             <p className="mt-2 break-words text-xs text-[#8A7A6B]">
               Pola zwracane przez API: {emp.allFields.join(", ")}
+            </p>
+          )}
+        </div>
+
+        {/* Klienci w Dotykačce */}
+        <div className="mt-4 rounded-2xl border border-[#3A322B] bg-[#241D1A] p-5">
+          <div className="mb-3 text-xs font-semibold uppercase tracking-wide text-[#B7A691]">
+            Klienci w Dotykačce (tworzenie przy zamówieniu)
+          </div>
+          <div className="flex items-center gap-3">
+            <span
+              className={`inline-flex h-3 w-3 rounded-full ${
+                !custProbe ? "bg-amber-400" : custProbe.ok ? "bg-green-500" : "bg-red-500"
+              }`}
+            />
+            <span className="font-semibold">
+              {!custProbe
+                ? "Brak kluczy Dotykački — klienci nie są tworzeni (tryb DEMO)"
+                : custProbe.ok
+                  ? `Odczyt klientów działa (HTTP ${custProbe.status}${custProbe.total !== null ? `, w bazie: ${custProbe.total}` : ""})`
+                  : `Odczyt klientów NIE działa: HTTP ${custProbe.status} ${custProbe.raw}`}
+            </span>
+          </div>
+          {custLast ? (
+            <div className="mt-2 text-sm">
+              <p className="text-[#B7A691]">
+                Ostatnia próba: {new Date(custLast.at).toLocaleString("pl-PL")} · tel. {custLast.phone} ·{" "}
+                {custLast.customerId ? `OK, id ${custLast.customerId}` : "NIEUDANA"}
+              </p>
+              <ul className="mt-1 space-y-1 break-words text-xs text-[#E0D2BE]">
+                {custLast.steps.map((s, i) => (
+                  <li key={i}>• {s}</li>
+                ))}
+              </ul>
+            </div>
+          ) : (
+            <p className="mt-2 text-sm text-[#B7A691]">
+              Nie było jeszcze żadnej próby (pojawi się po pierwszym zamówieniu wysłanym do POS).
             </p>
           )}
         </div>
