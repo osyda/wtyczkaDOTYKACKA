@@ -499,7 +499,7 @@ export default function CheckoutPage() {
               <Field label="TELEFON" inputMode="tel" value={form.phone} onChange={(v) => setForm({ ...form, phone: v })} />
             </div>
             <Field
-              label="E-MAIL — WYŚLEMY POTWIERDZENIE (OPCJONALNIE)"
+              label="E-MAIL — WYŚLEMY POTWIERDZENIE"
               inputMode="email"
               value={form.email}
               onChange={(v) => setForm({ ...form, email: v })}
