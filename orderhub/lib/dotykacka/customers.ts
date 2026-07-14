@@ -86,11 +86,11 @@ export async function customersProbe(): Promise<{ ok: boolean; status: number; t
 /**
  * Znajdź klienta po telefonie albo utwórz nowego. Zwraca customerId lub null.
  *
- * USTALONE NA ŻYWO (14.07.2026, /status): filtr `phone|eq|…` → 400 „unsupported
- * filter condition"; tworzenie wymaga WSZYSTKICH pól tekstowych nie-null
- * (barcode, companyName, …); POST przyjmuje WYŁĄCZNIE tablicę („json array
- * expected"). Dlatego: szukamy externalId → phone|like → phone|eq, a encja
- * jedzie z kompletem pól ("" zamiast braku) + externalId/barcode = WWW-telefon.
+ * USTALONE NA ŻYWO (14.07.2026, /status):
+ * - filtrowanie klientów po phone/externalId NIE działa (404/400) → własna
+ *   mapa telefon→id w Redis chroni przed duplikatami,
+ * - tworzenie wymaga WSZYSTKICH pól nie-null (barcode, companyName, hexColor,
+ *   headerPrint, …), POST przyjmuje WYŁĄCZNIE tablicę („json array expected").
  */
 export async function upsertCustomerByPhone(customer: OrderCustomer): Promise<string | null> {
   const { cloudId } = dotykackaConfig;
@@ -103,32 +103,45 @@ export async function upsertCustomerByPhone(customer: OrderCustomer): Promise<st
     return id;
   };
 
-  // 1) Szukanie — kilka wariantów filtra, pierwszy trafiony wygrywa.
+  // 1) Nasza mapa telefon→id (Redis) — jedyny pewny sposób deduplikacji,
+  // bo API nie wspiera filtrowania klientów po telefonie.
+  const mapKey = `dotykacka:custId:${phone}`;
+  try {
+    const cached = await redis()?.get<string>(mapKey);
+    if (cached) {
+      steps.push(`Redis: znany klient, id ${cached}`);
+      return finish(String(cached));
+    }
+  } catch {
+    /* brak Redis nie blokuje */
+  }
+
+  // 2) Filtry API (na wypadek, gdyby któryś jednak działał / zaczął działać).
   const extId = `WWW-${phone}`;
-  const filters = [`externalId|eq|${extId}`, `phone|like|${phone}`, `phone|eq|${phone}`];
-  for (const filter of filters) {
+  for (const filter of [`barcode|eq|${extId}`, `phone|eq|${phone}`]) {
     const search = await dotyRequest<{ data?: DotyCustomer[] }>(`/clouds/${cloudId}/customers`, {
       query: { filter, limit: 1 },
     });
     const found = search.data?.data?.[0];
+    const label = filter.split("|").slice(0, 2).join("|");
     if (found) {
-      steps.push(`szukanie ${filter.split("|").slice(0, 2).join("|")}: HTTP ${search.status}, znaleziony id ${found.id}`);
+      steps.push(`szukanie ${label}: HTTP ${search.status}, znaleziony id ${found.id}`);
+      try {
+        await redis()?.set(mapKey, String(found.id));
+      } catch {}
       return finish(String(found.id));
     }
     steps.push(
       search.ok
-        ? `szukanie ${filter.split("|").slice(0, 2).join("|")}: HTTP ${search.status}, brak`
-        : `szukanie ${filter.split("|").slice(0, 2).join("|")}: HTTP ${search.status} → ${search.raw.slice(0, 150)}`
+        ? `szukanie ${label}: HTTP ${search.status}, brak`
+        : `szukanie ${label}: HTTP ${search.status} → ${search.raw.slice(0, 120)}`
     );
-    // 400 = filtr niewspierany → próbujemy następnego wariantu; 200 bez wyniku
-    // też nie kończy szukania (stara baza nie ma externalId, sprawdzamy telefon).
   }
 
-  // 2) Tworzenie: komplet pól tekstowych ("" gdy brak — walidacja: must not be null).
+  // 3) Tworzenie: komplet pól ("" / wartości domyślne — walidacja: must not be null).
   const { firstName, lastName } = splitName(customer.name);
   const entity = {
     _cloudId: Number(cloudId) || cloudId,
-    externalId: extId,
     firstName: firstName || "Klient",
     lastName: lastName || "",
     companyName: "",
@@ -142,6 +155,8 @@ export async function upsertCustomerByPhone(customer: OrderCustomer): Promise<st
     zip: customer.zip?.trim() || "",
     country: "PL",
     barcode: extId,
+    hexColor: "#8E3B2F",
+    headerPrint: "",
     points: 0,
     flags: 0,
     display: true,
@@ -163,27 +178,17 @@ export async function upsertCustomerByPhone(customer: OrderCustomer): Promise<st
     method: "POST",
     body: [entity],
   });
-  let id = create.ok ? pickId(create.data) : null;
+  const id = create.ok ? pickId(create.data) : null;
   steps.push(
     id ? `tworzenie: HTTP ${create.status}, id ${id}` : `tworzenie: HTTP ${create.status} → ${create.raw.slice(0, 300)}`
   );
 
-  // Gdyby API nie znało externalId na kliencie — ponów bez tego pola.
-  if (!id && !create.ok && /externalid/i.test(create.raw)) {
-    const { externalId: _drop, ...noExt } = entity;
-    void _drop;
-    const retry = await dotyRequest<CreateResp>(`/clouds/${cloudId}/customers`, {
-      method: "POST",
-      body: [noExt],
-    });
-    id = retry.ok ? pickId(retry.data) : null;
-    steps.push(
-      id
-        ? `tworzenie bez externalId: HTTP ${retry.status}, id ${id}`
-        : `tworzenie bez externalId: HTTP ${retry.status} → ${retry.raw.slice(0, 300)}`
-    );
+  if (id) {
+    try {
+      await redis()?.set(mapKey, id);
+    } catch {}
+  } else {
+    console.error(`[dotykacka] klient ${phone} nie powstał: ${steps.join(" | ")}`);
   }
-
-  if (!id) console.error(`[dotykacka] klient ${phone} nie powstał: ${steps.join(" | ")}`);
   return finish(id);
 }
