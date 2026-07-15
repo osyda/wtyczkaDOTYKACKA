@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { audit } from "@/lib/audit";
 import { orderStore, setEta } from "@/lib/orders/store";
 
 export const dynamic = "force-dynamic";
@@ -24,5 +25,6 @@ export async function POST(req: Request, ctx: { params: Promise<{ id: string }> 
 
   const patch = setEta(order, minutes);
   const updated = await orderStore.update(id, by ? { ...patch, staff: by } : patch);
+  await audit("ETA ustawione", { order: order.number, details: `${minutes} min${by ? ` (przez: ${by})` : ""}` });
   return NextResponse.json({ order: updated });
 }

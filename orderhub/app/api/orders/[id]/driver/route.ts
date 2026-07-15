@@ -1,8 +1,11 @@
 import { NextResponse } from "next/server";
+import { audit } from "@/lib/audit";
 import { orderStore } from "@/lib/orders/store";
 import { issueAndPayInPos, sendOrderToPos, fiscalizeMoment } from "@/lib/dotykacka/pos";
 
 export const dynamic = "force-dynamic";
+// Wysyłka do POS przy kierowcy nie może być ucinana limitem czasu funkcji.
+export const maxDuration = 60;
 
 /**
  * POST /api/orders/[id]/driver { driver, by }
@@ -28,12 +31,20 @@ export async function POST(req: Request, ctx: { params: Promise<{ id: string }> 
   if (by) patch.staff = by;
   let updated = await orderStore.update(id, patch);
   if (!updated) return NextResponse.json({ error: "Nie znaleziono." }, { status: 404 });
+  await audit("kierowca przypisany", { order: updated.number, details: `${driver}${by ? ` (przez: ${by})` : ""}` });
 
   // Wysyłka odroczona do kierowcy: zamówienie powstaje w POS DOPIERO teraz,
   // od razu z user-id kierowcy → rachunek liczy się na jego konto.
   if (updated.pos?.deferred && !updated.pos.posOrderId) {
+    const t0 = Date.now();
     const pos = await sendOrderToPos(updated);
     updated = (await orderStore.update(id, { pos: { ...pos, deferred: false } })) ?? updated;
+    await audit("wysyłka do POS (przy kierowcy)", {
+      order: updated.number,
+      ok: pos.sent && !pos.error,
+      ms: Date.now() - t0,
+      details: pos.error ?? (pos.simulated ? "symulacja (bezpiecznik)" : `POS nr ${pos.orderNumber ?? "?"}`),
+    });
   }
 
   // Wystawienie+zapłata przez API tylko w trybie "driver" (nieużywany domyślnie —
