@@ -238,7 +238,7 @@ function PanelInner() {
   const [now, setNow] = useState("--:--");
   const [caller, setCaller] = useState<CallerInfo | null>(null);
   const [simPhone, setSimPhone] = useState("");
-  const [view, setView] = useState<"board" | "history" | "calls" | "promo">("board");
+  const [view, setView] = useState<"board" | "history" | "calls" | "promo" | "log">("board");
   const [calls, setCalls] = useState<{ id: string; phone: string; at: string; name: string | null }[]>([]);
   const lastRingAt = useRef<string>("");
   const [soundOn, setSoundOn] = useState(false);
@@ -519,6 +519,9 @@ function PanelInner() {
           <TopBtn active={view === "promo"} onClick={() => setView("promo")}>
             <IconTag className="h-4 w-4" /> Rabaty
           </TopBtn>
+          <TopBtn active={view === "log"} onClick={() => setView("log")}>
+            <IconHistory className="h-4 w-4" /> Dziennik
+          </TopBtn>
           <Link
             href="/panel/telefon"
             className="flex items-center gap-1.5 whitespace-nowrap rounded-full px-3 py-1.5 text-[12px] font-bold min-[920px]:px-3.5 min-[920px]:py-2 min-[920px]:text-[12.5px]"
@@ -686,10 +689,67 @@ function PanelInner() {
         <HistoryView orders={orders} onChanged={refresh} />
       ) : view === "calls" ? (
         <CallsView calls={calls} />
+      ) : view === "log" ? (
+        <AuditView />
       ) : (
         <PromoView />
       )}
     </main>
+  );
+}
+
+/* ---------- Dziennik zdarzeń (diagnostyka przepływów) ---------- */
+
+type AuditRow = { at: string; event: string; order?: number | null; ok?: boolean; ms?: number; details?: string };
+
+function AuditView() {
+  const [events, setEvents] = useState<AuditRow[]>([]);
+  useEffect(() => {
+    const load = () =>
+      fetch("/api/audit", { cache: "no-store" })
+        .then((r) => r.json())
+        .then((d) => setEvents(d.events ?? []))
+        .catch(() => {});
+    load();
+    const t = setInterval(load, 5000);
+    return () => clearInterval(t);
+  }, []);
+  return (
+    <div className="p-4">
+      <div className="rounded-3xl p-3.5" style={{ background: CARD, border: "1px solid #EAE2D2" }}>
+        <h2 className="mb-1 px-1 text-[11px] font-extrabold uppercase tracking-[0.14em]" style={{ color: MUTED }}>
+          Dziennik zdarzeń — każdy krok systemu (najnowsze u góry)
+        </h2>
+        <p className="mb-3 px-1 text-[11.5px]" style={{ color: MUTED }}>
+          Czerwone wpisy = operacja się nie powiodła (np. wysyłka do Dotykački). Zamówienie wtedy NIE ginie —
+          ma czerwoną plakietkę i przycisk „Wyślij ponownie do POS" na swojej karcie.
+        </p>
+        {events.length === 0 && <Empty />}
+        <div className="flex flex-col gap-1">
+          {events.map((e, i) => (
+            <div
+              key={i}
+              className="flex flex-wrap items-baseline gap-x-3 gap-y-0.5 rounded-lg px-3 py-1.5 text-[12.5px]"
+              style={{
+                background: e.ok === false ? "rgba(183,56,47,0.08)" : SUB,
+                border: e.ok === false ? "1px solid rgba(183,56,47,0.4)" : "1px solid transparent",
+              }}
+            >
+              <span className="tabular-nums" style={{ color: MUTED }}>
+                {new Date(e.at).toLocaleTimeString("pl-PL", { hour: "2-digit", minute: "2-digit", second: "2-digit" })}
+              </span>
+              {e.order ? <b className="tabular-nums">#{e.order}</b> : null}
+              <span className="font-bold" style={{ color: e.ok === false ? ALERT : CREAM }}>
+                {e.event}
+                {e.ok === false ? " — BŁĄD" : ""}
+              </span>
+              {e.details && <span style={{ color: e.ok === false ? "#8E3B2F" : MUTED }}>{e.details}</span>}
+              {typeof e.ms === "number" && <span className="ml-auto tabular-nums" style={{ color: MUTED }}>{(e.ms / 1000).toFixed(1)} s</span>}
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
   );
 }
 
@@ -1211,11 +1271,15 @@ function OrderCard({
         </div>
       </div>
 
-      {/* Zamówienie NIE dotarło do Dotykački (np. chwilowy brak internetu) —
-          zostaje u nas i obsługa dosyła jednym kliknięciem (bez duplikatów). */}
-      {order.pos && !order.pos.simulated && !order.pos.deferred && (!order.pos.sent || order.pos.error) && (
-        <PosRetry orderId={order.id} error={order.pos.error} />
-      )}
+      {/* Zamówienie NIE dotarło do Dotykački (np. chwilowy brak internetu albo
+          ucięta wysyłka przy kierowcy) — zostaje u nas i obsługa dosyła jednym
+          kliknięciem (bez duplikatów). „Odroczone" bez kierowcy to stan normalny. */}
+      {order.pos &&
+        !order.pos.simulated &&
+        (!order.pos.sent || order.pos.error) &&
+        (!order.pos.deferred || order.driver) && (
+          <PosRetry orderId={order.id} error={order.pos.error} />
+        )}
 
       {children}
 

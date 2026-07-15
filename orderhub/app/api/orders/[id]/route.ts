@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { audit } from "@/lib/audit";
 import { orderStore } from "@/lib/orders/store";
 
 export const dynamic = "force-dynamic";
@@ -16,7 +17,9 @@ export async function GET(_req: Request, ctx: { params: Promise<{ id: string }> 
  */
 export async function DELETE(_req: Request, ctx: { params: Promise<{ id: string }> }) {
   const { id } = await ctx.params;
+  const order = await orderStore.get(id);
   const ok = await orderStore.remove(id);
   if (!ok) return NextResponse.json({ error: "Nie znaleziono." }, { status: 404 });
+  await audit("usunięte z historii", { order: order?.number ?? null });
   return NextResponse.json({ ok: true });
 }

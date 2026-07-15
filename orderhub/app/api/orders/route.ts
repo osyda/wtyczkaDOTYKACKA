@@ -1,4 +1,5 @@
 import { NextResponse, after } from "next/server";
+import { audit } from "@/lib/audit";
 import { orderStore, setEta } from "@/lib/orders/store";
 import { sendOrderToPos, issueAndPayInPos, fiscalizeMoment } from "@/lib/dotykacka/pos";
 import { hasCredentials, posSendEnabled } from "@/lib/dotykacka/config";
@@ -22,6 +23,9 @@ type OrderPayload = NewOrderInput & {
 };
 
 export const dynamic = "force-dynamic";
+// Wysyłka do POS potrafi trwać (token + klient + pracownicy + order/create) —
+// domyślny limit funkcji ucinał ją w połowie i zamówienie "ginęło" bez śladu.
+export const maxDuration = 60;
 
 export async function GET() {
   const orders = await orderStore.list();
@@ -132,6 +136,10 @@ export async function POST(req: Request) {
   if (Object.keys(extra).length > 0) {
     order = (await orderStore.update(order.id, extra)) ?? order;
   }
+  await audit("zamówienie przyjęte", {
+    order: order.number,
+    details: `${order.source ?? "online"} · ${order.mode === "pickup" ? "odbiór" : "dostawa"} · ${order.total} zł${order.driver ? ` · kierowca: ${order.driver}` : ""}${order.timeMode === "scheduled" ? ` · na ${order.scheduledTime}` : ""}`,
+  });
 
   // Wyślij do POS (lub symuluj w trybie DEMO).
   // Tryb „rachunek na koncie kierowcy" (DOTYKACKA_CREATE_ON_DRIVER=true):
@@ -144,10 +152,19 @@ export async function POST(req: Request) {
     order.mode === "delivery" &&
     !order.driver;
 
+  const posStart = Date.now();
   const pos = deferToDriver
     ? { sent: false, simulated: false, orderNumber: null, customerId: null, error: null, deferred: true }
     : await sendOrderToPos(order);
   let updated = await orderStore.update(order.id, { pos });
+  await audit("wysyłka do POS", {
+    order: order.number,
+    ok: deferToDriver ? undefined : pos.sent && !pos.error,
+    ms: deferToDriver ? undefined : Date.now() - posStart,
+    details: deferToDriver
+      ? "odroczona — czeka na wybór kierowcy"
+      : (pos.error ?? (pos.simulated ? "symulacja (bezpiecznik)" : `POS nr ${pos.orderNumber ?? "?"}`)),
+  });
 
   // Wystawienie+zapłata przez API tylko w trybie "driver" (domyślnie "manual" —
   // rachunki zamyka obsługa ręcznie w POS).

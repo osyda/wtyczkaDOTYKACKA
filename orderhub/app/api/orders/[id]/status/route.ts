@@ -1,9 +1,21 @@
 import { NextResponse } from "next/server";
+import { audit } from "@/lib/audit";
 import { orderStore } from "@/lib/orders/store";
 import { issueAndPayInPos, fiscalizeMoment } from "@/lib/dotykacka/pos";
 import type { OrderStatus } from "@/lib/orders/types";
 
 export const dynamic = "force-dynamic";
+export const maxDuration = 60;
+
+const STATUS_PL: Record<OrderStatus, string> = {
+  new: "nowe",
+  scheduled: "na godzinę",
+  in_progress: "w realizacji",
+  ready: "gotowe",
+  on_delivery: "w drodze",
+  completed: "zrealizowane",
+  canceled: "anulowane",
+};
 
 const ALLOWED: OrderStatus[] = [
   "new",
@@ -39,6 +51,10 @@ export async function POST(req: Request, ctx: { params: Promise<{ id: string }> 
   if (status === "on_delivery" && driver) patch.driver = driver;
   const updated = await orderStore.update(id, patch);
   if (!updated) return NextResponse.json({ error: "Nie znaleziono." }, { status: 404 });
+  await audit(`status: ${STATUS_PL[status]}`, {
+    order: updated.number,
+    details: `${reason ? `powód: ${reason}` : ""}${driver ? ` kierowca: ${driver}` : ""}${by ? ` (przez: ${by})` : ""}`.trim() || undefined,
+  });
 
   // Tryb fiskalizacji "delivered": kierowca klika „Dostarczone" → dopiero teraz
   // wystawiamy i płacimy w POS (paragon fiskalny drukuje się w lokalu).

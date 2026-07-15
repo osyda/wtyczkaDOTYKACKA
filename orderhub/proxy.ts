@@ -25,6 +25,7 @@ export async function proxy(req: NextRequest) {
     pathname.endsWith("/driver") ||
     pathname.endsWith("/pos") ||
     pathname === "/api/promo/codes" ||
+    pathname === "/api/audit" ||
     (pathname.startsWith("/api/cti/") && pathname !== "/api/cti/call");
 
   if (isStaffApi && !authed) {
