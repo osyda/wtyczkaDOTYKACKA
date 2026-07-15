@@ -71,6 +71,41 @@ export default function ThankYouPage() {
 
   const isPickup = order.mode === "pickup";
   const firstName = order.customer.name.split(" ")[0] || "";
+
+  // Zamówienie anulowane przez obsługę — jasny komunikat zamiast „czekamy na czas".
+  if (order.status === "canceled") {
+    return (
+      <main className="min-h-screen pb-16" style={{ background: C.ivory, color: C.ink }}>
+        <div className="mx-auto max-w-[430px] px-[26px] text-center min-[700px]:max-w-[520px]">
+          <div className="pt-16">
+            <h1 className="font-carta text-[40px] italic">Zamówienie anulowane</h1>
+            <div className="mt-2.5 text-[11px] uppercase tracking-[0.2em]" style={{ color: C.muted, textIndent: "0.2em" }}>
+              Zamówienie nr {order.number}
+            </div>
+            <div
+              className="mt-9 border px-6 py-6 text-[13.5px] leading-relaxed"
+              style={{ borderColor: C.accent, color: C.ink, background: "rgba(142,59,47,0.05)" }}
+            >
+              Przepraszamy — Twoje zamówienie zostało anulowane
+              {order.cancelReason ? <> (powód: <b>{order.cancelReason.toLowerCase()}</b>)</> : null}.
+              <br />
+              Jeśli to pomyłka albo chcesz zamówić ponownie, zadzwoń:{" "}
+              <a href="tel:586865530" className="font-bold underline underline-offset-2" style={{ color: C.accent }}>
+                58 686 55 30
+              </a>
+            </div>
+            <Link
+              href="/menu"
+              className="mt-8 inline-block border-b pb-1 text-[10px] uppercase tracking-[0.24em]"
+              style={{ color: C.accent, borderColor: C.accent, textIndent: "0.24em" }}
+            >
+              ← Zamów ponownie
+            </Link>
+          </div>
+        </div>
+      </main>
+    );
+  }
   const scheduled = order.timeMode === "scheduled";
   const etaKnown = !!order.etaAt;
   const bigTime = scheduled ? (order.scheduledTime ?? "—") : etaKnown ? fmtTime(order.etaAt) : null;

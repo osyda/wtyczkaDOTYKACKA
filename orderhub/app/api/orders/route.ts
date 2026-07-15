@@ -47,6 +47,25 @@ export async function POST(req: Request) {
     if (!hours.acceptingOrders) {
       return NextResponse.json({ error: hours.message }, { status: 403 });
     }
+    // „Na konkretną godzinę": tylko sensowna PRZYSZŁOŚĆ (min. 45 min od teraz)
+    // i nie później niż ostatnie zamówienia kuchni.
+    if (input.timeMode === "scheduled") {
+      const m = /^(\d{1,2}):(\d{2})$/.exec(input.scheduledTime ?? "");
+      if (!m) return NextResponse.json({ error: "Wybierz godzinę z listy." }, { status: 400 });
+      const nowPl = new Intl.DateTimeFormat("en-GB", { timeZone: "Europe/Warsaw", hour: "2-digit", minute: "2-digit", hour12: false }).format(new Date());
+      const [nh, nm] = nowPl.split(":").map(Number);
+      const nowMin = (nh % 24) * 60 + nm;
+      const schedMin = Number(m[1]) * 60 + Number(m[2]);
+      if (schedMin < nowMin + 45) {
+        return NextResponse.json({ error: "Wybrana godzina jest zbyt blisko — wybierz późniejszy termin albo opcję „najszybciej”." }, { status: 400 });
+      }
+      if (hours.lastOrder) {
+        const [lh, lm] = hours.lastOrder.split(":").map(Number);
+        if (schedMin > lh * 60 + lm) {
+          return NextResponse.json({ error: `Ostatnie zamówienia przyjmujemy dziś do ${hours.lastOrder}.` }, { status: 400 });
+        }
+      }
+    }
     // Minimalna wartość zamówienia z dostawą (do 6 km: 40 zł, dalej: 60 zł).
     if (input.mode === "delivery") {
       const min = minOrderForFee(input.deliveryFee ?? 0);
@@ -103,6 +122,12 @@ export async function POST(req: Request) {
   if (input.driver?.trim() && input.mode === "delivery") extra.driver = input.driver.trim();
   if (input.etaMinutes && order.timeMode === "asap" && Number.isFinite(input.etaMinutes)) {
     Object.assign(extra, setEta(order, Number(input.etaMinutes)));
+  }
+  // Zamówienie online „na godzinę" wpada OD RAZU do realizacji (decyzja
+  // właściciela 14.07.2026): kelnerka natychmiast widzi je w „W realizacji"
+  // i wybiera kierowcę; docelowa godzina jest na karcie i kwicie kuchennym.
+  if (input.source !== "phone" && order.timeMode === "scheduled") {
+    extra.status = "in_progress";
   }
   if (Object.keys(extra).length > 0) {
     order = (await orderStore.update(order.id, extra)) ?? order;
