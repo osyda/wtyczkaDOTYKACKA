@@ -275,13 +275,15 @@ export function Shop({ menu }: { menu: Menu }) {
                       key={p.id}
                       onClick={() => setModalProduct(p)}
                       className="ct-reveal flex w-full cursor-pointer items-center gap-4 border-b py-[17px] text-left transition-colors active:bg-[#F0EADD]"
-                      style={{ borderColor: C.hairlineSoft, animationDelay: `${0.2 + ci * 0.05 + i * 0.04}s` }}
+                      style={{ borderColor: C.hairlineSoft, animationDelay: `${Math.min(0.2 + ci * 0.05 + i * 0.04, 0.55)}s` }}
                     >
                       {p.image && (
                         // eslint-disable-next-line @next/next/no-img-element
                         <img
                           src={p.image}
                           alt=""
+                          loading="lazy"
+                          decoding="async"
                           className="h-[66px] w-[66px] object-contain drop-shadow-[0_8px_9px_rgba(27,23,16,0.16)]"
                         />
                       )}

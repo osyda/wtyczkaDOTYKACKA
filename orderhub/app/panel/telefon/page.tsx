@@ -573,7 +573,7 @@ function PhoneOrderInner() {
                     >
                       {p.image && (
                         // eslint-disable-next-line @next/next/no-img-element
-                        <img src={p.image} alt="" className="h-11 w-11 flex-none object-contain" />
+                        <img src={p.image} alt="" loading="lazy" decoding="async" className="h-11 w-11 flex-none object-contain" />
                       )}
                       <span className="min-w-0 flex-1 truncate text-[14px] font-bold">{p.name}</span>
                       <span className="flex-none text-[13.5px] font-extrabold" style={{ color: OLIVE }}>{zl(p.price)}</span>
