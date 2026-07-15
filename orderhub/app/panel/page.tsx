@@ -1149,6 +1149,9 @@ function OrderCard({
         </div>
         <div className="flex flex-wrap justify-end gap-1.5">
           {order.timeMode === "asap" && order.status === "new" && <Badge tone="alert">ASAP</Badge>}
+          {order.timeMode === "scheduled" && order.scheduledTime && (
+            <Badge tone="alert">NA {order.scheduledTime}</Badge>
+          )}
           <Badge tone="info">
             {order.mode === "pickup" ? <IconBag className="h-3 w-3" /> : <IconTruck className="h-3 w-3" />}
             {order.mode === "pickup" ? "Odbiór" : "Dostawa"}

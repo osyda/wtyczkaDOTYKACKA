@@ -157,7 +157,35 @@ export default function CheckoutPage() {
   const [error, setError] = useState<string | null>(null);
   const [mode, setMode] = useState<FulfillmentMode>("delivery");
   const [timeMode, setTimeMode] = useState<TimeMode>("asap");
-  const [scheduledTime, setScheduledTime] = useState("18:00");
+  const [scheduledTime, setScheduledTime] = useState("");
+  // Godziny do wyboru „na konkretną godzinę": co 30 min, najwcześniej za ~godzinę
+  // (zaokrągloną w górę do :00/:30), najpóźniej do ostatnich zamówień kuchni.
+  const [slots, setSlots] = useState<string[]>([]);
+  useEffect(() => {
+    fetch("/api/hours")
+      .then((r) => r.json())
+      .then((h: { lastOrder?: string | null }) => {
+        const now = new Date();
+        const lead = new Date(now.getTime() + 60 * 60000);
+        lead.setMinutes(lead.getMinutes() % 30 === 0 ? lead.getMinutes() : lead.getMinutes() + (30 - (lead.getMinutes() % 30)), 0, 0);
+        const end = (() => {
+          if (!h.lastOrder) return null;
+          const [eh, em] = h.lastOrder.split(":").map(Number);
+          const d = new Date();
+          d.setHours(eh, em, 0, 0);
+          return d;
+        })();
+        const out: string[] = [];
+        for (let t = new Date(lead); !end || t <= end; t = new Date(t.getTime() + 30 * 60000)) {
+          if (!end && out.length >= 12) break; // bez godzin — max 6 h do przodu
+          out.push(`${String(t.getHours()).padStart(2, "0")}:${String(t.getMinutes()).padStart(2, "0")}`);
+          if (out.length > 24) break;
+        }
+        setSlots(out);
+        setScheduledTime((cur) => (out.includes(cur) ? cur : (out[0] ?? "")));
+      })
+      .catch(() => {});
+  }, []);
   const [payment, setPayment] = useState<Payment>("cash");
   const [form, setForm] = useState({
     name: "",
@@ -488,9 +516,32 @@ export default function CheckoutPage() {
 
             <Sec>CZAS</Sec>
             <Opt on={timeMode === "asap"} onClick={() => setTimeMode("asap")} icon={<IconBolt />} label="Najszybciej jak się da" />
-            <Opt on={timeMode === "scheduled"} onClick={() => setTimeMode("scheduled")} icon={<IconClock />} label="Na konkretną godzinę" />
-            {timeMode === "scheduled" && (
-              <Field label="GODZINA" type="time" value={scheduledTime} onChange={setScheduledTime} />
+            {slots.length > 0 && (
+              <Opt on={timeMode === "scheduled"} onClick={() => setTimeMode("scheduled")} icon={<IconClock />} label="Na konkretną godzinę" />
+            )}
+            {timeMode === "scheduled" && slots.length > 0 && (
+              <div className="mt-3">
+                <span className="mb-2 block text-[9px] uppercase tracking-[0.26em]" style={{ color: C.muted, textIndent: "0.26em" }}>
+                  GODZINA {mode === "delivery" ? "DOSTAWY" : "ODBIORU"}
+                </span>
+                <div className="flex flex-wrap gap-2">
+                  {slots.map((s) => (
+                    <button
+                      key={s}
+                      type="button"
+                      onClick={() => setScheduledTime(s)}
+                      className="cursor-pointer border px-3.5 py-2 text-[13px] transition-colors"
+                      style={
+                        scheduledTime === s
+                          ? { background: C.ink, color: C.ivory, borderColor: C.ink }
+                          : { background: C.paper, color: C.ink, borderColor: C.hairline }
+                      }
+                    >
+                      {s}
+                    </button>
+                  ))}
+                </div>
+              </div>
             )}
 
             <Sec>TWOJE DANE</Sec>
