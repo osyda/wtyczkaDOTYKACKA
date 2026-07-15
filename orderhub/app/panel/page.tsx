@@ -1521,8 +1521,21 @@ function HistoryView({ orders: all, onChanged }: { orders: Order[]; onChanged: (
   };
   const today = dateInputValue(new Date());
   const yesterday = dateInputValue(new Date(Date.now() - 86400000));
+  // Zestawienie „Dziś" obejmuje też kursy BĘDĄCE u kierowców (życzenie
+  // właściciela 15.07.2026) — nie dopiero po „Dostarczone".
+  const atDriver = all.filter(
+    (o) =>
+      ["in_progress", "ready", "on_delivery"].includes(o.status) &&
+      o.mode === "delivery" &&
+      o.driver &&
+      sameDay(o.createdAt, day)
+  );
   const orders = all
-    .filter((o) => ["completed", "canceled"].includes(o.status) && sameDay(o.createdAt, day))
+    .filter(
+      (o) =>
+        (["completed", "canceled"].includes(o.status) || atDriver.some((a) => a.id === o.id)) &&
+        sameDay(o.createdAt, day)
+    )
     .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
   const done = orders.filter((o) => o.status === "completed");
   const canceled = orders.filter((o) => o.status === "canceled");
@@ -1533,9 +1546,10 @@ function HistoryView({ orders: all, onChanged }: { orders: Order[]; onChanged: (
   const avg = done.length ? revenue / done.length : 0;
   const discounts = done.reduce((s, o) => s + (o.discount?.amount ?? 0), 0);
 
-  // Rozliczenie kierowców: kursy i utarg per kierowca (dostawy zrealizowane).
+  // Rozliczenie kierowców: kursy i utarg per kierowca — zrealizowane
+  // ORAZ kursy w toku (już wydane kierowcy).
   const byDriver = new Map<string, { count: number; sum: number }>();
-  for (const o of done) {
+  for (const o of [...done, ...atDriver]) {
     if (o.mode !== "delivery") continue;
     const key = o.driver ?? "bez przypisania";
     const cur = byDriver.get(key) ?? { count: 0, sum: 0 };
@@ -1631,9 +1645,13 @@ function HistoryView({ orders: all, onChanged }: { orders: Order[]; onChanged: (
                   <span className="rounded-full px-2.5 py-0.5 text-[11px] font-bold" style={{ background: "rgba(183,56,47,0.12)", color: ALERT }}>
                     anulowane{o.cancelReason ? ` — ${o.cancelReason}` : ""}
                   </span>
-                ) : (
+                ) : o.status === "completed" ? (
                   <span className="rounded-full px-2.5 py-0.5 text-[11px] font-bold" style={{ background: "rgba(140,165,59,0.16)", color: OLIVE }}>
                     zrealizowane{o.staff ? ` — ${o.staff}` : ""}
+                  </span>
+                ) : (
+                  <span className="rounded-full px-2.5 py-0.5 text-[11px] font-bold" style={{ background: "rgba(213,227,107,0.45)", color: "#3F4A19" }}>
+                    {o.status === "on_delivery" ? "w drodze" : "u kierowcy"} — {o.driver}
                   </span>
                 )}
               </button>
