@@ -9,7 +9,6 @@
  * imienia), żeby nic nie stanęło.
  */
 
-import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import { StaffGate } from "@/components/StaffGate";
 import type { Order } from "@/lib/orders/types";
@@ -211,11 +210,6 @@ function DriverInner({ driverName, onLogout }: { driverName?: string; onLogout?:
             >
               Zmień kierowcę
             </button>
-          )}
-          {!codesMode && (
-            <Link href="/panel" className="rounded-full px-3.5 py-1.5 text-[12.5px] font-bold" style={{ background: SUB, color: INK }}>
-              ← Panel
-            </Link>
           )}
         </div>
       </div>
