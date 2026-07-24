@@ -2,9 +2,11 @@
 
 /**
  * Panel kierowcy — telefon w kieszeni kierowcy.
- * Kierowca wybiera swoje imię (pamiętane na urządzeniu), widzi TYLKO swoje
- * dostawy i dwoma wielkimi przyciskami prowadzi kurs: „Wyjeżdżam" → „Dostarczone".
- * Nawigacja: adres otwiera Google Maps, telefon dzwoni jednym stuknięciem.
+ * KODY KIEROWCÓW (15.07.2026): każdy kierowca wchodzi na /panel/kierowca na
+ * SWOIM telefonie, wpisuje swój kod (DRIVER_CODES w Vercelu) i przez 90 dni
+ * widzi tylko własne kursy: „Wyjeżdżam" → „Dostarczone". Bez kodu nie zobaczy
+ * niczego. Gdy DRIVER_CODES nie ustawiono — stary tryb (hasło lokalu + wybór
+ * imienia), żeby nic nie stanęło.
  */
 
 import Link from "next/link";
@@ -28,6 +30,31 @@ function clock(iso?: string): string {
 }
 
 export default function DriverPanelPage() {
+  // Tryb pracy zależy od konfiguracji: kody kierowców (docelowo) albo
+  // stary wariant za hasłem lokalu (zanim właściciel ustawi DRIVER_CODES).
+  const [mode, setMode] = useState<"loading" | "codes" | "legacy">("loading");
+  const [name, setName] = useState<string>("");
+
+  useEffect(() => {
+    fetch("/api/staff/driver-login", { cache: "no-store" })
+      .then((r) => r.json())
+      .then((d: { name?: string | null; enabled?: boolean }) => {
+        setName(d.name ?? "");
+        setMode(d.enabled ? "codes" : "legacy");
+      })
+      .catch(() => setMode("legacy"));
+  }, []);
+
+  if (mode === "loading") {
+    return (
+      <main className="grid min-h-screen place-items-center text-[12px] uppercase tracking-[0.2em]" style={{ background: BG, color: MUTED }}>
+        Ładowanie…
+      </main>
+    );
+  }
+  if (mode === "codes") {
+    return name ? <DriverInner driverName={name} onLogout={() => setName("")} /> : <DriverCodeLogin onLogin={setName} />;
+  }
   return (
     <StaffGate>
       <DriverInner />
@@ -35,18 +62,77 @@ export default function DriverPanelPage() {
   );
 }
 
-function DriverInner() {
+/** Ekran logowania kodem kierowcy (duża klawiatura numeryczna systemowa). */
+function DriverCodeLogin({ onLogin }: { onLogin: (name: string) => void }) {
+  const [code, setCode] = useState("");
+  const [error, setError] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+
+  const submit = async () => {
+    if (!code.trim() || busy) return;
+    setBusy(true);
+    setError(null);
+    try {
+      const res = await fetch("/api/staff/driver-login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ code }),
+      });
+      const d = await res.json();
+      if (!res.ok) throw new Error(d.error ?? "Nieprawidłowy kod.");
+      onLogin(d.name);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Błąd logowania.");
+    }
+    setBusy(false);
+  };
+
+  return (
+    <main className="grid min-h-screen place-items-center px-6" style={{ background: BG, color: INK }}>
+      <div className="w-full max-w-xs rounded-3xl p-6 text-center" style={{ background: CARD, border: "1px solid #EAE2D2" }}>
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src="/brand/icon-espresso.png" alt="" className="mx-auto h-12 w-12 object-contain" />
+        <div className="mt-3 text-[14px] font-extrabold uppercase tracking-[0.12em]">Panel kierowcy</div>
+        <p className="mt-1 text-[12.5px]" style={{ color: MUTED }}>
+          Wpisz swój kod kierowcy — telefon zapamięta Cię na 90 dni.
+        </p>
+        <input
+          value={code}
+          onChange={(e) => setCode(e.target.value)}
+          onKeyDown={(e) => e.key === "Enter" && submit()}
+          inputMode="numeric"
+          autoFocus
+          placeholder="••••"
+          className="mt-4 w-full rounded-xl px-4 py-3.5 text-center text-[22px] font-bold tracking-[0.4em] outline-none"
+          style={{ background: SUB, color: INK, border: "1px solid #EAE2D2" }}
+        />
+        {error && <p className="mt-2 text-[12.5px] font-semibold" style={{ color: ALERT }}>{error}</p>}
+        <button
+          onClick={submit}
+          disabled={busy || !code.trim()}
+          className="mt-4 w-full rounded-full py-3.5 text-[15px] font-extrabold disabled:opacity-40"
+          style={{ background: LIME, color: "#1D2A22" }}
+        >
+          {busy ? "Sprawdzam…" : "Wejdź"}
+        </button>
+      </div>
+    </main>
+  );
+}
+
+function DriverInner({ driverName, onLogout }: { driverName?: string; onLogout?: () => void } = {}) {
   const [drivers, setDrivers] = useState<string[]>([]);
-  const [me, setMe] = useState<string>("");
+  const [me, setMe] = useState<string>(driverName ?? "");
   const [orders, setOrders] = useState<Order[]>([]);
+  const codesMode = Boolean(driverName);
 
   useEffect(() => {
-    setMe(localStorage.getItem("mr_driver") ?? "");
+    if (!codesMode) setMe(localStorage.getItem("mr_driver") ?? "");
     fetch("/api/staff/drivers")
       .then((r) => r.json())
       .then((d) => setDrivers(d.drivers ?? []))
       .catch(() => {});
-  }, []);
+  }, [codesMode]);
 
   const refresh = useCallback(async () => {
     try {
@@ -67,6 +153,12 @@ function DriverInner() {
   const pickMe = (name: string) => {
     setMe(name);
     localStorage.setItem("mr_driver", name);
+  };
+
+  // Tryb kodów: „Zmień kierowcę" = wylogowanie (kasuje ciasteczko 90-dniowe).
+  const logoutDriver = async () => {
+    await fetch("/api/staff/driver-login", { method: "DELETE" }).catch(() => {});
+    onLogout?.();
   };
 
   // „System myśli" — nakładka na czas zapisu (kierowca widzi reakcję od razu).
@@ -113,16 +205,18 @@ function DriverInner() {
         <div className="flex items-center gap-2">
           {me && (
             <button
-              onClick={() => pickMe("")}
+              onClick={() => (codesMode ? logoutDriver() : pickMe(""))}
               className="rounded-full px-3.5 py-1.5 text-[12.5px] font-bold"
               style={{ background: SUB, color: INK }}
             >
               Zmień kierowcę
             </button>
           )}
-          <Link href="/panel" className="rounded-full px-3.5 py-1.5 text-[12.5px] font-bold" style={{ background: SUB, color: INK }}>
-            ← Panel
-          </Link>
+          {!codesMode && (
+            <Link href="/panel" className="rounded-full px-3.5 py-1.5 text-[12.5px] font-bold" style={{ background: SUB, color: INK }}>
+              ← Panel
+            </Link>
+          )}
         </div>
       </div>
 

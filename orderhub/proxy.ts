@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
-import { staffProtectionEnabled, staffToken } from "@/lib/staffAuth";
+import { staffProtectionEnabled, staffToken, verifyDriverCookie } from "@/lib/staffAuth";
 
 /**
  * Proxy: ochrona staffowych endpointów API PIN-em (STAFF_PIN).
@@ -29,6 +29,16 @@ export async function proxy(req: NextRequest) {
     (pathname.startsWith("/api/cti/") && pathname !== "/api/cti/call");
 
   if (isStaffApi && !authed) {
+    // Kierowca zalogowany kodem (ciasteczko driver_auth) może czytać listę
+    // zamówień i zmieniać statusy swoich kursów — nic więcej.
+    const driverAllowed =
+      (pathname === "/api/orders" && method === "GET") ||
+      (pathname.endsWith("/status") && method === "POST") ||
+      pathname === "/api/staff/drivers";
+    if (driverAllowed) {
+      const driver = await verifyDriverCookie(req.cookies.get("driver_auth")?.value);
+      if (driver) return NextResponse.next();
+    }
     return NextResponse.json({ error: "Brak autoryzacji" }, { status: 401 });
   }
   return NextResponse.next();
